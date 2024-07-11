@@ -13,6 +13,8 @@ export interface ISettings {
   applicationUrl: string
   apikey: string
   overseerr_url: string
+  webhook_name: string
+  webhook_url: string
   locale: string
   cacheImages: number
   plex_name: string
@@ -31,18 +33,18 @@ export interface ISettings {
 
 const SettingsContext = createContext({
   settings: {} as ISettings,
-  addSettings: (settings: ISettings) => {},
-  removeSettings: () => {},
+  addSettings: (settings: ISettings) => { },
+  removeSettings: () => { },
 })
 
 export function SettingsContextProvider(props: {
   children:
-    | boolean
-    | ReactChild
-    | ReactFragment
-    | ReactPortal
-    | null
-    | undefined
+  | boolean
+  | ReactChild
+  | ReactFragment
+  | ReactPortal
+  | null
+  | undefined
 }) {
   const [settings, setSettings] = useState<ISettings>({} as ISettings)
 
