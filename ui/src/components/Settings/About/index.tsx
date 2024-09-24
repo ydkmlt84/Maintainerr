@@ -18,7 +18,7 @@ const AboutSettings = () => {
     version: string;
   }
 
-  const { data } = useSWR<versiontype>('api/app/status')
+  const { data } = useSWR('api/app/status')
 
   function sonarrswr() {
     const { data } = useSWR('/api/v3/diskspace', sonarrfetcher)
@@ -85,7 +85,7 @@ const AboutSettings = () => {
         <div className='form-row'>
           <label className='text-label'> Version </label>
           <div className='form-input'>
-            <div className='form-input-field'>{data.version}</div>
+            <div className='form-input-field'>{sonarrswr()}</div>
           </div>
         </div>
       </div>

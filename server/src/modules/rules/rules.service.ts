@@ -40,8 +40,8 @@ export interface ReturnStatus {
 @Injectable()
 export class RulesService {
   private readonly logger = new Logger(RulesService.name);
-  private readonly communityUrl = 'https://jsonbin.maintainerr.info/maintainerr-app/rules';
-  private readonly key = '788bfded-1fd0-46e8-8616-28d76e8a2904';
+  private readonly communityUrl = 'https://api.jsonbin.io/v3/b/66ee014ee41b4d34e43410a4?meta=false';
+  private readonly key = '$2a$10$pTBJGGguW0I1tKiI56TrA.2dgfXVeQNJJCdz2Lx8pEhdlu.7pGSe6';
 
   ruleConstants: RuleConstants;
   constructor(
@@ -768,7 +768,7 @@ export class RulesService {
     return await axios
       .get(this.communityUrl, {
         headers: {
-          Authorization: 'token ' + this.key,
+          'X-Master-Key': this.key,
         },
       })
       .then((response) => {
@@ -795,12 +795,12 @@ export class RulesService {
         undefined
       ) {
         return axios
-          .patch(
+          .put(
             this.communityUrl,
             { id: rules.length, karma: 0, appVersion: appVersion, ...rule },
             {
               headers: {
-                Authorization: 'token ' + this.key,
+                'X-Master-Key': this.key,
               },
             },
           )
@@ -876,9 +876,9 @@ export class RulesService {
             },
           ]);
           return axios
-            .post(this.communityUrl, rules, {
+            .put(this.communityUrl, rules, {
               headers: {
-                Authorization: 'token ' + this.key,
+                'X-Master-Key': this.key,
               },
             })
             .then(() => {
