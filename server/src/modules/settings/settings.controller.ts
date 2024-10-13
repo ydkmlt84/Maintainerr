@@ -1,16 +1,23 @@
 import { Body, Controller, Delete, Get, Post } from '@nestjs/common';
+import { ApiTags, ApiResponse } from '@nestjs/swagger';
 import { SettingDto } from "./dto's/setting.dto";
 import { SettingsService } from './settings.service';
 import { CronScheduleDto } from "./dto's/cron.schedule.dto";
-
+@ApiTags('/settings')
 @Controller('/api/settings')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
+  @ApiResponse({
+    status: 200,
+    description: 'Successful Response',
+    type: SettingDto,
+  })
   getSettings() {
     return this.settingsService.getSettings();
   }
+
   @Get('/version')
   getVersion() {
     return this.settingsService.appVersion();

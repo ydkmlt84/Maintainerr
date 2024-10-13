@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { WinstonModule } from 'nest-winston';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import chalk from 'chalk';
@@ -68,7 +69,22 @@ async function bootstrap() {
     }),
   });
   // End Winston logger config
-
+  // openAPI spec config
+  const config = new DocumentBuilder()
+    .setTitle('Maintainerr API')
+    .setDescription('API documentation for Maintainerr')
+    .setVersion('1.0')
+    .addTag('maintainerr')
+    .build();
+  const swaggerCustomOptions = {
+    swaggerUiEnabled: true,
+    swaggerOptions: {
+      supportedSubmitMethods: [],
+    },
+  };
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/swagger', app, document, swaggerCustomOptions);
+  // End openAPI spec config
   app.enableCors({ origin: true });
   await app.listen(3001);
 }

@@ -1,4 +1,7 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export class SettingDto {
+  @ApiProperty()
   id: number;
 
   clientId: string;
