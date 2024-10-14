@@ -2,6 +2,7 @@ import { ICollection } from '../../collections/interfaces/collection.interface';
 import { RuleDto } from './rule.dto';
 import { RuleDbDto } from './ruleDb.dto';
 import { EPlexDataType } from '../../api/plex-api/enums/plex-data-type-enum';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RulesDto {
   id?: number;

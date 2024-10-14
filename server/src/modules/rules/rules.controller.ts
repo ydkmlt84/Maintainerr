@@ -13,7 +13,10 @@ import { ExclusionAction, ExclusionContextDto } from './dtos/exclusion.dto';
 import { RulesDto } from './dtos/rules.dto';
 import { RuleExecutorService } from './tasks/rule-executor.service';
 import { ReturnStatus, RulesService } from './rules.service';
-
+import { ApiTags, ApiResponse, ApiExtraModels, refs } from '@nestjs/swagger';
+import { RuleDto } from './dtos/rule.dto';
+import { Rules } from './entities/rules.entities';
+@ApiTags('/rules')
 @Controller('api/rules')
 export class RulesController {
   constructor(

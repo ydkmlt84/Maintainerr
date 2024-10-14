@@ -1,6 +1,8 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { TmdbApiService } from './tmdb.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('/moviedb')
 @Controller('api/moviedb')
 export class TmdbApiController {
   constructor(private readonly movieDbApi: TmdbApiService) {}

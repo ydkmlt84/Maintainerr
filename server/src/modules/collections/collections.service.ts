@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThan, Repository } from 'typeorm';
+import { ApiResponse } from '@nestjs/swagger';
 
 import { BasicResponseDto } from '../api/plex-api/dto/basic-response.dto';
 import {

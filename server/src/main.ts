@@ -73,8 +73,8 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Maintainerr API')
     .setDescription('API documentation for Maintainerr')
-    .setVersion('1.0')
-    .addTag('maintainerr')
+    .setVersion('1.0.0')
+    .addServer('<server>/api')
     .build();
   const swaggerCustomOptions = {
     swaggerUiEnabled: true,

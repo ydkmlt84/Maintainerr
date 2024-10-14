@@ -17,7 +17,9 @@ import { PlexApiService } from './plex-api.service';
 import { PlexHub, PlexLibraryItem } from './interfaces/library.interfaces';
 import { CollectionHubSettingsDto } from './dto/collection-hub-settings.dto';
 import { BasicResponseDto } from './dto/basic-response.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('/plex')
 @Controller('api/plex')
 export class PlexApiController {
   constructor(private readonly plexApiService: PlexApiService) {}

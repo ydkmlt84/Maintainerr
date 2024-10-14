@@ -1,5 +1,5 @@
 import { RuleOperators, RulePossibility } from '../constants/rules.constants';
-
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class RuleDto {
   operator: RuleOperators | null;
   action: RulePossibility;

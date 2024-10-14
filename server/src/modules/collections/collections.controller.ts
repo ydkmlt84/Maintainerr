@@ -16,7 +16,9 @@ import {
   IAlterableMediaDto,
 } from './interfaces/collection-media.interface';
 import { ECollectionLogType } from '../collections/entities/collection_log.entities';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('/collections')
 @Controller('api/collections')
 export class CollectionsController {
   constructor(

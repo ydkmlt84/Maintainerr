@@ -1,6 +1,8 @@
 import { Controller, Delete, Get, Param } from '@nestjs/common';
 import { OverseerrApiService } from './overseerr-api.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('/overseerr')
 @Controller('api/overseerr')
 export class OverseerrApiController {
   constructor(private readonly overseerApi: OverseerrApiService) {}
