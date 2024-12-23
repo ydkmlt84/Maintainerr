@@ -1,5 +1,6 @@
 import { forwardRef, Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from '../../../../auth/src/auth.module';
 import { Settings } from './entities/settings.entities';
 import { SettingsService } from './settings.service';
 import { SettingsController } from './settings.controller';
@@ -21,6 +22,7 @@ import { SonarrSettings } from './entities/sonarr_settings.entities';
     forwardRef(() => InternalApiModule),
     TypeOrmModule.forFeature([Settings, RadarrSettings]),
     TypeOrmModule.forFeature([Settings, SonarrSettings]),
+    AuthModule,
   ],
   providers: [SettingsService],
   exports: [SettingsService],

@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiKeyGuard } from '../../../../auth/src/guards/api-key.guard';
 import { SettingDto } from "./dto's/setting.dto";
 import { SettingsService } from './settings.service';
 import { CronScheduleDto } from "./dto's/cron.schedule.dto";
@@ -18,6 +20,7 @@ import { SonarrSettingRawDto } from "./dto's/sonarr-setting.dto";
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
+  @UseGuards(ApiKeyGuard)
   @Get()
   getSettings() {
     return this.settingsService.getSettings();

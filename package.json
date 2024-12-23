@@ -18,7 +18,8 @@
   },
   "workspaces": [
     "ui",
-    "server"
+    "server",
+    "auth"
   ],
   "engines": {
     "node": ">=18"
@@ -48,7 +49,7 @@
       [
         "@semantic-release/exec",
         {
-          "prepareCmd": "yarn --cwd server version ${nextRelease.version} && yarn --cwd ui version ${nextRelease.version}"
+          "prepareCmd": "yarn --cwd server version ${nextRelease.version} && yarn --cwd ui version ${nextRelease.version} && yarn --cwd auth version ${nextRelease.version}"
         }
       ],
       [
@@ -58,6 +59,7 @@
             "package.json",
             "server/package.json",
             "ui/package.json",
+            "authentication/package.json",
             "CHANGELOG.md"
           ],
           "message": "chore(release): ${nextRelease.version}"

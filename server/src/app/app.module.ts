@@ -7,6 +7,8 @@ import { RulesModule } from '../modules/rules/rules.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from '../modules/auth/auth.module';
+//import { AuthService } from '../auth';
 import { OverseerrApiModule } from '../modules/api/overseerr-api/overseerr-api.module';
 import { CollectionsModule } from '../modules/collections/collections.module';
 import { SettingsModule } from '../modules/settings/settings.module';
@@ -29,6 +31,7 @@ import { TautulliApiService } from '../modules/api/tautulli-api/tautulli-api.ser
     TautulliApiModule,
     RulesModule,
     CollectionsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
