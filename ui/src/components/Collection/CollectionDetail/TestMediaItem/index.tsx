@@ -1,3 +1,4 @@
+import { ClipboardCopyIcon } from '@heroicons/react/solid'
 import { Editor } from '@monaco-editor/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import YAML from 'yaml'
@@ -241,9 +242,30 @@ const TestMediaItem = (props: ITestMediaItem) => {
             ) : undefined}
           </div>
 
-          <label htmlFor={`editor-field`} className="text-label mb-3">
-            {'Output'}
-          </label>
+          <div className="mb-2 flex items-center justify-between">
+            <label htmlFor="editor-field" className="text-label">
+              Output
+            </label>
+            {comparisonResult && (
+              <button
+                onClick={() => {
+                  const text = (editorRef.current as any)?.getValue?.()
+                  if (text) {
+                    navigator.clipboard.writeText(text)
+                    addToast('Copied to clipboard', {
+                      appearance: 'success',
+                      autoDismiss: true,
+                      autoDismissTimeout: 1500,
+                    })
+                  }
+                }}
+                title="Copy to clipboard"
+              >
+                <ClipboardCopyIcon className="h-5 w-5 text-amber-600 hover:text-amber-500" />
+              </button>
+            )}
+          </div>
+
           <div className="editor-container h-full">
             <Editor
               options={{ readOnly: true, minimap: { enabled: false } }}

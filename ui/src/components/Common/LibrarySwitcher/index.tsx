@@ -31,7 +31,7 @@ const LibrarySwitcher = (props: ILibrarySwitcher) => {
 
   return (
     <>
-      <div className="mb-5 w-full">
+      <div className="max-w-full">
         <form>
           <select
             className="border-zinc-600 hover:border-zinc-500 focus:border-zinc-500 focus:bg-opacity-100 focus:placeholder-zinc-400 focus:outline-none focus:ring-0"

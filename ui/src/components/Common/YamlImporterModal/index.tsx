@@ -1,7 +1,9 @@
-import { useRef } from 'react'
-import Modal from '../Modal'
+import { ClipboardCopyIcon } from '@heroicons/react/solid'
 import Editor from '@monaco-editor/react'
+import { useRef } from 'react'
+import { useToasts } from 'react-toast-notifications'
 import Alert from '../Alert'
+import Modal from '../Modal'
 
 export interface IYamlImporterModal {
   onImport: (yaml: string) => void
@@ -15,6 +17,8 @@ const YamlImporterModal = (props: IYamlImporterModal) => {
   function handleEditorDidMount(editor: any, monaco: any) {
     editorRef.current = editor
   }
+
+  const { addToast } = useToasts()
 
   const download = async () => {
     if (props.yaml) {
@@ -55,6 +59,31 @@ const YamlImporterModal = (props: IYamlImporterModal) => {
               : 'Import rules from a YAML document. This will override your current rules'
           }`}
         </Alert>
+
+        {props.yaml && (
+          <div className="mb-2 flex items-center justify-between">
+            <label htmlFor="editor-field" className="text-label">
+              YAML Output
+            </label>
+            <button
+              onClick={() => {
+                const text = (editorRef.current as any)?.getValue?.()
+                if (text) {
+                  navigator.clipboard.writeText(text)
+                  addToast('Copied to clipboard', {
+                    appearance: 'success',
+                    autoDismiss: true,
+                    autoDismissTimeout: 3000,
+                  })
+                }
+              }}
+              title="Copy to clipboard"
+            >
+              <ClipboardCopyIcon className="h-5 w-5 text-amber-600 hover:text-amber-500" />
+            </button>
+          </div>
+        )}
+
         <Editor
           options={{
             minimap: { enabled: false },
