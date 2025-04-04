@@ -16,7 +16,7 @@ const CollectionOverview = (props: ICollectionOverview) => {
     <div>
       <LibrarySwitcher onSwitch={props.onSwitchLibrary} />
 
-      <div className="m-auto mb-3 flex">
+      <div className="m-auto mb-3 mt-4 flex">
         <div className="m-auto sm:m-0">
           <ExecuteButton
             onClick={debounce(props.doActions, 5000, {

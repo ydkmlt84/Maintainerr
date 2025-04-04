@@ -11,8 +11,8 @@ import {
 import { CommunityRule } from './dtos/communityRule.dto';
 import { ExclusionAction, ExclusionContextDto } from './dtos/exclusion.dto';
 import { RulesDto } from './dtos/rules.dto';
-import { RuleExecutorService } from './tasks/rule-executor.service';
 import { ReturnStatus, RulesService } from './rules.service';
+import { RuleExecutorService } from './tasks/rule-executor.service';
 
 @Controller('api/rules')
 export class RulesController {
@@ -48,6 +48,19 @@ export class RulesController {
   @Get('/exclusion')
   getExclusion(@Query() query: { rulegroupId?: number; plexId?: number }) {
     return this.rulesService.getExclusions(query.rulegroupId, query.plexId);
+  }
+
+  @Get('/exclusion/all')
+  async getAllExcludedItems() {
+    const exclusions = await this.rulesService.getAllExclusions();
+
+    // Return array of objects like: { plexId: 12345, type: 3 }
+    return exclusions.map((excl) => ({
+      plexId: +excl.plexId,
+      type: excl.type,
+      ruleGroupId: excl.ruleGroupId,
+      id: excl.id,
+    }));
   }
 
   @Get('/count')

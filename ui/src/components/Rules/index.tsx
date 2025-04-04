@@ -1,5 +1,7 @@
 import { debounce } from 'lodash'
 import React, { useEffect, useState } from 'react'
+import { useToasts } from 'react-toast-notifications'
+import { ConstantsContextProvider } from '../../contexts/constants-context'
 import GetApiHandler, { PostApiHandler } from '../../utils/ApiHandler'
 import AddButton from '../Common/AddButton'
 import ExecuteButton from '../Common/ExecuteButton'
@@ -7,8 +9,6 @@ import LibrarySwitcher from '../Common/LibrarySwitcher'
 import LoadingSpinner from '../Common/LoadingSpinner'
 import RuleGroup, { IRuleGroup } from './RuleGroup'
 import AddModal from './RuleGroup/AddModal'
-import { useToasts } from 'react-toast-notifications'
-import { ConstantsContextProvider } from '../../contexts/constants-context'
 
 const Rules: React.FC = () => {
   const [addModalActive, setAddModal] = useState(false)
@@ -106,7 +106,7 @@ const Rules: React.FC = () => {
       <div className="w-full">
         <LibrarySwitcher onSwitch={onSwitchLibrary} />
 
-        <div className="m-auto mb-3 flex">
+        <div className="m-auto mb-3 mt-4 flex">
           <div className="ml-auto sm:ml-0">
             <AddButton onClick={showAddModal} text="New Rule" />
           </div>

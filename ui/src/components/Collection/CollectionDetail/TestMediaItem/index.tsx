@@ -1,12 +1,14 @@
+import { ClipboardCopyIcon } from '@heroicons/react/solid'
+import { Editor } from '@monaco-editor/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useToasts } from 'react-toast-notifications'
+import YAML from 'yaml'
+import GetApiHandler, { PostApiHandler } from '../../../../utils/ApiHandler'
+import { EPlexDataType } from '../../../../utils/PlexDataType-enum'
+import Alert from '../../../Common/Alert'
+import FormItem from '../../../Common/FormItem'
 import Modal from '../../../Common/Modal'
 import SearchMediaItem, { IMediaOptions } from '../../../Common/SearchMediaITem'
-import { EPlexDataType } from '../../../../utils/PlexDataType-enum'
-import FormItem from '../../../Common/FormItem'
-import GetApiHandler, { PostApiHandler } from '../../../../utils/ApiHandler'
-import { Editor } from '@monaco-editor/react'
-import YAML from 'yaml'
-import Alert from '../../../Common/Alert'
 
 interface ITestMediaItem {
   onCancel: () => void
@@ -27,6 +29,7 @@ interface IComparisonResult {
 const TestMediaItem = (props: ITestMediaItem) => {
   const [mediaItem, setMediaItem] = useState<IMediaOptions>()
   const [loading, setLoading] = useState(true)
+  const { addToast } = useToasts()
   const [ruleGroup, setRuleGroup] = useState<{
     dataType: EPlexDataType
     id: string
@@ -262,9 +265,30 @@ const TestMediaItem = (props: ITestMediaItem) => {
             ) : undefined}
           </div>
 
-          <label htmlFor={`editor-field`} className="text-label mb-3">
-            {'Output'}
-          </label>
+          <div className="mb-2 flex items-center justify-between">
+            <label htmlFor="editor-field" className="text-label">
+              Output
+            </label>
+            {comparisonResult && (
+              <button
+                onClick={() => {
+                  const text = (editorRef.current as any)?.getValue?.()
+                  if (text) {
+                    navigator.clipboard.writeText(text)
+                    addToast('Copied to clipboard', {
+                      appearance: 'success',
+                      autoDismiss: true,
+                      autoDismissTimeout: 1500,
+                    })
+                  }
+                }}
+                title="Copy to clipboard"
+              >
+                <ClipboardCopyIcon className="h-5 w-5 text-amber-600 hover:text-amber-500" />
+              </button>
+            )}
+          </div>
+
           <div className="editor-container h-full">
             <Editor
               options={{ readOnly: true, minimap: { enabled: false } }}

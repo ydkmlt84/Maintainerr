@@ -9,14 +9,14 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import {
-  PlexCollection,
-  CreateUpdateCollection,
-} from './interfaces/collection.interface';
-import { PlexApiService } from './plex-api.service';
-import { PlexHub, PlexLibraryItem } from './interfaces/library.interfaces';
-import { CollectionHubSettingsDto } from './dto/collection-hub-settings.dto';
 import { BasicResponseDto } from './dto/basic-response.dto';
+import { CollectionHubSettingsDto } from './dto/collection-hub-settings.dto';
+import {
+  CreateUpdateCollection,
+  PlexCollection,
+} from './interfaces/collection.interface';
+import { PlexHub, PlexLibraryItem } from './interfaces/library.interfaces';
+import { PlexApiService } from './plex-api.service';
 
 @Controller('api/plex')
 export class PlexApiController {
@@ -33,19 +33,23 @@ export class PlexApiController {
   // syncLibraries() {
   //   return this.plexApiService.syncLibraries();
   // }
-  @Get('library/:id/content{/:page}')
-  getLibraryContent(
+  @Get('library/:id/content')
+  async getPagedContent(
     @Param('id') id: string,
-    @Param('page', new ParseIntPipe()) page: number,
-    @Query('amount') amount: number,
+    @Query('page') page = '1',
+    @Query('size') size = '120',
+    @Query('sort') sort = 'addedAt:desc',
   ) {
-    const size = amount ? amount : 50;
-    const offset = (page - 1) * size;
-    return this.plexApiService.getLibraryContents(id, {
-      offset: offset,
-      size: size,
-    });
+    const offset = (parseInt(page) - 1) * parseInt(size);
+
+    return this.plexApiService.getLibraryContents(
+      id,
+      { offset, size: parseInt(size) },
+      undefined,
+      sort,
+    );
   }
+
   @Get('meta/:id')
   getMetadata(@Param('id') id: string) {
     return this.plexApiService.getMetadata(id);
