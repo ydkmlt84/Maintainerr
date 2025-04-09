@@ -16,8 +16,17 @@ const Overview = () => {
   const [visibleCount, setVisibleCount] = useState(100)
   const [allItems, setAllItems] = useState<IPlexMetadata[]>([])
 
-  const [selectedLibrary, setSelectedLibrary] = useState<number>()
-  const selectedLibraryRef = useRef<number>()
+  const [selectedLibrary, setSelectedLibrary] = useState<number | undefined>(
+    undefined,
+  )
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('maintainerr_selectedLibrary')
+    if (stored) {
+      setSelectedLibrary(+stored)
+    }
+  }, [])
+
   const [searchUsed, setSearchUsed] = useState<boolean>(false)
   const SearchCtx = useContext(SearchContext)
   const LibrariesCtx = useContext(LibrariesContext)
@@ -27,20 +36,39 @@ const Overview = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('poster')
 
   useEffect(() => {
-    document.title = 'Maintainerr - Overview'
-    setTimeout(() => {
-      if (
-        loadingRef.current &&
-        data.length === 0 &&
-        SearchCtx.search.text === '' &&
-        LibrariesCtx.libraries.length > 0
-      ) {
-        switchLib(
-          selectedLibrary ? selectedLibrary : +LibrariesCtx.libraries[0].key,
-        )
-      }
-    }, 300)
+    const stored = sessionStorage.getItem('maintainerr_viewMode')
+    if (stored) {
+      setViewMode(stored as ViewMode)
+    }
   }, [])
+
+  useEffect(() => {
+    sessionStorage.setItem('maintainerr_viewMode', viewMode)
+
+    if (selectedLibrary !== undefined) {
+      sessionStorage.setItem(
+        'maintainerr_selectedLibrary',
+        String(selectedLibrary),
+      )
+    }
+  }, [viewMode, selectedLibrary])
+
+  useEffect(() => {
+    document.title = 'Maintainerr - Overview'
+
+    if (typeof window === 'undefined') return
+    if (!selectedLibrary && LibrariesCtx.libraries.length > 0) {
+      const stored = sessionStorage.getItem('maintainerr_selectedLibrary')
+      const fallbackId = +LibrariesCtx.libraries[0].key
+
+      const validId =
+        stored && LibrariesCtx.libraries.some((lib) => +lib.key === +stored)
+          ? +stored
+          : fallbackId
+
+      switchLib(validId) // 💥 This is the missing piece
+    }
+  }, [LibrariesCtx.libraries])
 
   useEffect(() => {
     if (SearchCtx.search.text !== '') {
@@ -51,7 +79,6 @@ const Overview = () => {
           loadingRef.current = false
         },
       )
-      setSelectedLibrary(+LibrariesCtx.libraries[0]?.key)
     } else {
       setSearchUsed(false)
       setData([])
@@ -61,8 +88,9 @@ const Overview = () => {
   }, [SearchCtx.search.text])
 
   useEffect(() => {
-    selectedLibraryRef.current = selectedLibrary
-    fetchData()
+    if (selectedLibrary !== undefined && SearchCtx.search.text === '') {
+      fetchData()
+    }
   }, [selectedLibrary])
 
   const sortData = (
@@ -106,8 +134,8 @@ const Overview = () => {
   ]
 
   const fetchData = async () => {
-    if (selectedLibraryRef.current && SearchCtx.search.text === '') {
-      const askedLib = selectedLibraryRef.current
+    if (selectedLibrary && SearchCtx.search.text === '') {
+      const askedLib = selectedLibrary
       const sortField = sortOption.split(':')[0]
       const isBackendSortable = backendSortableFields.includes(sortField)
       const apiSortParam = isBackendSortable ? `&sort=${sortOption}` : ''
@@ -117,7 +145,7 @@ const Overview = () => {
         { plexId: number; type: number; ruleGroupId?: number; id: number }[],
       ] = await Promise.all([
         GetApiHandler(
-          `/plex/library/${selectedLibraryRef.current}/content?page=1&size=1000${apiSortParam}`,
+          `/plex/library/${selectedLibrary}/content?page=1&size=1000${apiSortParam}`,
         ),
         GetApiHandler(`/rules/exclusion/all`),
       ])
@@ -155,7 +183,7 @@ const Overview = () => {
         return true
       })
 
-      if (askedLib === selectedLibraryRef.current) {
+      if (askedLib === selectedLibrary) {
         setVisibleCount(100) // Reset visible count
         setAllItems(filteredItems)
         setData(filteredItems.slice(0, 100))
@@ -184,7 +212,11 @@ const Overview = () => {
         {!searchUsed && (
           <>
             <div className="w-full md:w-1/2">
-              <LibrarySwitcher allPossible={false} onSwitch={switchLib} />
+              <LibrarySwitcher
+                allPossible={false}
+                onSwitch={switchLib}
+                value={selectedLibrary}
+              />
             </div>
             <div className="ml-0 mt-2 flex space-x-2 md:ml-auto md:mt-0">
               <ViewToggleDropdown viewMode={viewMode} onChange={setViewMode} />

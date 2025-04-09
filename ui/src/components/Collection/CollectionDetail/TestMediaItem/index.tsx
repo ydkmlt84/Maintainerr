@@ -1,6 +1,7 @@
 import { ClipboardCopyIcon } from '@heroicons/react/solid'
 import { Editor } from '@monaco-editor/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useToasts } from 'react-toast-notifications'
 import YAML from 'yaml'
 import GetApiHandler, { PostApiHandler } from '../../../../utils/ApiHandler'
 import { EPlexDataType } from '../../../../utils/PlexDataType-enum'
@@ -42,6 +43,7 @@ const TestMediaItem = (props: ITestMediaItem) => {
   ])
   const [comparisonResult, setComparisonResult] = useState<IComparisonResult>()
   const editorRef = useRef(undefined)
+  const { addToast } = useToasts()
 
   const testable = useMemo(() => {
     if (!mediaItem) return false
