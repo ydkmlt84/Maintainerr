@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { AppProps } from 'next/app'
 import { ToastProvider } from 'react-toast-notifications'
+import { Tooltip } from 'react-tooltip'
 import '../../styles/globals.css'
 import Layout from '../components/Layout'
 import { EventsProvider } from '../contexts/events-context'
@@ -22,6 +23,10 @@ function CoreApp({ Component, pageProps }: AppProps) {
                 <LibrariesContextProvider>
                   <ToastProvider>
                     <Component {...pageProps} />
+                    <Tooltip
+                      anchorSelect="[data-tooltip-id]"
+                      render={({ content }) => content}
+                    />
                   </ToastProvider>
                 </LibrariesContextProvider>
               </Layout>

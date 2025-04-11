@@ -1,7 +1,7 @@
 import { ICollectionMedia } from '../../Collection'
 import LoadingSpinner from '../../Common/LoadingSpinner'
 import MediaCard from '../../Common/MediaCard'
-import TableView from '../TableContent'
+import TableData from '../../Common/TableData'
 
 interface IOverviewContent {
   data: IPlexMetadata[]
@@ -9,6 +9,8 @@ interface IOverviewContent {
   onRemove?: (id: string) => void
   libraryId: number
   viewMode: 'poster' | 'table'
+  ruleGroups?: Record<number, string>
+  ruleGroupId?: number
   collectionPage?: boolean
   collectionInfo?: ICollectionMedia[]
   collectionId?: number
@@ -66,6 +68,8 @@ export interface IPlexMetadata {
   maintainerrExclusionType?: 'specific' | 'global' // this is added by Maintainerr, not a Plex type
   maintainerrExclusionId?: number // this is added by Maintainerr, not a Plex type
   maintainerrIsManual?: boolean // this is added by Maintainerr, not a Plex type
+  maintainerrRuleGroupId?: number
+  maintainerrRuleGroupIds?: number[]
 }
 
 const OverviewContent = (props: IOverviewContent) => {
@@ -99,7 +103,14 @@ const OverviewContent = (props: IOverviewContent) => {
   const isOverviewPage = !props.collectionPage
 
   if (props.viewMode === 'table' && isOverviewPage) {
-    return <TableView data={props.data} />
+    return (
+      <TableData
+        data={props.data}
+        libraryId={props.libraryId}
+        ruleGroups={props.ruleGroups}
+        ruleGroupId={props.ruleGroupId}
+      />
+    )
   }
 
   if (props.data && props.data.length > 0) {

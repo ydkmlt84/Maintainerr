@@ -62,6 +62,7 @@ export class RulesController {
       type: excl.type,
       ruleGroupId: excl.ruleGroupId,
       id: excl.id,
+      parent: excl.parent,
     }));
   }
 

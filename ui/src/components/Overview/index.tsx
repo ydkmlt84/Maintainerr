@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer'
 import LibrariesContext from '../../contexts/libraries-context'
 import SearchContext from '../../contexts/search-context'
 import GetApiHandler from '../../utils/ApiHandler'
+import { metadataEnrichment } from '../../utils/metadataEnrichment'
 import FilterDropdown, { FilterOption } from '../Common/FilterDropdown'
 import LibrarySwitcher from '../Common/LibrarySwitcher'
 import SortDropdown, { SortOption } from '../Common/SortDropdown'
@@ -33,13 +34,26 @@ const Overview = () => {
 
   const [sortOption, setSortOption] = useState<SortOption>('title:asc')
   const [filterOption, setFilterOption] = useState<FilterOption>('all')
-  const [viewMode, setViewMode] = useState<ViewMode>('poster')
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('maintainerr_viewMode')
+      return (stored as ViewMode) || 'poster'
+    }
+    return 'poster'
+  })
+
+  const [ruleGroups, setRuleGroups] = useState<Record<number, string>>({})
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('maintainerr_viewMode')
-    if (stored) {
-      setViewMode(stored as ViewMode)
-    }
+    GetApiHandler('/rules').then((resp) => {
+      if (Array.isArray(resp)) {
+        const map: Record<number, string> = {}
+        for (const group of resp) {
+          map[group.id] = group.name
+        }
+        setRuleGroups(map)
+      }
+    })
   }, [])
 
   useEffect(() => {
@@ -140,40 +154,14 @@ const Overview = () => {
       const isBackendSortable = backendSortableFields.includes(sortField)
       const apiSortParam = isBackendSortable ? `&sort=${sortOption}` : ''
 
-      const [plexResp, exclusionResp]: [
-        { totalSize: number; items: IPlexMetadata[] },
-        { plexId: number; type: number; ruleGroupId?: number; id: number }[],
-      ] = await Promise.all([
+      const [plexResp, exclusionResp] = await Promise.all([
         GetApiHandler(
           `/plex/library/${selectedLibrary}/content?page=1&size=1000${apiSortParam}`,
         ),
         GetApiHandler(`/rules/exclusion/all`),
       ])
 
-      const exclusionMap = new Map<
-        string,
-        { id: number; type: 'global' | 'specific' }
-      >()
-      for (const excl of exclusionResp) {
-        exclusionMap.set(String(excl.plexId).trim(), {
-          id: excl.id,
-          type: excl.ruleGroupId ? 'specific' : 'global',
-        })
-      }
-
-      const enrichedItems = plexResp.items.map((item) => {
-        const key = String(item.ratingKey).trim()
-        const exclusion = exclusionMap.get(key)
-        if (exclusion) {
-          return {
-            ...item,
-            maintainerrExclusionType: exclusion.type,
-            maintainerrExclusionId: exclusion.id,
-          } satisfies IPlexMetadata
-        }
-        return item
-      })
-
+      const enrichedItems = metadataEnrichment(plexResp.items, exclusionResp)
       const sortedItems = sortData(enrichedItems, sortOption)
 
       const filteredItems = sortedItems.filter((item) => {
@@ -184,7 +172,7 @@ const Overview = () => {
       })
 
       if (askedLib === selectedLibrary) {
-        setVisibleCount(100) // Reset visible count
+        setVisibleCount(100)
         setAllItems(filteredItems)
         setData(filteredItems.slice(0, 100))
         loadingRef.current = false
@@ -233,6 +221,7 @@ const Overview = () => {
           data={data}
           libraryId={selectedLibrary}
           viewMode={viewMode}
+          ruleGroups={ruleGroups}
         />
       ) : undefined}
 
