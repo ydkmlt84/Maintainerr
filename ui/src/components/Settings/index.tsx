@@ -22,24 +22,14 @@ const SettingsWrapper: React.FC<{ children?: ReactNode }> = (props: {
       regex: /^\/settings(\/plex)?$/,
     },
     {
-      text: 'Overseerr',
-      route: '/settings/overseerr',
-      regex: /^\/settings(\/overseerr)?$/,
+      text: 'Overseerr & Jellyseerr',
+      route: '/settings/seerrservices',
+      regex: /^\/settings(\/seerrservices)?$/,
     },
     {
-      text: 'Jellyseerr',
-      route: '/settings/jellyseerr',
-      regex: /^\/settings(\/jellyseerr)?$/,
-    },
-    {
-      text: 'Radarr',
-      route: '/settings/radarr',
-      regex: /^\/settings(\/radarr)?$/,
-    },
-    {
-      text: 'Sonarr',
-      route: '/settings/sonarr',
-      regex: /^\/settings(\/sonarr)?$/,
+      text: 'Radarr & Sonarr',
+      route: '/settings/arrservices',
+      regex: /^\/settings(\/arrservices)?$/,
     },
     {
       text: 'Tautulli',

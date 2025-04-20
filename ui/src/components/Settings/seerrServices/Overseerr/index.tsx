@@ -1,17 +1,16 @@
 import { SaveIcon } from '@heroicons/react/solid'
 import { useContext, useEffect, useRef, useState } from 'react'
-import SettingsContext from '../../../contexts/settings-context'
-import { PostApiHandler } from '../../../utils/ApiHandler'
+import SettingsContext from '../../../../contexts/settings-context'
+import { PostApiHandler } from '../../../../utils/ApiHandler'
 import {
   addPortToUrl,
   getPortFromUrl,
   handleSettingsInputChange,
   removePortFromUrl,
-} from '../../../utils/SettingsUtils'
-import Alert from '../../Common/Alert'
-import Button from '../../Common/Button'
-import DocsButton from '../../Common/DocsButton'
-import TestButton from '../../Common/TestButton'
+} from '../../../../utils/SettingsUtils'
+import Alert from '../../../Common/Alert'
+import Button from '../../../Common/Button'
+import TestButton from '../../../Common/TestButton'
 
 const OverseerrSettings = () => {
   const settingsCtx = useContext(SettingsContext)
@@ -113,7 +112,6 @@ const OverseerrSettings = () => {
     <div className="h-full w-full">
       <div className="section h-full w-full">
         <h3 className="heading">Overseerr Settings</h3>
-        <p className="description">Overseerr configuration</p>
       </div>
       {error ? (
         <Alert type="warning" title="Not all fields contain values" />
@@ -132,71 +130,66 @@ const OverseerrSettings = () => {
         ))}
 
       <div className="section">
-        <form onSubmit={submit}>
-          <div className="form-row">
-            <label htmlFor="hostname" className="text-label">
-              Hostname or IP
-            </label>
-            <div className="form-input">
-              <div className="form-input-field">
-                <input
-                  name="hostname"
-                  id="hostname"
-                  type="text"
-                  defaultValue={hostname}
-                  ref={hostnameRef}
-                  value={hostnameRef.current?.value}
-                  onChange={(e) =>
-                    handleSettingsInputChange(e, hostnameRef, setHostname)
-                  }
-                ></input>
-              </div>
+        <form onSubmit={submit} className="w-full">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-1 flex-col">
+              <label htmlFor="hostname" className="text-label mb-6">
+                Hostname or IP
+              </label>
+              <label htmlFor="port" className="text-label my-6">
+                Port
+              </label>
+              <label htmlFor="apikey" className="text-label">
+                Api key
+              </label>
             </div>
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="port" className="text-label">
-              Port
-            </label>
-            <div className="form-input">
-              <div className="form-input-field">
-                <input
-                  name="port"
-                  id="port"
-                  type="number"
-                  ref={portRef}
-                  value={portRef.current?.value}
-                  defaultValue={port}
-                  onChange={(e) =>
-                    handleSettingsInputChange(e, portRef, setPort)
-                  }
-                ></input>
+            <div className="col-span-2 flex-col">
+              <div className="form-input md:w-1/3">
+                <div className="form-input-field">
+                  <input
+                    name="hostname"
+                    id="hostname"
+                    type="text"
+                    defaultValue={hostname}
+                    ref={hostnameRef}
+                    value={hostnameRef.current?.value}
+                    onChange={(e) =>
+                      handleSettingsInputChange(e, hostnameRef, setHostname)
+                    }
+                  ></input>
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="apikey" className="text-label">
-              Api key
-            </label>
-            <div className="form-input">
-              <div className="form-input-field">
-                <input
-                  name="apikey"
-                  id="apikey"
-                  type="password"
-                  ref={apiKeyRef}
-                  defaultValue={settingsCtx.settings.overseerr_api_key}
-                ></input>
+              <div className="form-input md:w-1/3">
+                <div className="form-input-field">
+                  <input
+                    name="port"
+                    id="port"
+                    type="number"
+                    ref={portRef}
+                    value={portRef.current?.value}
+                    defaultValue={port}
+                    onChange={(e) =>
+                      handleSettingsInputChange(e, portRef, setPort)
+                    }
+                  ></input>
+                </div>
+              </div>
+              <div className="form-input md:w-1/3">
+                <div className="form-input-field">
+                  <input
+                    name="apikey"
+                    id="apikey"
+                    type="password"
+                    ref={apiKeyRef}
+                    defaultValue={settingsCtx.settings.overseerr_api_key}
+                  ></input>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="actions mt-5 w-full">
             <div className="flex w-full flex-wrap sm:flex-nowrap">
-              <span className="m-auto rounded-md shadow-sm sm:ml-3 sm:mr-auto">
-                <DocsButton page="Configuration/#overseerr" />
-              </span>
               <div className="m-auto mt-3 flex xs:mt-0 sm:m-0 sm:justify-end">
                 <TestButton
                   onClick={appTest}

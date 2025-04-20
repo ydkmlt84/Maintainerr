@@ -1,17 +1,17 @@
 import { SaveIcon } from '@heroicons/react/solid'
 import { useContext, useEffect, useRef, useState } from 'react'
-import SettingsContext from '../../../contexts/settings-context'
-import { PostApiHandler } from '../../../utils/ApiHandler'
+import SettingsContext from '../../../../contexts/settings-context'
+import { PostApiHandler } from '../../../../utils/ApiHandler'
 import {
   addPortToUrl,
   getPortFromUrl,
   handleSettingsInputChange,
   removePortFromUrl,
-} from '../../../utils/SettingsUtils'
-import Alert from '../../Common/Alert'
-import Button from '../../Common/Button'
-import DocsButton from '../../Common/DocsButton'
-import TestButton from '../../Common/TestButton'
+} from '../../../../utils/SettingsUtils'
+import Alert from '../../../Common/Alert'
+import Button from '../../../Common/Button'
+
+import TestButton from '../../../Common/TestButton'
 
 const JellyseerrSettings = () => {
   const settingsCtx = useContext(SettingsContext)
@@ -194,9 +194,6 @@ const JellyseerrSettings = () => {
 
           <div className="actions mt-5 w-full">
             <div className="flex w-full flex-wrap sm:flex-nowrap">
-              <span className="m-auto rounded-md shadow-sm sm:ml-3 sm:mr-auto">
-                <DocsButton page="Configuration/#jellyseerr" />
-              </span>
               <div className="m-auto mt-3 flex xs:mt-0 sm:m-0 sm:justify-end">
                 <TestButton
                   onClick={appTest}

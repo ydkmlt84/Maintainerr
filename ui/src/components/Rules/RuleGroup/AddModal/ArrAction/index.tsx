@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import GetApiHandler from '../../../../../utils/ApiHandler'
-import { IRadarrSetting } from '../../../../Settings/Radarr'
-import { ISonarrSetting } from '../../../../Settings/Sonarr'
+import {
+  IRadarrSetting,
+  ISonarrSetting,
+} from '../../../../Settings/arrServices'
 
 type ArrType = 'Radarr' | 'Sonarr'
 

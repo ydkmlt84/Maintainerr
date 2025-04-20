@@ -1,20 +1,20 @@
 import { useState } from 'react'
+import { IRadarrSetting } from '../../'
+import { PostApiHandler, PutApiHandler } from '../../../../../utils/ApiHandler'
 import {
   addPortToUrl,
   getBaseUrl,
   getHostname,
   getPortFromUrl,
-} from '../../../../utils/SettingsUtils'
-import DocsButton from '../../../Common/DocsButton'
-import Modal from '../../../Common/Modal'
-import { PostApiHandler, PutApiHandler } from '../../../../utils/ApiHandler'
-import Alert from '../../../Common/Alert'
-import { ISonarrSetting } from '..'
+} from '../../../../../utils/SettingsUtils'
+import Alert from '../../../../Common/Alert'
+import DocsButton from '../../../../Common/DocsButton'
+import Modal from '../../../../Common/Modal'
 
-interface ISonarrSettingsModal {
-  onUpdate: (setting: ISonarrSetting) => void
+interface IRadarrSettingsModal {
+  onUpdate: (setting: IRadarrSetting) => void
   onCancel: () => void
-  settings?: ISonarrSetting
+  settings?: IRadarrSetting
 }
 
 interface TestStatus {
@@ -22,12 +22,12 @@ interface TestStatus {
   version: string
 }
 
-type SonarrSettingSaveResponse =
+type RadarrSettingSaveResponse =
   | {
       status: 'OK'
       code: 1
       message: string
-      data: ISonarrSetting
+      data: IRadarrSetting
     }
   | {
       status: 'NOK'
@@ -36,20 +36,20 @@ type SonarrSettingSaveResponse =
       data?: never
     }
 
-interface SonarrSettingTestResponse {
+interface RadarrSettingTestResponse {
   status: 'OK' | 'NOK'
   code: 0 | 1
   message: string
 }
 
-interface SonarrSettingSaveRequest {
+interface RadarrSettingSaveRequest {
   id?: number
   url: string
   apiKey: string
   serverName: string
 }
 
-const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
+const RadarrSettingsModal = (props: IRadarrSettingsModal) => {
   const handleCancel = () => {
     props.onCancel()
   }
@@ -102,10 +102,10 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
           ? 'https://' + hostname
           : 'http://' + hostname
 
-    let sonarrUrl = `${addPortToUrl(hostnameVal, +port)}`
-    sonarrUrl = sonarrUrl.endsWith('/') ? sonarrUrl.slice(0, -1) : sonarrUrl
+    let radarrUrl = `${addPortToUrl(hostnameVal, +port)}`
+    radarrUrl = radarrUrl.endsWith('/') ? radarrUrl.slice(0, -1) : radarrUrl
 
-    return sonarrUrl
+    return radarrUrl
   }
 
   const derivePort = () => {
@@ -128,11 +128,11 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
 
   const handleSubmit = async () => {
     const port = derivePort()
-    const sonarrUrl = constructUrl(port)
+    const radarrUrl = constructUrl(port)
 
     if (hostname && port && apiKey && serverName) {
-      const payload: SonarrSettingSaveRequest = {
-        url: `${sonarrUrl}${baseUrl ? `/${baseUrl}` : ''}`,
+      const payload: RadarrSettingSaveRequest = {
+        url: `${radarrUrl}${baseUrl ? `/${baseUrl}` : ''}`,
         apiKey: apiKey,
         serverName: serverName,
         ...(props.settings?.id && { id: props.settings?.id }),
@@ -143,12 +143,12 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
       }
 
       const endpoint = props.settings?.id
-        ? `/settings/sonarr/${props.settings.id}`
-        : '/settings/sonarr'
+        ? `/settings/radarr/${props.settings.id}`
+        : '/settings/radarr'
 
       const handler = props.settings?.id ? PutApiHandler : PostApiHandler
 
-      const resp = await handler<SonarrSettingSaveResponse>(endpoint, payload)
+      const resp = await handler<RadarrSettingSaveResponse>(endpoint, payload)
       if (resp.code == 1) {
         props.onUpdate(resp.data)
         setError(false)
@@ -163,11 +163,11 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
 
     setTesting(true)
     const port = derivePort()
-    const sonarrUrl = constructUrl(port)
+    const radarrUrl = constructUrl(port)
 
-    await PostApiHandler<SonarrSettingTestResponse>('/settings/test/sonarr', {
+    await PostApiHandler<RadarrSettingTestResponse>('/settings/test/radarr', {
       apiKey: apiKey,
-      url: `${sonarrUrl}${baseUrl ? `/${baseUrl}` : ''}`,
+      url: `${radarrUrl}${baseUrl ? `/${baseUrl}` : ''}`,
     })
       .then((resp) => {
         setTestResult({
@@ -210,7 +210,7 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
       secondaryText={testing ? 'Testing...' : 'Test'}
       secondaryDisabled={testing}
       onSecondary={performTest}
-      title={'Sonarr Settings'}
+      title={'Radarr Settings'}
       iconSvg={''}
     >
       {error && <Alert type="warning" title="Not all fields contain values" />}
@@ -219,10 +219,10 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
         testResult?.status ? (
           <Alert
             type="warning"
-            title={`Successfully connected to Sonarr (${testResult.version})`}
+            title={`Successfully connected to Radarr (${testResult.version})`}
           />
         ) : (
-          <Alert type="error" title="Failed to connect to Sonarr" />
+          <Alert type="error" title="Failed to connect to Radarr" />
         )
       ) : undefined}
 
@@ -315,11 +315,11 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
       <div className="actions mt-5 w-full">
         <div className="flex w-full flex-wrap sm:flex-nowrap">
           <span className="m-auto rounded-md shadow-sm sm:ml-3 sm:mr-auto">
-            <DocsButton page="Configuration/#sonarr" />
+            <DocsButton page="Configuration/#radarr" />
           </span>
         </div>
       </div>
     </Modal>
   )
 }
-export default SonarrSettingsModal
+export default RadarrSettingsModal
