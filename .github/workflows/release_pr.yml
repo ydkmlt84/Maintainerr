@@ -17,6 +17,7 @@ env:
 jobs:
   resolve-pr:
     name: Resolve PR context
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/release-pr') && github.event.issue.state == 'open' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER') }}
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.pr.outputs.should_run }}
@@ -28,14 +29,6 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            if (!context.payload.issue || !context.payload.issue.pull_request) {
-              core.setOutput('head_repo', '');
-              core.setOutput('head_sha', '');
-              core.setOutput('should_run', 'false');
-              core.warning('Release PR workflow was triggered from a non-PR issue comment.');
-              return;
-            }
-
             const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -66,7 +59,7 @@ jobs:
 
   build-docker-image:
     needs: resolve-pr
-    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/release-pr') && github.event.issue.state == 'open' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER') && needs.resolve-pr.outputs.should_run == 'true' }}
+    if: ${{ needs.resolve-pr.outputs.should_run == 'true' }}
     name: Build ${{ matrix.platform }}
     strategy:
       fail-fast: false
