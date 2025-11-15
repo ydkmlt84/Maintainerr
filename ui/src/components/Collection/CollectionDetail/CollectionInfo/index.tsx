@@ -286,7 +286,7 @@ const CollectionInfo = (props: ICollectionInfo) => {
             <Table.TBody>
               {loadingRef.current ? (
                 <tr>
-                  <Table.TD colSpan={3} noPadding>
+                  <Table.TD colSpan={4} noPadding>
                     <LoadingSpinner />
                   </Table.TD>
                 </tr>
