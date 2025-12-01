@@ -22,16 +22,15 @@ import { InputGroup } from '../../Forms/Input'
 import { SelectGroup } from '../../Forms/Select'
 
 const LogSettings = () => {
-  useEffect(() => {
-    document.title = 'Maintainerr - Settings - Logs'
-  }, [])
-
   return (
-    <div className="h-full w-full">
-      <LogSettingsForm />
-      <Logs />
-      <LogFiles />
-    </div>
+    <>
+      <title>Logs - Maintainerr</title>
+      <div className="h-full w-full">
+        <LogSettingsForm />
+        <Logs />
+        <LogFiles />
+      </div>
+    </>
   )
 }
 
@@ -338,5 +337,4 @@ const LogFiles = () => {
     </div>
   )
 }
-
 export default LogSettings

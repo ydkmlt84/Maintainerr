@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getParser } from 'bowser'
+import Bowser from 'bowser'
 
 interface PlexHeaders extends Record<string, string> {
   Accept: string
@@ -34,7 +34,7 @@ class PlexOAuth {
         'Window is not defined. Are you calling this in the browser?',
       )
     }
-    const browser = getParser(window.navigator.userAgent)
+    const browser = Bowser.getParser(window.navigator.userAgent)
     this.plexHeaders = {
       Accept: 'application/json',
       'X-Plex-Product': 'Maintainerr',
@@ -157,7 +157,7 @@ class PlexOAuth {
         'Window is undefined. Are you running this in the browser?',
       )
     }
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+    const basePath = import.meta.env.VITE_BASE_PATH ?? ''
 
     // Fixes dual-screen position                         Most browsers      Firefox
     const dualScreenLeft =

@@ -446,6 +446,7 @@ export class SettingsService implements SettingDto {
       );
 
       this.plex_auth_token = null;
+      this.plexApi.uninitialize();
 
       return { status: 'OK', code: 1, message: 'Success' };
     } catch (err) {
@@ -479,6 +480,28 @@ export class SettingsService implements SettingDto {
     }
   }
 
+  public async patchSettings(
+    settings: Partial<Settings>,
+  ): Promise<BasicResponseDto> {
+    const settingsDb = await this.settingsRepo.findOne({ where: {} });
+
+    if (!settingsDb) {
+      this.logger.error('Settings could not be loaded for partial update.');
+      return {
+        status: 'NOK',
+        code: 0,
+        message: 'No settings found to update',
+      };
+    }
+
+    const mergedSettings: Settings = {
+      ...settingsDb,
+      ...settings,
+    };
+
+    return this.updateSettings(mergedSettings);
+  }
+
   public async updateSettings(settings: Settings): Promise<BasicResponseDto> {
     try {
       settings.plex_hostname = settings.plex_hostname?.toLowerCase();
@@ -486,7 +509,6 @@ export class SettingsService implements SettingDto {
       settings.tautulli_url = settings.tautulli_url?.toLowerCase();
 
       const settingsDb = await this.settingsRepo.findOne({ where: {} });
-      // Plex SSL specifics
 
       settings.plex_ssl =
         settings.plex_hostname?.includes('https://') ||
