@@ -264,6 +264,56 @@ const AddModal = (props: AddModal) => {
     ruleCreatorVersion.current += 1
   }, [props.editData, reset])
 
+  // Filter out Radarr/Sonarr rules when servers are deselected
+  useEffect(() => {
+    // Helper function to check if an app should be filtered
+    const shouldFilterApp = (
+      appId: number,
+      radarrId: number | null | undefined,
+      sonarrId: number | null | undefined,
+    ): boolean => {
+      if (
+        appId === Application.RADARR &&
+        (radarrId === undefined || radarrId === null)
+      ) {
+        return true
+      }
+      if (
+        appId === Application.SONARR &&
+        (sonarrId === undefined || sonarrId === null)
+      ) {
+        return true
+      }
+      return false
+    }
+
+    setRules((prevRules) => {
+      const filteredRules = prevRules.filter((rule) => {
+        // Check first value
+        if (
+          shouldFilterApp(+rule.firstVal[0], radarrSettingsId, sonarrSettingsId)
+        ) {
+          return false
+        }
+        // Check second value if it exists
+        if (
+          rule.lastVal &&
+          shouldFilterApp(+rule.lastVal[0], radarrSettingsId, sonarrSettingsId)
+        ) {
+          return false
+        }
+        return true
+      })
+
+      // Only update if rules actually changed
+      if (filteredRules.length !== prevRules.length) {
+        ruleCreatorVersion.current += 1
+        return filteredRules
+      }
+      return prevRules
+    })
+  }, [radarrSettingsId, sonarrSettingsId])
+
   const tautulliEnabled =
     constants?.applications?.some((x) => x.id == Application.TAUTULLI) ?? false
   const overseerrEnabled =
@@ -1143,6 +1193,8 @@ const AddModal = (props: AddModal) => {
                   }
                   dataType={+selectedType as EPlexDataType}
                   editData={{ rules: rules }}
+                  radarrSettingsId={radarrSettingsId}
+                  sonarrSettingsId={sonarrSettingsId}
                   onCancel={cancel}
                   onUpdate={updateRules}
                 />

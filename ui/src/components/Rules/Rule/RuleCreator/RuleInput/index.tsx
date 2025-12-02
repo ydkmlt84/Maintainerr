@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { IRule } from '../'
 import { useRuleConstants } from '../../../../../api/rules'
 import {
+  Application,
   IProperty,
   MediaType,
   RulePossibility,
@@ -45,6 +46,34 @@ interface IRuleInput {
   onIncomplete: (id: number) => void
   onDelete: (section: number, id: number) => void
   allowDelete?: boolean
+  radarrSettingsId?: number | null
+  sonarrSettingsId?: number | null
+}
+
+/**
+ * Helper function to determine if an application should be filtered out
+ * based on server selection
+ */
+const shouldFilterApplication = (
+  appId: number,
+  radarrSettingsId: number | null | undefined,
+  sonarrSettingsId: number | null | undefined,
+): boolean => {
+  // Filter out Radarr if no Radarr server is selected
+  if (
+    appId === Application.RADARR &&
+    (radarrSettingsId === undefined || radarrSettingsId === null)
+  ) {
+    return true
+  }
+  // Filter out Sonarr if no Sonarr server is selected
+  if (
+    appId === Application.SONARR &&
+    (sonarrSettingsId === undefined || sonarrSettingsId === null)
+  ) {
+    return true
+  }
+  return false
 }
 
 const RuleInput = (props: IRuleInput) => {
@@ -381,27 +410,36 @@ const RuleInput = (props: IRuleInput) => {
             <option value={undefined} className="text-amber-600">
               Select First Value...
             </option>
-            {constants.applications?.map((app) =>
-              app.mediaType === MediaType.BOTH ||
-              props.mediaType === app.mediaType ? (
-                <optgroup key={app.id} label={app.name}>
-                  {app.props.map((prop) =>
-                    (prop.mediaType === MediaType.BOTH ||
-                      props.mediaType === prop.mediaType) &&
-                    (props.mediaType === MediaType.MOVIE ||
-                      prop.showType === undefined ||
-                      prop.showType.includes(props.dataType!)) ? (
-                      <option
-                        key={`${app.id}-${prop.id}`}
-                        value={JSON.stringify([app.id, prop.id])}
-                      >
-                        {`${app.name} - ${prop.humanName}`}
-                      </option>
-                    ) : null,
-                  )}
-                </optgroup>
-              ) : null,
-            )}
+            {constants.applications
+              ?.filter(
+                (app) =>
+                  !shouldFilterApplication(
+                    app.id,
+                    props.radarrSettingsId,
+                    props.sonarrSettingsId,
+                  ),
+              )
+              .map((app) =>
+                app.mediaType === MediaType.BOTH ||
+                props.mediaType === app.mediaType ? (
+                  <optgroup key={app.id} label={app.name}>
+                    {app.props.map((prop) =>
+                      (prop.mediaType === MediaType.BOTH ||
+                        props.mediaType === prop.mediaType) &&
+                      (props.mediaType === MediaType.MOVIE ||
+                        prop.showType === undefined ||
+                        prop.showType.includes(props.dataType!)) ? (
+                        <option
+                          key={`${app.id}-${prop.id}`}
+                          value={JSON.stringify([app.id, prop.id])}
+                        >
+                          {`${app.name} - ${prop.humanName}`}
+                        </option>
+                      ) : null,
+                    )}
+                  </optgroup>
+                ) : null,
+              )}
           </select>
         </div>
 
@@ -472,36 +510,45 @@ const RuleInput = (props: IRuleInput) => {
               ) : undefined}
               <MaybeTextListOptions ruleType={ruleType} action={action} />
             </optgroup>
-            {constants.applications?.map((app) => {
-              return (app.mediaType === MediaType.BOTH ||
-                props.mediaType === app.mediaType) &&
-                action != null &&
-                action !== RulePossibility.IN_LAST &&
-                action !== RulePossibility.IN_NEXT ? (
-                <optgroup key={app.id} label={app.name}>
-                  {app.props.map((prop) => {
-                    // Add valid application-specific second values. Note that the second value
-                    // type may be different to the rule type - e.g. a rule type of "text list"
-                    // may be able to be matched to values of type "text list" as well as "text".
-                    const secondValueTypes = getSecondValueTypes(ruleType)
-                    for (const type of secondValueTypes) {
-                      if (+prop.type.key === type) {
-                        return (prop.mediaType === MediaType.BOTH ||
-                          props.mediaType === prop.mediaType) &&
-                          (props.mediaType === MediaType.MOVIE ||
-                            prop.showType === undefined ||
-                            prop.showType.includes(props.dataType!)) ? (
-                          <option
-                            key={app.id + 10 + prop.id}
-                            value={JSON.stringify([app.id, prop.id])}
-                          >{`${app.name} - ${prop.humanName}`}</option>
-                        ) : undefined
+            {constants.applications
+              ?.filter(
+                (app) =>
+                  !shouldFilterApplication(
+                    app.id,
+                    props.radarrSettingsId,
+                    props.sonarrSettingsId,
+                  ),
+              )
+              .map((app) => {
+                return (app.mediaType === MediaType.BOTH ||
+                  props.mediaType === app.mediaType) &&
+                  action != null &&
+                  action !== RulePossibility.IN_LAST &&
+                  action !== RulePossibility.IN_NEXT ? (
+                  <optgroup key={app.id} label={app.name}>
+                    {app.props.map((prop) => {
+                      // Add valid application-specific second values. Note that the second value
+                      // type may be different to the rule type - e.g. a rule type of "text list"
+                      // may be able to be matched to values of type "text list" as well as "text".
+                      const secondValueTypes = getSecondValueTypes(ruleType)
+                      for (const type of secondValueTypes) {
+                        if (+prop.type.key === type) {
+                          return (prop.mediaType === MediaType.BOTH ||
+                            props.mediaType === prop.mediaType) &&
+                            (props.mediaType === MediaType.MOVIE ||
+                              prop.showType === undefined ||
+                              prop.showType.includes(props.dataType!)) ? (
+                            <option
+                              key={app.id + 10 + prop.id}
+                              value={JSON.stringify([app.id, prop.id])}
+                            >{`${app.name} - ${prop.humanName}`}</option>
+                          ) : undefined
+                        }
                       }
-                    }
-                  })}
-                </optgroup>
-              ) : undefined
-            })}
+                    })}
+                  </optgroup>
+                ) : undefined
+              })}
           </select>
         </div>
 
