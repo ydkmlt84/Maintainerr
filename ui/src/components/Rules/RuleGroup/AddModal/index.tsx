@@ -1,6 +1,8 @@
 import { CloudDownloadIcon } from '@heroicons/react/outline'
 import {
   BanIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   DocumentDuplicateIcon,
   DownloadIcon,
   QuestionMarkCircleIcon,
@@ -445,6 +447,20 @@ const AddModal = (props: AddModal) => {
   const cancel = () => {
     props.onCancel()
   }
+
+  const [atBottom, setAtBottom] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolledToBottom =
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 50
+
+      setAtBottom(scrolledToBottom)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const onSubmit = async (data: RuleGroupFormOutput) => {
     if (data.useRules && rules.length === 0) {
@@ -1269,7 +1285,7 @@ const AddModal = (props: AddModal) => {
               </div>
             </div>
           </div>
-          <div className="mt-5 flex h-full w-full">
+          <div className="mt-5 hidden h-full w-full md:flex">
             <div className="m-auto flex xl:m-0">
               <button
                 className="ml-auto mr-3 flex h-10 rounded bg-amber-600 text-zinc-900 shadow-md hover:bg-amber-500"
@@ -1281,7 +1297,6 @@ const AddModal = (props: AddModal) => {
                   Save
                 </p>
               </button>
-
               <button
                 className="ml-auto flex h-10 rounded bg-amber-900 text-zinc-900 shadow-md hover:bg-amber-800"
                 onClick={cancel}
@@ -1294,6 +1309,53 @@ const AddModal = (props: AddModal) => {
                 </p>
               </button>
             </div>
+          </div>
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-800 px-4 py-3 shadow-[0_-2px_6px_rgba(0,0,0,0.4)] md:hidden">
+            <div className="flex justify-center gap-3">
+              <button
+                className="flex h-10 w-full max-w-[160px] items-center justify-center rounded bg-amber-600 text-zinc-900 shadow-md hover:bg-amber-500 disabled:opacity-60"
+                type="submit"
+                disabled={isCreatePending || isUpdatePending}
+              >
+                <SaveIcon className="h-5 w-5 text-zinc-200" />
+                <span className="ml-2 text-zinc-100">Save</span>
+              </button>
+
+              <button
+                className="flex h-10 w-full max-w-[160px] items-center justify-center rounded bg-amber-900 text-zinc-900 shadow-md hover:bg-amber-800 disabled:opacity-60"
+                type="button"
+                onClick={cancel}
+                disabled={isCreatePending || isUpdatePending}
+              >
+                <BanIcon className="h-5 w-5 text-zinc-200" />
+                <span className="ml-2 text-zinc-100">Cancel</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="fixed bottom-6 right-6 z-40 hidden md:block">
+            <button
+              type="button"
+              onClick={() => {
+                if (atBottom) {
+                  // Scroll UP
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                } else {
+                  // Scroll DOWN
+                  window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth',
+                  })
+                }
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-600 shadow-lg transition-colors hover:bg-amber-500 focus:outline-none"
+            >
+              {atBottom ? (
+                <ChevronUpIcon className="h-5 w-5 text-zinc-900" />
+              ) : (
+                <ChevronDownIcon className="h-5 w-5 text-zinc-900" />
+              )}
+            </button>
           </div>
         </form>
       </div>
