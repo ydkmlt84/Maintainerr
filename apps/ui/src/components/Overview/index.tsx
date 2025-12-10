@@ -3,7 +3,10 @@ import { useContext, useEffect, useRef, useState } from 'react'
 import { usePlexLibraries } from '../../api/plex'
 import SearchContext from '../../contexts/search-context'
 import GetApiHandler from '../../utils/ApiHandler'
-import LibrarySwitcher from '../Common/LibrarySwitcher'
+import FilterDropdown, { FilterOption } from '../Common/FilterDropdown'
+import LibrarySwitcher from '../Common/OverviewLibrarySwitcher'
+import SortDropdown, { SortOption } from '../Common/SortDropdown'
+import ViewToggleDropdown, { ViewMode } from '../Common/ViewModeDropdown'
 import OverviewContent, { IPlexMetadata } from './Content'
 
 const Overview = () => {
@@ -26,6 +29,10 @@ const Overview = () => {
   const SearchCtx = useContext(SearchContext)
 
   const { data: plexLibraries } = usePlexLibraries()
+
+  const [viewMode, setViewMode] = useState<ViewMode>('poster')
+  const [sortOption, setSortOption] = useState<SortOption>('title:asc')
+  const [filterOption, setFilterOption] = useState<FilterOption>('all')
 
   const fetchAmount = 30
 
@@ -135,31 +142,43 @@ const Overview = () => {
     <>
       <title>Overview - Maintainerr</title>
       <div className="w-full">
-        {!searchUsed ? (
-          <LibrarySwitcher
-            shouldShowAllOption={false}
-            onLibraryChange={switchLib}
-          />
-        ) : undefined}
-        {selectedLibrary ? (
-          <OverviewContent
-            dataFinished={
-              !(totalSizeRef.current >= pageData.current * fetchAmount)
-            }
-            fetchData={() => {
-              setLoadingExtra(true)
-              fetchData()
-            }}
-            loading={loadingRef.current}
-            extrasLoading={
-              loadingExtra &&
-              !loadingRef.current &&
-              totalSizeRef.current >= pageData.current * fetchAmount
-            }
-            data={data}
-            libraryId={selectedLibrary}
-          />
-        ) : undefined}
+        {!searchUsed && (
+          <div className="sticky top-16 z-10 flex flex-col items-center justify-center overflow-visible bg-zinc-900 py-4 md:flex-row">
+            <div className="w-full px-4 md:w-1/2">
+              <LibrarySwitcher
+                shouldShowAllOption={false}
+                onLibraryChange={switchLib}
+              />
+            </div>
+
+            <div className="mt-2 flex w-full justify-center space-x-2 px-4 md:ml-auto md:mt-0 md:w-auto">
+              <ViewToggleDropdown viewMode={viewMode} onChange={setViewMode} />
+              <SortDropdown value={sortOption} onChange={setSortOption} />
+              <FilterDropdown value={filterOption} onChange={setFilterOption} />
+            </div>
+          </div>
+        )}
+        <div className="px-4">
+          {selectedLibrary ? (
+            <OverviewContent
+              dataFinished={
+                !(totalSizeRef.current >= pageData.current * fetchAmount)
+              }
+              fetchData={() => {
+                setLoadingExtra(true)
+                fetchData()
+              }}
+              loading={loadingRef.current}
+              extrasLoading={
+                loadingExtra &&
+                !loadingRef.current &&
+                totalSizeRef.current >= pageData.current * fetchAmount
+              }
+              data={data}
+              libraryId={selectedLibrary}
+            />
+          ) : undefined}
+        </div>
       </div>
     </>
   )

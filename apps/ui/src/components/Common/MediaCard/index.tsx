@@ -111,7 +111,7 @@ const MediaCard: React.FC<IMediaCard> = ({
         />
       ) : undefined}
       <div
-        className={`relative transform-gpu cursor-default overflow-hidden rounded-xl bg-zinc-800 bg-cover pb-[150%] outline-none ring-1 transition duration-300 ${
+        className={`relative transform-gpu cursor-default overflow-hidden rounded-lg bg-zinc-800 bg-cover pb-[150%] outline-none transition duration-300 ${
           showDetail
             ? 'scale-105 shadow-lg ring-zinc-500'
             : 'scale-100 shadow ring-zinc-700'

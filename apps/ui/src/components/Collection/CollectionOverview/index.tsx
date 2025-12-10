@@ -15,7 +15,7 @@ const CollectionOverview = (props: ICollectionOverview) => {
   const { collectionHandlerRunning } = useTaskStatusContext()
 
   return (
-    <div>
+    <div className="mt-4 px-4">
       <LibrarySwitcher onLibraryChange={props.onSwitchLibrary} />
 
       <div className="m-auto mb-3 flex">
