@@ -75,7 +75,7 @@ const SettingsWrapper = () => {
   if (error) {
     return (
       <>
-        <div className="mt-6">
+        <div className="mt-6 px-4">
           <SettingsTabs settingsRoutes={settingsRoutes} allEnabled={false} />
         </div>
         <div className="mt-10 flex">
@@ -88,7 +88,7 @@ const SettingsWrapper = () => {
   if (isLoading) {
     return (
       <>
-        <div className="mt-6">
+        <div className="mt-6 px-4">
           <SettingsTabs settingsRoutes={settingsRoutes} allEnabled={false} />
         </div>
         <LoadingSpinner />
@@ -99,13 +99,13 @@ const SettingsWrapper = () => {
   if (settings) {
     return (
       <>
-        <div className="mt-6">
+        <div className="mt-6 px-4">
           <SettingsTabs
             settingsRoutes={settingsRoutes}
             allEnabled={settings.plex_auth_token !== null}
           />
         </div>
-        <div className="mt-10 text-white">
+        <div className="mt-10 px-4 text-white">
           <Outlet context={{ settings }} />
         </div>
       </>
