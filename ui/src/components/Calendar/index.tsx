@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type CalendarViewMode = 'month' | 'week'
 
@@ -76,8 +76,28 @@ const buildMockItemsByDayKey = (anchor: Date) => {
   return itemsByKey
 }
 
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    // Tailwind "sm" breakpoint is 640px, so < 640 = mobile
+    const mql = window.matchMedia('(max-width: 639px)')
+    const onChange = () => setIsMobile(mql.matches)
+    onChange()
+
+    mql.addEventListener?.('change', onChange)
+    return () => mql.removeEventListener?.('change', onChange)
+  }, [])
+
+  return isMobile
+}
+
 const CalendarPage = () => {
+  const isMobile = useIsMobile()
+
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month')
+  const [desktopViewMode, setDesktopViewMode] =
+    useState<CalendarViewMode>('month')
   const [cursorDate, setCursorDate] = useState<Date>(() =>
     startOfDay(new Date()),
   )
@@ -88,8 +108,23 @@ const CalendarPage = () => {
     [cursorDate],
   )
 
+  useEffect(() => {
+    if (isMobile) {
+      // entering mobile: remember what desktop was using, then force week
+      if (viewMode !== 'week') setDesktopViewMode(viewMode)
+      if (viewMode !== 'week') setViewMode('week')
+      return
+    }
+
+    // leaving mobile: restore what desktop was set to
+    if (viewMode === 'week' && desktopViewMode === 'month') {
+      setViewMode('month')
+    }
+  }, [isMobile])
+
   const headerTitle = useMemo(() => {
-    if (viewMode === 'month') return formatMonthTitle(cursorDate)
+    // Mobile is week-only
+    if (!isMobile && viewMode === 'month') return formatMonthTitle(cursorDate)
 
     const weekStart = startOfWeekSunday(cursorDate)
     const weekEnd = addDays(weekStart, 6)
@@ -106,10 +141,11 @@ const CalendarPage = () => {
     })
 
     return `${startLabel} – ${endLabel}`
-  }, [cursorDate, viewMode])
+  }, [cursorDate, viewMode, isMobile])
 
   const gridDates = useMemo(() => {
-    if (viewMode === 'week') {
+    // Mobile is week-only
+    if (isMobile || viewMode === 'week') {
       const weekStart = startOfWeekSunday(cursorDate)
       return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
     }
@@ -122,24 +158,24 @@ const CalendarPage = () => {
     )
     const gridStart = startOfWeekSunday(firstOfMonth)
     return Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
-  }, [cursorDate, viewMode])
+  }, [cursorDate, viewMode, isMobile])
 
   const onPrev = () => {
     setCursorDate((d) =>
-      viewMode === 'month' ? addMonths(d, -1) : addDays(d, -7),
+      !isMobile && viewMode === 'month' ? addMonths(d, -1) : addDays(d, -7),
     )
   }
 
   const onNext = () => {
     setCursorDate((d) =>
-      viewMode === 'month' ? addMonths(d, 1) : addDays(d, 7),
+      !isMobile && viewMode === 'month' ? addMonths(d, 1) : addDays(d, 7),
     )
   }
 
   const onToday = () => setCursorDate(today)
 
   const isOutsideMonth = (d: Date) =>
-    viewMode === 'month' && d.getMonth() !== cursorDate.getMonth()
+    !isMobile && viewMode === 'month' && d.getMonth() !== cursorDate.getMonth()
 
   const getItemsForDay = (d: Date) => {
     const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
@@ -155,13 +191,17 @@ const CalendarPage = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* View mode */}
-          <div className="flex items-center gap-2">
+          {/* View mode (hidden on mobile; mobile is week-only) */}
+          <div className="hidden items-center gap-2 sm:flex">
             <label className="text-sm text-zinc-300">View</label>
             <select
               className="h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-white shadow-sm outline-none focus:border-amber-500"
               value={viewMode}
-              onChange={(e) => setViewMode(e.target.value as CalendarViewMode)}
+              onChange={(e) => {
+                const next = e.target.value as CalendarViewMode
+                setViewMode(next)
+                setDesktopViewMode(next)
+              }}
             >
               <option value="month">Month</option>
               <option value="week">Week</option>
@@ -193,10 +233,10 @@ const CalendarPage = () => {
         </div>
       </div>
 
-      {/* Calendar grid */}
+      {/* Calendar container */}
       <div className="mt-6 overflow-hidden rounded-xl border border-zinc-700/60 bg-zinc-700/40 shadow-lg backdrop-blur">
-        {/* Day name header row */}
-        <div className="grid grid-cols-7 border-b border-zinc-700/60 bg-zinc-700/70">
+        {/* Weekday header row (desktop only) */}
+        <div className="hidden grid-cols-7 border-b border-zinc-700/60 bg-zinc-700/70 sm:grid">
           {DAY_NAMES.map((d) => (
             <div
               key={d}
@@ -207,36 +247,59 @@ const CalendarPage = () => {
           ))}
         </div>
 
-        {/* Grid body */}
-        <div className="grid grid-cols-7 gap-px bg-zinc-700/60">
-          {(viewMode === 'week' ? [gridDates] : chunk(gridDates, 7))
-            .flat()
-            .map((date) => {
+        {/* Body */}
+        <div
+          className={[
+            // Mobile: one column. Desktop: 7 columns (table-like).
+            'grid gap-px bg-zinc-700/60',
+            isMobile ? 'grid-cols-1' : 'grid-cols-7',
+          ].join(' ')}
+        >
+          {(isMobile || viewMode === 'week' ? gridDates : gridDates).map(
+            (date) => {
               const items = getItemsForDay(date)
               const outside = isOutsideMonth(date)
               const isToday = isSameDay(date, today)
+              const dayName = DAY_NAMES[date.getDay()]
+              const dateLabel = date.toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
 
               return (
                 <div
                   key={date.toISOString()}
                   className={[
-                    'min-h-[7rem] bg-zinc-800/60 p-2',
-                    'transition-colors hover:bg-zinc-800/80',
+                    isMobile ? 'min-h-[4.5rem]' : 'min-h-[7rem]',
+                    'bg-zinc-800/60 p-2 transition-colors hover:bg-zinc-800/80',
                     outside ? 'opacity-60' : '',
                   ].join(' ')}
                 >
                   {/* Day header */}
                   <div className="flex items-center justify-between gap-2">
-                    <div
-                      className={[
-                        'flex h-7 min-w-[1.75rem] items-center justify-center rounded-md px-2 text-xs font-semibold',
-                        isToday
-                          ? 'bg-amber-500 text-zinc-900'
-                          : 'border border-zinc-700/60 bg-zinc-800 text-zinc-100',
-                      ].join(' ')}
-                      title={date.toDateString()}
-                    >
-                      {date.getDate()}
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={[
+                          'flex h-7 min-w-[1.75rem] items-center justify-center rounded-md px-2 text-xs font-semibold',
+                          isToday
+                            ? 'bg-amber-500 text-zinc-900'
+                            : 'border border-zinc-700/60 bg-zinc-800 text-zinc-100',
+                        ].join(' ')}
+                        title={date.toDateString()}
+                      >
+                        {date.getDate()}
+                      </div>
+
+                      {/* Mobile: show weekday + full date label */}
+                      <div className="sm:hidden">
+                        <div className="text-sm font-semibold text-zinc-100">
+                          {dayName}
+                        </div>
+                        <div className="text-xs text-zinc-300/80">
+                          {dateLabel}
+                        </div>
+                      </div>
                     </div>
 
                     {items.length > 0 && (
@@ -253,7 +316,7 @@ const CalendarPage = () => {
                         No deletions
                       </div>
                     ) : (
-                      items.slice(0, 3).map((it) => (
+                      items.slice(0, isMobile ? 5 : 3).map((it) => (
                         <div
                           key={it.id}
                           className="truncate rounded-md border border-zinc-600/60 bg-zinc-700/40 px-2 py-1 text-xs text-zinc-100 hover:border-amber-500/40"
@@ -264,15 +327,22 @@ const CalendarPage = () => {
                       ))
                     )}
 
-                    {items.length > 3 && (
+                    {!isMobile && items.length > 3 && (
                       <div className="text-xs text-zinc-300/80">
                         +{items.length - 3} more…
+                      </div>
+                    )}
+
+                    {isMobile && items.length > 5 && (
+                      <div className="text-xs text-zinc-300/80">
+                        +{items.length - 5} more…
                       </div>
                     )}
                   </div>
                 </div>
               )
-            })}
+            },
+          )}
         </div>
       </div>
     </div>
