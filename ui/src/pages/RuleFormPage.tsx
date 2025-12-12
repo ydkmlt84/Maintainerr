@@ -41,7 +41,7 @@ const RuleFormPage = () => {
   const pageTitle = `${id ? (isCloneMode ? 'Clone' : 'Edit') : 'New'} rule - Maintainerr`
 
   return (
-    <>
+    <div className="px-4">
       <title>{pageTitle}</title>
       <AddModal
         onSuccess={handleSuccess}
@@ -49,7 +49,7 @@ const RuleFormPage = () => {
         isCloneMode={isCloneMode}
         onCancel={handleCancel}
       />
-    </>
+    </div>
   )
 }
 
