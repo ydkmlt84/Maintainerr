@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import Calendar from './components/Calendar'
 import Layout, { LayoutErrorBoundary } from './components/Layout'
 import Overview from './components/Overview'
 import Settings from './components/Settings'
@@ -66,6 +67,10 @@ export const router = createBrowserRouter(
               ],
             },
           ],
+        },
+        {
+          path: 'calendar',
+          element: <Calendar />,
         },
         {
           path: 'rules',
