@@ -35,12 +35,12 @@ const ViewToggleDropdown = ({ viewMode, onChange }: Props) => {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center rounded-md bg-zinc-700 px-3 py-1 text-sm font-medium text-white hover:bg-zinc-600"
+        className="relative inline-flex items-center rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1 text-sm font-medium text-white hover:border-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-0"
       >
         {/* Leading icon reflects current view */}
         {active.icon}
         View
-        <ChevronDownIcon className="ml-1 h-4 w-4" />
+        <ChevronDownIcon className="ml-1 h-4 w-4 text-zinc-500" />
       </button>
 
       {open && (

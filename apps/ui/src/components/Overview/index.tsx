@@ -143,7 +143,7 @@ const Overview = () => {
       <title>Overview - Maintainerr</title>
       <div className="w-full">
         {!searchUsed && (
-          <div className="sticky top-16 z-10 flex flex-col items-center justify-center overflow-visible bg-zinc-900 py-4 md:flex-row">
+          <div className="sticky top-16 z-10 flex flex-col items-center justify-center overflow-visible bg-zinc-900 pb-4 pt-2 md:flex-row">
             <div className="w-full px-4 md:w-1/2">
               <LibrarySwitcher
                 shouldShowAllOption={false}
@@ -158,7 +158,7 @@ const Overview = () => {
             </div>
           </div>
         )}
-        <div className="px-4">
+        <div className="mt-2 px-4">
           {selectedLibrary ? (
             <OverviewContent
               dataFinished={
