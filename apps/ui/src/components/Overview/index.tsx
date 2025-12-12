@@ -34,6 +34,10 @@ const Overview = () => {
   const [sortOption, setSortOption] = useState<SortOption>('title:asc')
   const [filterOption, setFilterOption] = useState<FilterOption>('all')
 
+  type OpenDropdown = 'view' | 'sort' | 'filter' | null
+
+  const [openDropdown, setOpenDropdown] = useState<OpenDropdown>(null)
+
   const fetchAmount = 30
 
   const setIsLoading = (val: boolean) => {
@@ -87,6 +91,12 @@ const Overview = () => {
   }, [SearchCtx.search.text])
 
   useEffect(() => {
+    if (SearchCtx.search.text !== '') {
+      setOpenDropdown(null)
+    }
+  }, [SearchCtx.search.text])
+
+  useEffect(() => {
     selectedLibraryRef.current = selectedLibrary
     fetchData()
   }, [selectedLibrary])
@@ -101,6 +111,7 @@ const Overview = () => {
 
   const switchLib = (libraryId: number) => {
     // get all movies & shows from plex
+    setOpenDropdown(null)
     setIsLoading(true)
     pageData.current = 0
     setTotalSize(999)
@@ -143,7 +154,7 @@ const Overview = () => {
       <title>Overview - Maintainerr</title>
       <div className="w-full">
         {!searchUsed && (
-          <div className="sticky top-16 z-10 flex flex-col items-center justify-center overflow-visible bg-zinc-900 pb-4 pt-2 md:flex-row">
+          <div className="sticky top-16 z-10 flex flex-col items-center justify-center overflow-visible bg-zinc-900 pt-2 md:flex-row">
             <div className="w-full px-4 md:w-1/2">
               <LibrarySwitcher
                 shouldShowAllOption={false}
@@ -151,14 +162,41 @@ const Overview = () => {
               />
             </div>
 
-            <div className="mt-2 flex w-full justify-center space-x-2 px-4 md:ml-auto md:mt-0 md:w-auto">
-              <ViewToggleDropdown viewMode={viewMode} onChange={setViewMode} />
-              <SortDropdown value={sortOption} onChange={setSortOption} />
-              <FilterDropdown value={filterOption} onChange={setFilterOption} />
+            <div className="mt-2 flex w-full flex-row items-center justify-end gap-2 px-4 md:mt-0 md:w-1/2 md:pr-4">
+              <ViewToggleDropdown
+                viewMode={viewMode}
+                onChange={setViewMode}
+                isOpen={openDropdown === 'view'}
+                onToggle={() =>
+                  setOpenDropdown((prev) => (prev === 'view' ? null : 'view'))
+                }
+                onClose={() => setOpenDropdown(null)}
+              />
+              <SortDropdown
+                sortOption={sortOption}
+                onChange={setSortOption}
+                isOpen={openDropdown === 'sort'}
+                onToggle={() =>
+                  setOpenDropdown((prev) => (prev === 'sort' ? null : 'sort'))
+                }
+                onClose={() => setOpenDropdown(null)}
+              />
+
+              <FilterDropdown
+                filterOption={filterOption}
+                onChange={setFilterOption}
+                isOpen={openDropdown === 'filter'}
+                onToggle={() =>
+                  setOpenDropdown((prev) =>
+                    prev === 'filter' ? null : 'filter',
+                  )
+                }
+                onClose={() => setOpenDropdown(null)}
+              />
             </div>
           </div>
         )}
-        <div className="mt-2 px-4">
+        <div className="mt-4 px-4">
           {selectedLibrary ? (
             <OverviewContent
               dataFinished={
