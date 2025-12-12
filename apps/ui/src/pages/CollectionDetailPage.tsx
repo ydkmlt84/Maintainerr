@@ -72,7 +72,7 @@ const CollectionDetailPage = () => {
   }
 
   return (
-    <>
+    <div className="px-4">
       <title>{collection.title} - Maintainerr</title>
       <div className="w-full">
         <div className="m-auto mb-3 flex w-full">
@@ -115,7 +115,7 @@ const CollectionDetailPage = () => {
           />
         ) : undefined}
       </div>
-    </>
+    </div>
   )
 }
 
