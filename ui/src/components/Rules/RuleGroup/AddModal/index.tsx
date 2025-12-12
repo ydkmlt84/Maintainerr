@@ -109,6 +109,7 @@ const ruleGroupFormSchema = z
     forceOverseerr: z.boolean(),
     manualCollection: z.boolean(),
     manualCollectionName: z.string().optional(),
+    sortTitle: z.string().optional(),
     active: z.boolean(),
     useRules: z.boolean(),
     radarrSettingsId: z.number().int().nullable().optional(),
@@ -182,6 +183,7 @@ const buildFormDefaults = (editData?: IRuleGroup): RuleGroupFormValues => ({
   manualCollectionName:
     editData?.collection?.manualCollectionName ??
     DEFAULT_MANUAL_COLLECTION_NAME,
+  sortTitle: editData?.collection?.sortTitle ?? '',
   active: editData?.isActive ?? true,
   useRules: editData?.useRules ?? true,
   radarrSettingsId: editData
@@ -494,6 +496,7 @@ const AddModal = (props: AddModal) => {
         manualCollectionName:
           data.manualCollectionName ?? DEFAULT_MANUAL_COLLECTION_NAME,
         keepLogsForMonths: data.keepLogsForMonths,
+        sortTitle: data.sortTitle?.trim() ? data.sortTitle : undefined,
       },
       rules: data.useRules ? rules : [],
       notifications: configuredNotificationConfigurations,
@@ -1101,6 +1104,28 @@ const AddModal = (props: AddModal) => {
                               {errors.keepLogsForMonths.message}
                             </p>
                           )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-row items-center justify-between py-2 md:py-4">
+                      <label
+                        htmlFor="sort_title"
+                        className="text-label text-left"
+                      >
+                        Sort title
+                        <p className="text-xs font-normal">
+                          Custom sort title for the collection in Plex
+                        </p>
+                      </label>
+                      <div className="flex justify-end px-2 py-2">
+                        <div className="form-input-field w-full">
+                          <input
+                            type="text"
+                            id="sort_title"
+                            placeholder="e.g., 001 My Collection"
+                            {...register('sortTitle')}
+                          />
                         </div>
                       </div>
                     </div>
