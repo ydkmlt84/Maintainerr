@@ -22,11 +22,11 @@ const FilterDropdown = ({ value, onChange }: Props) => {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative inline-flex items-center rounded-md bg-zinc-700 px-3 py-1 text-sm font-medium text-white hover:bg-zinc-600"
+        className="relative inline-flex items-center rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1 text-sm font-medium text-white hover:border-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-0"
       >
         <FilterIcon className="mr-1 h-4 w-4" />
         Filter
-        <ChevronDownIcon className="ml-1 h-4 w-4" />
+        <ChevronDownIcon className="ml-1 h-4 w-4 text-zinc-500" />
         {/* Orange indicator INSIDE the button */}
         {value !== 'all' && (
           <span className="absolute right-0 top-0 mr-0.5 mt-0.5 h-2 w-2 rounded-full bg-[#F6A722]" />
