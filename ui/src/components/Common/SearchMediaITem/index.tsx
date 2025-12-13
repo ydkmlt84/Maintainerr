@@ -2,7 +2,7 @@ import { SingleValue } from 'react-select'
 import AsyncSelect from 'react-select/async'
 import GetApiHandler from '../../../utils/ApiHandler'
 import { EPlexDataType } from '../../../utils/PlexDataType-enum'
-import { IPlexMetadata } from '../../Overview/Content'
+import { IPlexMetadata } from '../../Overview/iPlexMetadata'
 
 export interface IMediaOptions {
   id: string

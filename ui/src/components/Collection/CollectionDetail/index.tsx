@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ICollection, ICollectionMedia } from '..'
 import GetApiHandler from '../../../utils/ApiHandler'
 import TabbedLinks, { TabbedRoute } from '../../Common/TabbedLinks'
-import OverviewContent, { IPlexMetadata } from '../../Overview/Content'
+import OverviewContent from '../../Overview/Content'
+import { IPlexMetadata } from '../../Overview/iPlexMetadata'
 import CollectionInfo from './CollectionInfo'
 import CollectionExcludions from './Exclusions'
 import TestMediaItem from './TestMediaItem'
@@ -168,6 +169,7 @@ const CollectionDetail: React.FC<ICollectionDetail> = (
         {selectedTab === 'media' ? (
           <OverviewContent
             dataFinished={true}
+            viewMode="poster"
             fetchData={() => {}}
             loading={loadingRef.current}
             data={data}

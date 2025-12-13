@@ -2,7 +2,8 @@ import { debounce } from 'lodash-es'
 import { useEffect, useRef, useState } from 'react'
 import { ICollection } from '../..'
 import GetApiHandler from '../../../../utils/ApiHandler'
-import OverviewContent, { IPlexMetadata } from '../../../Overview/Content'
+import OverviewContent from '../../../Overview/Content'
+import { IPlexMetadata } from '../../../Overview/iPlexMetadata'
 
 interface ICollectionExclusions {
   collection: ICollection
@@ -116,6 +117,7 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
   return (
     <OverviewContent
       dataFinished={true}
+      viewMode="poster"
       fetchData={() => {}}
       loading={loadingRef.current}
       data={data}
