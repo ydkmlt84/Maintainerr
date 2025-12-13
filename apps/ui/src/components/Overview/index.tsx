@@ -1,4 +1,4 @@
-import { clone } from 'lodash'
+import { clone, orderBy } from 'lodash'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { usePlexLibraries } from '../../api/plex'
 import SearchContext from '../../contexts/search-context'
@@ -7,7 +7,8 @@ import FilterDropdown, { FilterOption } from '../Common/FilterDropdown'
 import LibrarySwitcher from '../Common/OverviewLibrarySwitcher'
 import SortDropdown, { SortOption } from '../Common/SortDropdown'
 import ViewToggleDropdown, { ViewMode } from '../Common/ViewModeDropdown'
-import OverviewContent, { IPlexMetadata } from './Content'
+import OverviewContent from './Content'
+import type { IPlexMetadata } from './iPlexMetadata'
 
 const Overview = () => {
   // const [isLoading, setIsLoading] = useState<Boolean>(false)
@@ -31,7 +32,28 @@ const Overview = () => {
   const { data: plexLibraries } = usePlexLibraries()
 
   const [viewMode, setViewMode] = useState<ViewMode>('poster')
+
   const [sortOption, setSortOption] = useState<SortOption>('title:asc')
+  const sortedData = (() => {
+    const [field, direction] = sortOption.split(':') as [string, 'asc' | 'desc']
+
+    if (field !== 'title') return data
+
+    return orderBy(
+      data,
+      [
+        (el) =>
+          (
+            el.grandparentTitle ||
+            el.parentTitle ||
+            el.title ||
+            ''
+          ).toLowerCase(),
+      ],
+      [direction],
+    )
+  })()
+
   const [filterOption, setFilterOption] = useState<FilterOption>('all')
 
   type OpenDropdown = 'view' | 'sort' | 'filter' | null
@@ -212,8 +234,9 @@ const Overview = () => {
                 !loadingRef.current &&
                 totalSizeRef.current >= pageData.current * fetchAmount
               }
-              data={data}
+              data={sortedData}
               libraryId={selectedLibrary}
+              viewMode={viewMode}
             />
           ) : undefined}
         </div>
