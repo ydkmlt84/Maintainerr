@@ -25,9 +25,6 @@ const getTmdbId = (item: IPlexMetadata) => {
   return id?.split('tmdb://')[1]
 }
 
-const hasExclusion = (item: IPlexMetadata) =>
-  Boolean(item.maintainerrExclusionType || item.maintainerrExclusionId)
-
 const OverviewTable = ({ data, extrasLoading }: Props) => {
   const [selected, setSelected] = useState<IPlexMetadata | null>(null)
 
