@@ -2,8 +2,9 @@ import { debounce } from 'lodash-es'
 import { useEffect, useRef, useState } from 'react'
 import { useOutletContext, useParams } from 'react-router-dom'
 import { ICollection, ICollectionMedia } from '../components/Collection'
+import OverviewContent from '../components/Overview/Content'
+import { IPlexMetadata } from '../components/Overview/iPlexMetadata.ts'
 import GetApiHandler from '../utils/ApiHandler'
-import OverviewContent, { IPlexMetadata } from '../components/Overview/Content'
 
 interface CollectionContextType {
   collection: ICollection
@@ -101,6 +102,7 @@ const CollectionMediaPage = () => {
   return (
     <OverviewContent
       dataFinished={true}
+      viewMode="poster"
       fetchData={() => {}}
       loading={isLoading}
       data={data}

@@ -1,5 +1,5 @@
 import { EPlexDataType } from '../../utils/PlexDataType-enum'
-import { IPlexMetadata } from '../Overview/Content'
+import { IPlexMetadata } from '../Overview/iPlexMetadata'
 
 export interface ICollection {
   id?: number
