@@ -1,3 +1,21 @@
+# [2.25.0](https://github.com/maintainerr/Maintainerr/compare/v2.24.0...v2.25.0) (2025-12-13)
+
+
+### Bug Fixes
+
+* Handle zero Plex libraries in Overview ([#2166](https://github.com/maintainerr/Maintainerr/issues/2166)) ([947f55d](https://github.com/maintainerr/Maintainerr/commit/947f55d3521a97b7b4153b6becb0bce3b613a541))
+* Rules for newly setup services not showing until refresh ([#2147](https://github.com/maintainerr/Maintainerr/issues/2147)) ([480e895](https://github.com/maintainerr/Maintainerr/commit/480e895c8cebcdcd958af8fe6d26396b6b5d08db))
+
+
+### Features
+
+* Add per-rule group execution ([#2173](https://github.com/maintainerr/Maintainerr/issues/2173)) ([430e3da](https://github.com/maintainerr/Maintainerr/commit/430e3da515096e8d108105057621ef1a1048214d))
+* Add Plex collection sort title setting ([#2106](https://github.com/maintainerr/Maintainerr/issues/2106)) ([eb4f36b](https://github.com/maintainerr/Maintainerr/commit/eb4f36bd9840e0dbb34a17bd253ad3517619d6a3))
+* Add rule handling schedules per rule ([#2148](https://github.com/maintainerr/Maintainerr/issues/2148)) ([137573a](https://github.com/maintainerr/Maintainerr/commit/137573aa270db11d3e4f615c22b56543b6c5dab6))
+* Improve rule executor performance for larger libraries ([#2174](https://github.com/maintainerr/Maintainerr/issues/2174)) ([a6e1c55](https://github.com/maintainerr/Maintainerr/commit/a6e1c559475e574f4e4c07f2674d4d9565f20cc7))
+* Reduce API requests for many Plex based rules for season & episode libraries ([#2175](https://github.com/maintainerr/Maintainerr/issues/2175)) ([0d30c7d](https://github.com/maintainerr/Maintainerr/commit/0d30c7d678a02b365e99cecebb9687e737ed5558))
+* Reduce API requests for many Sonarr based rules for season & episode libraries ([#2176](https://github.com/maintainerr/Maintainerr/issues/2176)) ([4a07258](https://github.com/maintainerr/Maintainerr/commit/4a0725814f09935010675f40fb435f1fb2fc170e))
+
 # [2.24.0](https://github.com/maintainerr/Maintainerr/compare/v2.23.0...v2.24.0) (2025-12-07)
 
 
