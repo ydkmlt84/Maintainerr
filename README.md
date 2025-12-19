@@ -51,10 +51,10 @@ Currently, <b>Maintainerr</b> supports rule parameters from these apps :
 
 # Preview
 
-![image](.apps/ui/public/screenshots/overview_screenshot.png)
-![image](.apps/ui/public/screenshots/rules_screenshot.png)
-![image](.apps/ui/public/screenshots/collections_screenshot.png)
-![image](.apps/ui/public/screenshots/rule_example_screenshot.png)
+![image](apps/ui/public/screenshots/overview_screenshot.png)
+![image](apps/ui/public/screenshots/rules_screenshot.png)
+![image](apps/ui/public/screenshots/collections_screenshot.png)
+![image](apps/ui/public/screenshots/rule_example_screenshot.png)
 
 # Installation
 
