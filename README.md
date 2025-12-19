@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="ui/public/logo_black.svg?raw=true" alt="Maintainerr's custom image"/>
+  <img src="apps/ui/public/logo_black.svg?raw=true" alt="Maintainerr's custom image"/>
 </p>
 
 <p align="center" >
@@ -24,12 +24,12 @@
 - Do you have a lot of media that never gets watched?
 - Do your users constantly request media, and let it sit there afterward never to be touched again?
 
-If you answered yes to any of those questions.. You NEED <b>Maintainerr</b>.
+If you answered yes to any of those questions... You NEED <b>Maintainerr</b>.
 It's a one-stop-shop for handling those outlying shows and movies that take up precious space on your server.
 
 # Features
 
-- Configure rules specific to your needs, based off of several available options from Plex, Overseerr, Jellyseerr, Radarr, Sonarr and Tautulli.
+- Configure rules specific to your needs, based on several available options from Plex, Overseerr, Jellyseerr, Radarr, Sonarr and Tautulli.
 - Manually add media to a collection, in case it's not included after rule execution. (one-off items that don't match a rule set)
 - Selectively exclude media from being added to a collection, even if it matches a rule.
 - Show a collection, containing rule matched media, on the Plex home screen for a specific duration before deletion. Think "Leaving soon".
@@ -51,16 +51,16 @@ Currently, <b>Maintainerr</b> supports rule parameters from these apps :
 
 # Preview
 
-![image](./ui/public/screenshots/overview_screenshot.png)
-![image](./ui/public/screenshots/rules_screenshot.png)
-![image](./ui/public/screenshots/collections_screenshot.png)
-![image](./ui/public/screenshots/rule_example_screenshot.png)
+![image](.apps/ui/public/screenshots/overview_screenshot.png)
+![image](.apps/ui/public/screenshots/rules_screenshot.png)
+![image](.apps/ui/public/screenshots/collections_screenshot.png)
+![image](.apps/ui/public/screenshots/rule_example_screenshot.png)
 
 # Installation
 
 Docker images for amd64 & arm64 are available under <b>ghcr.io/maintainerr/maintainerr</b> and [jorenn92/maintainerr](https://hub.docker.com/r/jorenn92/maintainerr). <br />
 
-Data is saved within the container under /opt/data, it is recommended to tie a persistent volume to this location in your docker command/compose file.
+Data is saved within the container under /opt/data, it is recommended to tie a persistent volume to this location in your docker run command/compose file.
 Make sure this directory is read/writeable by the user specified in the 'user' instruction. If no 'user' instruction is configured, the volume should be accessible by UID:GID 1000:1000.
 
 For more information, visit the [installation guide](https://docs.maintainerr.info/latest/Installation).
@@ -113,6 +113,4 @@ services:
 
 # Credits
 
-Maintainerr is heavily inspired by Overseerr. Some parts of Maintainerr's code are plain copies. Big thanks to the Overseerr team for creating and maintaining such an amazing app!
-
-Please support them at <https://github.com/sct/overseerr>
+Maintainerr is heavily inspired by Overseerr. Some parts of Maintainerr's code are plain copies. Big thanks to the Overseerr team!
