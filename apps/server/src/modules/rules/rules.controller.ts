@@ -11,6 +11,7 @@ import {
   NotFoundException,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -20,6 +21,7 @@ import { ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CommunityRule } from './dtos/communityRule.dto';
 import { ExclusionAction, ExclusionContextDto } from './dtos/exclusion.dto';
+import { RuleGroupActivateDto } from './dtos/ruleGroupActivate.dto';
 import { RulesDto } from './dtos/rules.dto';
 import { ReturnStatus, RulesService } from './rules.service';
 import { RuleExecutorJobManagerService } from './tasks/rule-executor-job-manager.service';
@@ -97,6 +99,11 @@ export class RulesController {
   @Delete('/:id')
   deleteRuleGroup(@Param('id', ParseIntPipe) id: number) {
     return this.rulesService.deleteRuleGroup(id);
+  }
+
+  @Patch('/activate')
+  async setRuleGroupsActive(@Body() body: RuleGroupActivateDto) {
+    return this.rulesService.setRuleGroupsActive(body.ids, body.isActive);
   }
 
   @Post('/execute')
