@@ -4,7 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
 import _ from 'lodash';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import cacheManager from '../api/lib/cache';
 import { EPlexDataType } from '../api/plex-api/enums/plex-data-type-enum';
 import { PlexLibraryItem } from '../api/plex-api/interfaces/library.interfaces';
@@ -261,53 +261,6 @@ export class RulesService {
       this.logger.error('Rulegroup deletion failed', err);
       return this.createReturnStatus(false, 'Delete Failed');
     }
-  }
-
-  async setRuleGroupsActive(
-    ids: number[],
-    isActive: boolean,
-  ): Promise<
-    ReturnStatus & {
-      updated: number[];
-      failed: { id: number; reason: string }[];
-    }
-  > {
-    const updated: number[] = [];
-    const failed: { id: number; reason: string }[] = [];
-
-    // 1) Load the rule groups that exist for these ids
-    const groups = await this.ruleGroupRepository.find({
-      where: { id: In(ids) },
-    });
-
-    const foundIds = new Set(groups.map((g) => g.id));
-    for (const id of ids) {
-      if (!foundIds.has(id)) failed.push({ id, reason: 'not found' });
-    }
-
-    // 2) Activate/Deactivate via CollectionsService (keeps collection + rulegroup in sync)
-    for (const g of groups) {
-      try {
-        if (isActive) {
-          await this.collectionService.activateCollection(g.collectionId);
-        } else {
-          await this.collectionService.deactivateCollection(g.collectionId);
-        }
-
-        updated.push(g.id);
-      } catch (e: any) {
-        failed.push({ id: g.id, reason: e?.message ?? 'update failed' });
-      }
-    }
-
-    return {
-      code: failed.length ? 0 : 1,
-      result: failed.length
-        ? `Updated ${updated.length}, failed ${failed.length}`
-        : `Updated ${updated.length}`,
-      updated,
-      failed,
-    };
   }
 
   async setRules(params: RulesDto) {
