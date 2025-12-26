@@ -5,6 +5,7 @@ import Button from '../Button'
 import { SmallLoadingSpinner } from '../LoadingSpinner'
 
 interface ITestButton<T> {
+  // If payload is provided, we POST so tests can use the current form values (without saving)
   payload?: T
   testUrl: string
   onTestComplete?: (result: { status: boolean; message: string }) => void
@@ -22,33 +23,48 @@ interface BasicResponse {
 }
 
 const TestButton = <T,>(props: ITestButton<T>) => {
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState(false)
+
+  // Tracks whether we clicked, and whether the last test succeeded
   const [clicked, setClicked] = useState<TestStatus>({
     clicked: false,
     status: false,
   })
 
+  // Runs either GET or POST depending on whether payload exists
   const performTest = async () => {
     setLoading(true)
 
-    const handler = props.payload
-      ? PostApiHandler(props.testUrl, props.payload)
-      : GetApiHandler(props.testUrl)
+    try {
+      const handler = props.payload
+        ? PostApiHandler(props.testUrl, props.payload)
+        : GetApiHandler(props.testUrl)
 
-    await handler.then((resp: BasicResponse) => {
-      setClicked({ clicked: true, status: resp.code == 1 ? true : false })
+      const resp = (await handler) as BasicResponse
+
+      const ok = resp.code === 1
+      setClicked({ clicked: true, status: ok })
+
       props.onTestComplete?.({
-        status: resp.code === 1 ? true : false,
+        status: ok,
         message: resp.message,
       })
+    } catch (e) {
+      setClicked({ clicked: true, status: false })
+      props.onTestComplete?.({
+        status: false,
+        message: 'Failure',
+      })
+    } finally {
       setLoading(false)
-    })
+    }
   }
 
   return (
     <span className="ml-3 inline-flex rounded-md shadow-sm">
       <Button
         type="button"
+        disabled={loading}
         buttonType={
           clicked.clicked ? (clicked.status ? 'success' : 'danger') : 'default'
         }
@@ -65,7 +81,9 @@ const TestButton = <T,>(props: ITestButton<T>) => {
         ) : (
           <BeakerIcon />
         )}
-        <span className="ml-1">Test Saved</span>
+
+        {/* Old label implied saving first. This is now a true live test. */}
+        <span className="ml-1">Test</span>
       </Button>
     </span>
   )

@@ -9,12 +9,10 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { BasicResponseDto } from './dto/basic-response.dto';
 import { CollectionHubSettingsDto } from './dto/collection-hub-settings.dto';
 import { EPlexDataType } from './enums/plex-data-type-enum';
-import { PlexSetupGuard } from './guards/plex-setup.guard';
 import {
   CreateUpdateCollection,
   PlexCollection,
@@ -22,7 +20,6 @@ import {
 import { PlexHub, PlexLibraryItem } from './interfaces/library.interfaces';
 import { PlexApiService } from './plex-api.service';
 
-@UseGuards(PlexSetupGuard)
 @Controller('api/plex')
 export class PlexApiController {
   constructor(private readonly plexApiService: PlexApiService) {}
