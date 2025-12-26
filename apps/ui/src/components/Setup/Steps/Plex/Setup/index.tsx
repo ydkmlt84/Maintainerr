@@ -71,7 +71,7 @@ export type PlexSettingsSnapshot = {
 /*                                  HELPERS                                   */
 /* -------------------------------------------------------------------------- */
 
-// Keep host as raw hostname/IP — protocol is controlled by ssl boolean
+// Keep host as raw hostname/IP; protocol is controlled by ssl boolean
 function stripProtocol(host: string) {
   return (host ?? '').replace('http://', '').replace('https://', '')
 }
@@ -89,15 +89,16 @@ export default function PlexSetupWizard({
   // 1 = Pick server + edit fields + test (combined)
   // 2 = Review & Finish (read-only)
   const [step, setStep] = useState(0)
+  const [initializedFromSettings, setInitializedFromSettings] = useState(false)
 
   /* ----------------------- Shared connection state ------------------------ */
-  // These are the connection details we’ll test (POST payload) and later save (Finish).
+  // These are the connection details we'll test (POST payload) and later save (Finish).
   const [plexName, setPlexName] = useState(settings?.plex_name ?? '')
   const [plexHost, setPlexHost] = useState(
     stripProtocol(settings?.plex_hostname ?? ''),
   )
   const [plexPort, setPlexPort] = useState(settings?.plex_port ?? 32400)
-  const [plexSsl, setPlexSsl] = useState(Boolean(settings?.plex_ssl))
+  const [plexSsl, setPlexSsl] = useState(Boolean(Number(settings?.plex_ssl)))
 
   /* -------------------------- Auth + discovery ---------------------------- */
   const [tokenValid, setTokenValid] = useState(false)
@@ -170,6 +171,18 @@ export default function PlexSetupWizard({
     onReadyChange?.(false)
   }
 
+  // If we already have a token, start at Auth step but keep the token valid so
+  // the user can continue without logging in again.
+  useEffect(() => {
+    if (initializedFromSettings) return
+
+    if (settings?.plex_auth_token) {
+      setTokenValid(true)
+    }
+
+    setInitializedFromSettings(true)
+  }, [initializedFromSettings, settings?.plex_auth_token])
+
   /* ------------------------------------------------------------------------ */
   /*                           SERVER DISCOVERY                                */
   /* ------------------------------------------------------------------------ */
@@ -184,7 +197,7 @@ export default function PlexSetupWizard({
       .finally(() => setIsLoadingServers(false))
   }, [step, tokenValid])
 
-  // Flatten Plex’s device/connection list into dropdown-friendly entries
+  // Flatten Plex's device/connection list into dropdown-friendly entries
   const availablePresets = useMemo(() => {
     const presets: PresetServerDisplay[] = []
 
@@ -205,7 +218,7 @@ export default function PlexSetupWizard({
       ),
     )
 
-    // Still okay to sort, but we won’t show “unreachable”
+    // Still okay to sort, but we won't show "unreachable"
     return orderBy(presets, ['local', 'ssl'], ['desc', 'desc'])
   }, [availableServers])
 
@@ -217,7 +230,7 @@ export default function PlexSetupWizard({
   /*                               SAVE LOGIC                                 */
   /* ------------------------------------------------------------------------ */
 
-  // Finish button → save settings to DB → mark parent ready → advance to next main step
+  // Finish button -> save settings to DB -> mark parent ready -> advance to next main step
   const saveSettings = async () => {
     const payload: Partial<PlexSettingsSnapshot> = {
       plex_name: plexName,
@@ -249,6 +262,7 @@ export default function PlexSetupWizard({
           tokenValid={tokenValid}
           onAuthSuccess={onAuthSuccess}
           onClearToken={onClearToken}
+          onContinue={() => setStep(1)}
         />
       ),
     },
@@ -335,7 +349,7 @@ export default function PlexSetupWizard({
         {steps[step].render()}
       </div>
 
-      {/* Back button only — forward navigation is handled inside the Plex mini-steps */}
+      {/* Back button only -- forward navigation is handled inside the Plex mini-steps */}
       <div className="mt-4 flex justify-start">
         <button
           type="button"
@@ -358,17 +372,22 @@ function AuthPanel({
   tokenValid,
   onAuthSuccess,
   onClearToken,
+  onContinue,
 }: {
   tokenValid: boolean
   onAuthSuccess: (token: string) => void
   onClearToken: () => Promise<void>
+  onContinue: () => void
 }) {
   return (
-    <div>
+    <div className="flex items-center gap-2">
       {!tokenValid ? (
         <PlexLoginButton onAuthToken={onAuthSuccess} />
       ) : (
-        <Button onClick={onClearToken}>Clear Token</Button>
+        <>
+          <Button onClick={onClearToken}>Clear Token</Button>
+          <Button onClick={onContinue}>Continue</Button>
+        </>
       )}
     </div>
   )
@@ -410,12 +429,6 @@ function PlexConnectPanel({
   onTestSuccess: (version: string) => void
   onContinue: () => void
 }) {
-  const selectedPreset = selectedUri
-    ? availablePresets.find((p) => p.uri === selectedUri)
-    : undefined
-
-  const baseUrlPreview = `${plexSsl ? 'https' : 'http'}://${plexHost}:${plexPort}`
-
   return (
     <div className="space-y-4">
       {/* Server dropdown stays enabled. It starts empty and fills when servers arrive. */}
@@ -433,7 +446,7 @@ function PlexConnectPanel({
         >
           <option value="">
             {isLoadingServers
-              ? 'Loading servers…'
+              ? 'Loading servers...'
               : availablePresets.length
                 ? 'Select server'
                 : 'No servers found'}
@@ -444,7 +457,7 @@ function PlexConnectPanel({
             const locality = p.local ? 'local' : 'remote'
             return (
               <option key={p.uri} value={p.uri}>
-                {`${p.name} — ${protocol}://${p.address}:${p.port} (${locality})`}
+                {`${p.name} - ${protocol}://${p.address}:${p.port} (${locality})`}
               </option>
             )
           })}
@@ -472,18 +485,49 @@ function PlexConnectPanel({
           className="input w-3/4 rounded-lg bg-zinc-700 text-white"
           disabled={connectionLocked}
           value={plexHost}
-          onChange={(e) =>
-            onChange({ plexHost: stripProtocol(e.target.value) })
-          }
+          onChange={(e) => {
+            const rawValue = e.target.value
+            const stripped = stripProtocol(rawValue)
+            const isHttps = rawValue.startsWith('https://')
+            const isHttp = rawValue.startsWith('http://')
+
+            onChange({
+              plexHost: stripped,
+              plexSsl: isHttps ? true : isHttp ? false : undefined,
+            })
+          }}
         />
 
         <label className="block text-sm text-zinc-200">Port</label>
         <input
+          type="number"
           className="input w-3/4 rounded-lg bg-zinc-700 text-white"
           disabled={connectionLocked}
           value={plexPort}
-          onChange={(e) => onChange({ plexPort: Number(e.target.value) })}
+          min={1}
+          onChange={(e) => {
+            const nextPort = Number.parseInt(e.target.value, 10)
+            onChange({
+              plexPort: Number.isNaN(nextPort) ? plexPort : nextPort,
+            })
+          }}
         />
+
+        <label className="mt-3 block text-sm text-zinc-200">
+          Connection security
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-zinc-600 bg-zinc-700"
+            disabled={connectionLocked}
+            checked={plexSsl}
+            onChange={(e) => onChange({ plexSsl: e.target.checked })}
+          />
+          <span className="text-sm text-zinc-200">
+            Use HTTPS ({plexSsl ? 'https' : 'http'}://{plexHost}:{plexPort})
+          </span>
+        </div>
       </div>
 
       {/* Test uses the current on-screen values via POST payload */}

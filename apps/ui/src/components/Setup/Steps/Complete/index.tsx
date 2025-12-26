@@ -4,7 +4,7 @@ export default function CompleteStep() {
       <h2 className="text-2xl font-semibold text-zinc-100">Setup complete</h2>
 
       <p className="mt-3 text-zinc-300">
-        You’re good to go. You can always adjust Plex and add other services
+        You're good to go. You can always adjust Plex and add other services
         later from Settings.
       </p>
 
