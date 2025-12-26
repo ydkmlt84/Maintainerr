@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import CompleteStep from '../Steps/Complete'
 import PlexStep from '../Steps/Plex'
+import ServiceSelectionStep from '../Steps/ServiceSelection'
+import TautulliStep from '../Steps/Tautulli'
 import WelcomeStep from '../Steps/Welcome'
 import WizardNav from './setupNav'
 
@@ -24,9 +26,26 @@ export default function SetupWizard({
 }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [plexReady, setPlexReady] = useState(false)
+  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [shouldAutoAdvancePlex, setShouldAutoAdvancePlex] = useState(true)
 
   // If you later add step validity, store it here (or in a small store)
   // Example: const [plexValid, setPlexValid] = useState(false)
+
+  const serviceSteps: WizardStep[] = useMemo(() => {
+    const builtSteps: WizardStep[] = []
+
+    selectedServices.forEach((svc) => {
+      if (svc === 'tautulli') {
+        builtSteps.push({
+          key: 'tautulli',
+          render: () => <TautulliStep />,
+        })
+      }
+    })
+
+    return builtSteps
+  }, [selectedServices])
 
   const steps: WizardStep[] = useMemo(
     () => [
@@ -36,16 +55,28 @@ export default function SetupWizard({
       },
       {
         key: 'plex',
-        render: () => <PlexStep settings={settings} onReadyChange={setPlexReady} />,
+        render: () => (
+          <PlexStep settings={settings} onReadyChange={setPlexReady} />
+        ),
         canNext: () => plexReady,
       },
+      {
+        key: 'service-selection',
+        render: () => (
+          <ServiceSelectionStep
+            selected={selectedServices}
+            onChange={setSelectedServices}
+          />
+        ),
+      },
+      ...serviceSteps,
       {
         key: 'complete',
         render: () => <CompleteStep />,
         nextLabel: 'Finish',
       },
     ],
-    [settings, plexReady],
+    [settings, plexReady, selectedServices, serviceSteps],
   )
 
   const totalSteps = steps.length
@@ -57,13 +88,32 @@ export default function SetupWizard({
     : true
 
   useEffect(() => {
-    if (!plexReady) return
+    if (!plexReady) {
+      setShouldAutoAdvancePlex(true)
+      return
+    }
+
+    if (!shouldAutoAdvancePlex) return
     if (steps[currentStep]?.key !== 'plex') return
 
     setCurrentStep((s) => Math.min(s + 1, totalSteps - 1))
-  }, [currentStep, plexReady, steps, totalSteps])
+    setShouldAutoAdvancePlex(false)
+  }, [currentStep, plexReady, shouldAutoAdvancePlex, steps, totalSteps])
 
-  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 0))
+  useEffect(() => {
+    if (currentStep > totalSteps - 1) {
+      setCurrentStep(totalSteps - 1)
+    }
+  }, [currentStep, totalSteps])
+
+  const goBack = () =>
+    setCurrentStep((s) => {
+      const nextStep = Math.max(s - 1, 0)
+      if (steps[nextStep]?.key === 'plex') {
+        setShouldAutoAdvancePlex(false)
+      }
+      return nextStep
+    })
 
   const goNext = () => {
     if (isLastStep) {
@@ -74,7 +124,7 @@ export default function SetupWizard({
   }
 
   const activeStep = steps[currentStep]
-  const isPlexStep = steps[currentStep].key === 'plex'
+  const isPlexStep = steps[currentStep]?.key === 'plex'
 
   return (
     <div className="flex min-h-screen min-w-0 items-center justify-center bg-zinc-900 px-4 py-10">
