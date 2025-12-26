@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CompleteStep from '../Steps/Complete'
 import PlexStep from '../Steps/Plex'
 import WelcomeStep from '../Steps/Welcome'
@@ -23,6 +23,7 @@ export default function SetupWizard({
   onDone,
 }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0)
+  const [plexReady, setPlexReady] = useState(false)
 
   // If you later add step validity, store it here (or in a small store)
   // Example: const [plexValid, setPlexValid] = useState(false)
@@ -35,8 +36,8 @@ export default function SetupWizard({
       },
       {
         key: 'plex',
-        render: () => <PlexStep settings={settings} />,
-        // canNext: () => plexValid,
+        render: () => <PlexStep settings={settings} onReadyChange={setPlexReady} />,
+        canNext: () => plexReady,
       },
       {
         key: 'complete',
@@ -44,7 +45,7 @@ export default function SetupWizard({
         nextLabel: 'Finish',
       },
     ],
-    [settings],
+    [settings, plexReady],
   )
 
   const totalSteps = steps.length
@@ -54,6 +55,13 @@ export default function SetupWizard({
   const canGoNext = steps[currentStep]?.canNext
     ? steps[currentStep].canNext!()
     : true
+
+  useEffect(() => {
+    if (!plexReady) return
+    if (steps[currentStep]?.key !== 'plex') return
+
+    setCurrentStep((s) => Math.min(s + 1, totalSteps - 1))
+  }, [currentStep, plexReady, steps, totalSteps])
 
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 0))
 
