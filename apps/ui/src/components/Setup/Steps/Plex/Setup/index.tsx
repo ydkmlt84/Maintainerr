@@ -233,7 +233,7 @@ export default function PlexSetupWizard({
     toast.success('Plex configuration saved')
 
     onReadyChange?.(true)
-    setStep((s) => s + 1)
+    setStep((s) => Math.min(s + 1, steps.length - 1))
   }
 
   /* ------------------------------------------------------------------------ */
