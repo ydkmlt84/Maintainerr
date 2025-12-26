@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { BasicResponseDto } from '../api/external-api/dto/basic-response.dto';
 import { InternalApiService } from '../api/internal-api/internal-api.service';
 import { JellyseerrApiService } from '../api/jellyseerr-api/jellyseerr-api.service';
+import PlexApi from '../api/lib/plexApi';
 import { OverseerrApiService } from '../api/overseerr-api/overseerr-api.service';
 import { PlexApiService } from '../api/plex-api/plex-api.service';
 import { ServarrService } from '../api/servarr-api/servarr.service';
@@ -737,8 +738,49 @@ export class SettingsService implements SettingDto {
     }
   }
 
-  public async testPlex(): Promise<any> {
+  public async testPlex(override?: {
+    hostname: string;
+    port: number;
+    ssl?: boolean;
+  }): Promise<any> {
     try {
+      // If override is provided, we create a temporary client to test *these* values only.
+      if (override) {
+        const hostname = override.hostname?.trim();
+        const port = Number(override.port);
+        const ssl = Boolean(override.ssl);
+
+        if (!hostname || !Number.isFinite(port)) {
+          return {
+            status: 'NOK',
+            code: 0,
+            message: 'Invalid connection details',
+          };
+        }
+
+        const token = this.plex_auth_token; // already stored after Plex login
+        if (!token) {
+          return { status: 'NOK', code: 0, message: 'Missing Plex token' };
+        }
+
+        const client = new PlexApi({
+          hostname,
+          port,
+          https: ssl,
+          token,
+          timeout: 5000,
+        });
+
+        // Pull status directly from the server we’re testing (not DB config)
+        const resp: any = await client.query('/', false);
+        const version = resp?.MediaContainer?.version;
+
+        return version != null
+          ? { status: 'OK', code: 1, message: version }
+          : { status: 'NOK', code: 0, message: 'Failure' };
+      }
+
+      // No override: keep existing behavior 100% intact (DB-backed client)
       const resp = await this.plexApi.getStatus();
       return resp?.version != null
         ? { status: 'OK', code: 1, message: resp.version }

@@ -219,6 +219,19 @@ export class SettingsController {
     return this.settingsService.testPlex();
   }
 
+  @Post('/test/plex')
+  testPlexPayload(
+    @Body()
+    body: {
+      hostname: string;
+      port: number;
+      ssl?: boolean;
+    },
+  ) {
+    // New behavior (payload-backed) — used only by setup wizard
+    return this.settingsService.testPlex(body);
+  }
+
   @Get('/plex/devices/servers')
   async getPlexServers() {
     return await this.settingsService.getPlexServers();

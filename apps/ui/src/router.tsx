@@ -13,6 +13,7 @@ import SettingsPlex from './components/Settings/Plex'
 import SettingsRadarr from './components/Settings/Radarr'
 import SettingsSonarr from './components/Settings/Sonarr'
 import SettingsTautulli from './components/Settings/Tautulli'
+import AppLoadingPage from './pages/AppLoadingPage'
 import CollectionDetailPage from './pages/CollectionDetailPage'
 import CollectionExclusionsPage from './pages/CollectionExclusionsPage'
 import CollectionInfoPage from './pages/CollectionInfoPage'
@@ -26,23 +27,24 @@ import SetupPage from './pages/SetupPage'
 
 const basePath = import.meta.env.VITE_BASE_PATH || ''
 
-async function requireSetupLoader() {
-  const res = await fetch('/api/settings/test/setup', {
-    credentials: 'include',
-  })
-
-  if (!res.ok) return null
-
-  const setupDone = (await res.json()) as boolean
-  if (!setupDone) throw redirect('/setup')
-
-  return null
+type AppStatusResponse = {
+  status?: number
+  version?: string
+  commitTag?: string
+  updateAvailable?: boolean
 }
 
 async function setupPageLoader() {
-  const res = await fetch('/api/settings/test/setup', {
-    credentials: 'include',
-  })
+  let res: Response
+  try {
+    res = await fetch('/api/settings/test/setup', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+  } catch {
+    // API not ready (or network/proxy not ready) -> let /setup render.
+    return null
+  }
 
   if (!res.ok) return null
 
@@ -52,8 +54,64 @@ async function setupPageLoader() {
   return null
 }
 
+async function appBootstrapLoader() {
+  // 1) API readiness check: if we cannot get a valid response from /api/app/status,
+  // redirect to /loading (AppLoadingPage will poll until ready).
+  let statusRes: Response
+  try {
+    statusRes = await fetch('/api/app/status', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+  } catch {
+    throw redirect('/loading')
+  }
+
+  if (!statusRes.ok) {
+    throw redirect('/loading')
+  }
+
+  // If the response isn't valid JSON, treat API as "not ready".
+  let statusJson: AppStatusResponse
+  try {
+    statusJson = (await statusRes.json()) as AppStatusResponse
+  } catch {
+    throw redirect('/loading')
+  }
+
+  // You said you mainly care that you get a response at all.
+  // We'll still require `status` to be truthy, since your endpoint explicitly returns it.
+  if (!statusJson.status) {
+    throw redirect('/loading')
+  }
+
+  // 2) Setup check
+  let setupRes: Response
+  try {
+    setupRes = await fetch('/api/settings/test/setup', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+  } catch {
+    throw redirect('/loading')
+  }
+
+  if (!setupRes.ok) {
+    throw redirect('/loading')
+  }
+
+  const setupDone = (await setupRes.json()) as boolean
+  if (!setupDone) throw redirect('/setup')
+
+  return null
+}
+
 export const router = createBrowserRouter(
   [
+    {
+      path: '/loading',
+      element: <AppLoadingPage />,
+    },
     {
       path: '/setup',
       element: <SetupPage />,
@@ -62,7 +120,7 @@ export const router = createBrowserRouter(
     {
       path: '/',
       element: <Layout />,
-      loader: requireSetupLoader,
+      loader: appBootstrapLoader,
       errorElement: <LayoutErrorBoundary />,
       children: [
         {
