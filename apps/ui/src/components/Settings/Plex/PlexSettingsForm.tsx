@@ -3,6 +3,7 @@ import { SaveIcon } from '@heroicons/react/solid'
 import axios from 'axios'
 import { orderBy } from 'lodash-es'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import {
   useDeletePlexAuth,
@@ -13,6 +14,7 @@ import GetApiHandler from '../../../utils/ApiHandler'
 import Alert from '../../Common/Alert'
 import Button from '../../Common/Button'
 import DocsButton from '../../Common/DocsButton'
+import Modal from '../../Common/Modal'
 import TestButton from '../../Common/TestButton'
 import PlexLoginButton from '../../Login/Plex'
 
@@ -90,7 +92,7 @@ export const PlexSettingsForm: React.FC<PlexSettingsFormProps> = ({
   const sslRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | undefined>()
   const [tokenValid, setTokenValid] = useState<boolean>(false)
-  const [clearTokenClicked, setClearTokenClicked] = useState<boolean>(false)
+  const [showClearModal, setShowClearModal] = useState<boolean>(false)
   const [testBanner, setTestbanner] = useState<{
     status: boolean
     version: string
@@ -113,6 +115,8 @@ export const PlexSettingsForm: React.FC<PlexSettingsFormProps> = ({
   } = useDeletePlexAuth()
 
   const { mutateAsync: updatePlexAuth } = useUpdatePlexAuth()
+  const navigate = useNavigate()
+  const basePath = (import.meta.env.VITE_BASE_PATH ?? '').replace(/\/+$/, '')
 
   const submit = async (e: React.FormEvent<HTMLFormElement> | undefined) => {
     e?.preventDefault()
@@ -200,7 +204,8 @@ export const PlexSettingsForm: React.FC<PlexSettingsFormProps> = ({
   const deleteToken = async () => {
     await deletePlexAuth()
     setTokenValid(false)
-    setClearTokenClicked(false)
+    setShowClearModal(false)
+    navigate(`${basePath}/setup`, { replace: true })
   }
 
   const verifyToken = (token?: string) => {
@@ -473,26 +478,19 @@ export const PlexSettingsForm: React.FC<PlexSettingsFormProps> = ({
             <div className="form-input">
               <div className="form-input-field">
                 {tokenValid ? (
-                  clearTokenClicked ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" buttonType="success" disabled>
+                      Authenticated
+                    </Button>
                     <Button
                       type="button"
-                      onClick={deleteToken}
+                      onClick={() => setShowClearModal(true)}
                       buttonType="warning"
                       disabled={deletePlexAuthPending}
                     >
-                      Clear credentials?
+                      Clear credentials
                     </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setClearTokenClicked(true)
-                      }}
-                      buttonType="success"
-                    >
-                      Authenticated
-                    </Button>
-                  )
+                  </div>
                 ) : (
                   <PlexLoginButton
                     onAuthToken={authsuccess}
@@ -522,6 +520,24 @@ export const PlexSettingsForm: React.FC<PlexSettingsFormProps> = ({
           </div>
         </form>
       </div>
+      {showClearModal ? (
+        <Modal
+          title="Clear Plex credentials?"
+          onCancel={() => setShowClearModal(false)}
+          cancelText="Keep credentials"
+          onOk={deleteToken}
+          okText="Clear credentials"
+          okButtonType="warning"
+        >
+          <p className="mb-2">
+            Clearing your Plex credentials will sign you out and send you back
+            to the setup wizard so you can reconnect Plex.
+          </p>
+          <p className="text-xs text-zinc-200">
+            A reconnect flow for already-finished setups will be added later.
+          </p>
+        </Modal>
+      ) : null}
     </>
   )
 }

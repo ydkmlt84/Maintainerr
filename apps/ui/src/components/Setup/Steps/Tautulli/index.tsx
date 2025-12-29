@@ -1,9 +1,18 @@
 import TautulliSettings from '../../../Settings/Tautulli'
+import ServiceStepLayout from '../ServiceStepLayout'
 
-export default function TautulliSetupStep() {
+type TautulliSetupStepProps = {
+  onSkip?: () => void
+}
+
+export default function TautulliSetupStep({ onSkip }: TautulliSetupStepProps) {
   return (
-    <div className="px-2 pb-4">
+    <ServiceStepLayout
+      title="Tautulli"
+      description="Connect to Tautulli now or skip and finish it later from Settings."
+      onSkip={onSkip}
+    >
       <TautulliSettings />
-    </div>
+    </ServiceStepLayout>
   )
 }

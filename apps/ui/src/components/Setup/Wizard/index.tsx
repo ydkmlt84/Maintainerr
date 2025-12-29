@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import CompleteStep from '../Steps/Complete'
 import PlexStep from '../Steps/Plex'
+import RadarrStep from '../Steps/Radarr'
+import SeerrStep from '../Steps/Seerr'
 import ServiceSelectionStep from '../Steps/ServiceSelection'
+import SonarrStep from '../Steps/Sonarr'
 import TautulliStep from '../Steps/Tautulli'
 import WelcomeStep from '../Steps/Welcome'
 import WizardNav from './setupNav'
@@ -29,6 +32,10 @@ export default function SetupWizard({
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [shouldAutoAdvancePlex, setShouldAutoAdvancePlex] = useState(true)
 
+  const skipCurrentStep = useCallback(() => {
+    setCurrentStep((s) => s + 1)
+  }, [])
+
   // If you later add step validity, store it here (or in a small store)
   // Example: const [plexValid, setPlexValid] = useState(false)
 
@@ -39,13 +46,34 @@ export default function SetupWizard({
       if (svc === 'tautulli') {
         builtSteps.push({
           key: 'tautulli',
-          render: () => <TautulliStep />,
+          render: () => <TautulliStep onSkip={skipCurrentStep} />,
+        })
+      }
+
+      if (svc === 'radarr') {
+        builtSteps.push({
+          key: 'radarr',
+          render: () => <RadarrStep onSkip={skipCurrentStep} />,
+        })
+      }
+
+      if (svc === 'sonarr') {
+        builtSteps.push({
+          key: 'sonarr',
+          render: () => <SonarrStep onSkip={skipCurrentStep} />,
+        })
+      }
+
+      if (svc === 'seerr') {
+        builtSteps.push({
+          key: 'seerr',
+          render: () => <SeerrStep onSkip={skipCurrentStep} />,
         })
       }
     })
 
     return builtSteps
-  }, [selectedServices])
+  }, [selectedServices, skipCurrentStep])
 
   const steps: WizardStep[] = useMemo(
     () => [
