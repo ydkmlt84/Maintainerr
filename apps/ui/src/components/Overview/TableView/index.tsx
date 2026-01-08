@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Tooltip } from 'react-tooltip'
 import { SmallLoadingSpinner } from '../../Common/LoadingSpinner'
 import MediaModalContent from '../../Common/MediaCard/MediaModal'
 import { IPlexMetadata } from '../iPlexMetadata'
@@ -43,45 +44,63 @@ const OverviewTable = ({ data, extrasLoading }: Props) => {
           </thead>
 
           <tbody>
-            {data.map((item) => (
-              <tr
-                key={item.ratingKey}
-                className="border-t border-zinc-800 hover:bg-zinc-800"
-              >
-                <td className="px-2 py-2 align-middle">
-                  {item.maintainerrExclusionType ? (
-                    <span className="inline-flex items-center rounded-full bg-zinc-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-100">
-                      EXCL
-                    </span>
-                  ) : null}
-                </td>
+            {data.map((item) => {
+              const tooltipId = `excl-table-${item.ratingKey}`
+              return (
+                <tr
+                  key={item.ratingKey}
+                  className="border-t border-zinc-800 hover:bg-zinc-800"
+                >
+                  <td className="px-2 py-2 align-middle">
+                    {item.maintainerrExclusionType ? (
+                      <>
+                        <span
+                          className="inline-flex items-center rounded-full bg-zinc-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-100"
+                          data-tooltip-id={tooltipId}
+                          data-tooltip-content={
+                            item.maintainerrExclusionLabels?.length
+                              ? item.maintainerrExclusionLabels.join(', ')
+                              : 'Excluded'
+                          }
+                        >
+                          EXCL
+                        </span>
+                        <Tooltip
+                          id={tooltipId}
+                          place="top"
+                          className="z-50 max-w-xs whitespace-pre-wrap break-words text-xs"
+                        />
+                      </>
+                    ) : null}
+                  </td>
 
-                <td className="px-4 py-2 align-middle">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelected(item)
-                    }}
-                    className="cursor-alias text-left font-medium text-zinc-100 hover:underline"
-                  >
-                    {getTitle(item)}
-                  </button>
-                </td>
+                  <td className="px-4 py-2 align-middle">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelected(item)
+                      }}
+                      className="cursor-alias text-left font-medium text-zinc-100 hover:underline"
+                    >
+                      {getTitle(item)}
+                    </button>
+                  </td>
 
-                <td className="cursor-text select-text px-4 py-2 align-middle">
-                  {item.type}
-                </td>
+                  <td className="cursor-text select-text px-4 py-2 align-middle">
+                    {item.type}
+                  </td>
 
-                <td className="cursor-text select-text px-4 py-2 align-middle">
-                  {getYear(item)}
-                </td>
+                  <td className="cursor-text select-text px-4 py-2 align-middle">
+                    {getYear(item)}
+                  </td>
 
-                <td className="cursor-text select-text px-4 py-2 align-middle">
-                  {item.audienceRating ? item.audienceRating.toFixed(1) : '—'}
-                </td>
-              </tr>
-            ))}
+                  <td className="cursor-text select-text px-4 py-2 align-middle">
+                    {item.audienceRating ? item.audienceRating.toFixed(1) : 'ƒ?"'}
+                  </td>
+                </tr>
+              )
+            })}
             {extrasLoading ? (
               <tr className="border-t border-zinc-800">
                 <td colSpan={5} className="px-4 py-3">
@@ -103,6 +122,8 @@ const OverviewTable = ({ data, extrasLoading }: Props) => {
           tmdbid={getTmdbId(selected)}
           year={getYear(selected)}
           userScore={selected.audienceRating ? selected.audienceRating : 0}
+          exclusionType={selected.maintainerrExclusionType}
+          exclusionLabels={selected.maintainerrExclusionLabels}
         />
       )}
     </>

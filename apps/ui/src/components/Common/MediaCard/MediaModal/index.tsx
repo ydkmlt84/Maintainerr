@@ -19,6 +19,7 @@ interface ModalContentProps {
   daysLeft?: number
   exclusionId?: number
   exclusionType?: 'global' | 'specific' | undefined
+  exclusionLabels?: string[]
   collectionId?: number
   isManual?: boolean
 }
@@ -46,7 +47,17 @@ const iconMap: Record<string, Record<string, string>> = {
 }
 
 const MediaModalContent: React.FC<ModalContentProps> = memo(
-  ({ onClose, mediaType, id, summary, year, title, tmdbid }) => {
+  ({
+    onClose,
+    mediaType,
+    id,
+    summary,
+    year,
+    title,
+    tmdbid,
+    exclusionType,
+    exclusionLabels,
+  }) => {
     const [loading, setLoading] = useState<boolean>(true)
     const [backdrop, setBackdrop] = useState<string | null>(null)
     const [machineId, setMachineId] = useState<string | null>(null)
@@ -265,6 +276,19 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             <div className="mt-2 text-gray-300">
               <p>{summary || 'No summary available.'}</p>
             </div>
+
+            {exclusionType ? (
+              <div className="mt-4 rounded-md border border-zinc-700 bg-zinc-900 p-3">
+                <div className="text-sm font-semibold text-amber-300">
+                  Excluded ({exclusionType === 'global' ? 'Global' : 'Rule/Collection'})
+                </div>
+                <div className="mt-1 text-sm text-zinc-200">
+                  {exclusionLabels && exclusionLabels.length > 0
+                    ? exclusionLabels.join(', ')
+                    : 'This item is excluded.'}
+                </div>
+              </div>
+            ) : null}
 
             <div className="mr-0.5 mt-6 flex flex-row items-center justify-between gap-4">
               {metadata?.Guid &&

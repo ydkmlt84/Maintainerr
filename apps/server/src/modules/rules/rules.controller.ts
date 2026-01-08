@@ -58,6 +58,11 @@ export class RulesController {
     return this.rulesService.getExclusions(query.rulegroupId, query.plexId);
   }
 
+  @Get('/exclusions/all')
+  async getAllExclusions() {
+    return this.rulesService.getAllExclusions();
+  }
+
   @Get('/count')
   async getRuleGroupCount() {
     return this.rulesService.getRuleGroupCount();

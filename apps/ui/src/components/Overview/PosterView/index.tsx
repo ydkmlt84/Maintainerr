@@ -77,6 +77,7 @@ const OverviewPoster = ({
             userScore={el.audienceRating ? el.audienceRating : 0}
             exclusionId={el.maintainerrExclusionId ?? undefined}
             exclusionType={el.maintainerrExclusionType}
+            exclusionLabels={el.maintainerrExclusionLabels}
             tmdbid={getTmdbId(el)}
             collectionPage={collectionPage}
             onRemove={onRemove}

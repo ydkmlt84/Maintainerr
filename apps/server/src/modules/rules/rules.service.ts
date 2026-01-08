@@ -754,9 +754,29 @@ export class RulesService {
     }
   }
 
-  async getAllExclusions(): Promise<Exclusion[]> {
+  async getAllExclusions(): Promise<
+    (Exclusion & { collectionTitle?: string; ruleGroupName?: string })[]
+  > {
     try {
-      return await this.exclusionRepo.find();
+      const exclusions = await this.exclusionRepo
+        .createQueryBuilder('exclusion')
+        .leftJoin('rule_group', 'rg', 'rg.id = exclusion.ruleGroupId')
+        .leftJoin('collection', 'c', 'c.id = rg.collectionId')
+        .select([
+          'exclusion.id as id',
+          'exclusion.plexId as plexId',
+          'exclusion.ruleGroupId as ruleGroupId',
+          'exclusion.parent as parent',
+          'exclusion.type as type',
+          'c.title as collectionTitle',
+          'rg.name as ruleGroupName',
+        ])
+        .getRawMany();
+
+      return exclusions as (Exclusion & {
+        collectionTitle?: string;
+        ruleGroupName?: string;
+      })[];
     } catch (e) {
       this.logger.warn(`Rules - Action failed : ${e.message}`);
       this.logger.debug(e);
