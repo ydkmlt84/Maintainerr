@@ -49,13 +49,27 @@ export class PlexApiController {
     @Param('id') id: string,
     @Param('page', new ParseIntPipe()) page: number,
     @Query('amount') amount: number,
+    @Query('sort') sort?: string,
+    @Query('all') all?: boolean,
   ) {
     const size = amount ? amount : 50;
     const offset = (page - 1) * size;
-    const result = await this.plexApiService.getLibraryContents(id, {
-      offset: offset,
-      size: size,
-    });
+    const result = all
+      ? await this.plexApiService.getLibraryContentsAll(
+          id,
+          sort,
+          amount ? amount : undefined,
+        )
+      : await this.plexApiService.getLibraryContents(
+          id,
+          {
+            offset: offset,
+            size: size,
+          },
+          undefined,
+          true,
+          sort,
+        );
     if (result == null) {
       throw new InternalServerErrorException(
         'Could not fetch Plex library contents',

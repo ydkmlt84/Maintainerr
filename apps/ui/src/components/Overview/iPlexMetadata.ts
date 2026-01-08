@@ -37,5 +37,6 @@ export interface IPlexMetadata {
   index?: number
   maintainerrExclusionType?: 'specific' | 'global'
   maintainerrExclusionId?: number
+  maintainerrExclusionLabels?: string[]
   maintainerrIsManual?: boolean
 }

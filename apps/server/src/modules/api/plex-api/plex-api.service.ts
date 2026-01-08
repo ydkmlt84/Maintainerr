@@ -253,12 +253,14 @@ export class PlexApiService {
     { offset = 0, size = 50 }: { offset?: number; size?: number } = {},
     datatype?: EPlexDataType,
     useCache: boolean = true,
+    sort?: string,
   ): Promise<{ totalSize: number; items: PlexLibraryItem[] }> {
     try {
       const type = datatype ? '&type=' + datatype : '';
+      const sortQuery = sort ? `&sort=${encodeURIComponent(sort)}` : '';
       const response = await this.plexClient.query<PlexLibraryResponse>(
         {
-          uri: `/library/sections/${id}/all?includeGuids=1${type}`,
+          uri: `/library/sections/${id}/all?includeGuids=1${type}${sortQuery}`,
           extraHeaders: {
             'X-Plex-Container-Start': `${offset}`,
             'X-Plex-Container-Size': `${size}`,
@@ -266,6 +268,36 @@ export class PlexApiService {
         },
         useCache,
       );
+
+      return {
+        totalSize: response.MediaContainer.totalSize,
+        items: (response.MediaContainer.Metadata as PlexLibraryItem[]) ?? [],
+      };
+    } catch (err) {
+      this.logger.error(
+        'Plex api communication failure.. Is the application running?',
+        err,
+      );
+      return undefined;
+    }
+  }
+
+  public async getLibraryContentsAll(
+    id: string,
+    sort?: string,
+    chunkSize: number = 100,
+    datatype?: EPlexDataType,
+  ): Promise<{ totalSize: number; items: PlexLibraryItem[] }> {
+    try {
+      const type = datatype ? '&type=' + datatype : '';
+      const sortQuery = sort ? `&sort=${encodeURIComponent(sort)}` : '';
+      const response =
+        await this.plexClient.queryAll<PlexLibraryResponse>({
+          uri: `/library/sections/${id}/all?includeGuids=1${type}${sortQuery}`,
+          extraHeaders: {
+            'X-Plex-Container-Size': `${chunkSize}`,
+          },
+        });
 
       return {
         totalSize: response.MediaContainer.totalSize,

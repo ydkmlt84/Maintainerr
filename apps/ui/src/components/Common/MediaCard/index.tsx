@@ -2,7 +2,6 @@ import { Transition } from '@headlessui/react'
 import { DocumentAddIcon, DocumentRemoveIcon } from '@heroicons/react/solid'
 import React, { memo, useEffect, useState } from 'react'
 import { useIsTouch } from '../../../hooks/useIsTouch'
-import GetApiHandler from '../../../utils/ApiHandler'
 import AddModal from '../../AddModal'
 import RemoveFromCollectionBtn from '../../Collection/CollectionDetail/RemoveFromCollectionBtn'
 import Button from '../Button'
@@ -24,10 +23,13 @@ interface IMediaCard {
   daysLeft?: number
   exclusionId?: number
   exclusionType?: 'global' | 'specific' | undefined
+  exclusionLabels?: string[]
   collectionId?: number
   isManual?: boolean
   onRemove?: (id: string) => void
 }
+
+const posterCache = new Map<string, string | null>()
 
 const MediaCard: React.FC<IMediaCard> = ({
   id,
@@ -44,6 +46,7 @@ const MediaCard: React.FC<IMediaCard> = ({
   userScore,
   collectionPage = false,
   exclusionType = undefined,
+  exclusionLabels = undefined,
   isManual = false,
   onRemove = () => {},
 }) => {
@@ -52,8 +55,9 @@ const MediaCard: React.FC<IMediaCard> = ({
   const [image, setImage] = useState<string | null>(null)
   const [excludeModal, setExcludeModal] = useState(false)
   const [addModal, setAddModal] = useState(false)
-  const [hasExclusion, setHasExclusion] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
   const [showMediaModal, setShowMediaModal] = useState(false)
+  const cardRef = React.useRef<HTMLDivElement | null>(null)
 
   const openMediaModal = () => {
     setShowMediaModal(true)
@@ -62,21 +66,45 @@ const MediaCard: React.FC<IMediaCard> = ({
   const closeMediaModal = () => setShowMediaModal(false)
 
   useEffect(() => {
-    if (tmdbid) {
-      GetApiHandler(`/moviedb/image/${mediaType}/${tmdbid}`).then((resp) =>
-        setImage(resp),
-      )
-    }
-    getExclusions()
+    if (!cardRef.current) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true)
+            observer.disconnect()
+          }
+        })
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(cardRef.current)
+    return () => observer.disconnect()
   }, [])
 
-  const getExclusions = () => {
-    if (!collectionPage) {
-      GetApiHandler(`/rules/exclusion?plexId=${id}`).then((resp: []) =>
-        resp.length > 0 ? setHasExclusion(true) : setHasExclusion(false),
-      )
+  useEffect(() => {
+    if (!tmdbid || !isVisible) return
+    const cacheKey = `${mediaType}:${tmdbid}`
+    if (posterCache.has(cacheKey)) {
+      setImage(posterCache.get(cacheKey) ?? null)
+      return
     }
-  }
+    let cancelled = false
+    import('../../../utils/ApiHandler')
+      .then(({ default: api }) =>
+        api(`/moviedb/image/${mediaType}/${tmdbid}`).then((resp) => {
+          if (cancelled) return
+          posterCache.set(cacheKey, resp)
+          setImage(resp)
+        }),
+      )
+      .catch(() => {
+        if (!cancelled) posterCache.set(cacheKey, null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tmdbid, mediaType, isVisible])
 
   // Just to get the year from the date
   if (year && mediaType !== 'episode') {
@@ -116,6 +144,7 @@ const MediaCard: React.FC<IMediaCard> = ({
             ? 'scale-105 shadow-lg ring-zinc-500'
             : 'scale-100 shadow ring-zinc-700'
         }`}
+        ref={cardRef}
         onMouseEnter={() => !isTouch && setShowDetail(true)}
         onMouseLeave={() => setShowDetail(false)}
         onClick={() => showDetail && openMediaModal()}
@@ -147,7 +176,7 @@ const MediaCard: React.FC<IMediaCard> = ({
               </div>
             </div>
           </div>
-          {hasExclusion && !collectionPage ? (
+          {exclusionType && !collectionPage ? (
             <div className="absolute right-0 flex items-center justify-between p-2">
               <div
                 className={`pointer-events-none z-40 rounded-full shadow ${
@@ -335,6 +364,8 @@ const MediaCard: React.FC<IMediaCard> = ({
           tmdbid={tmdbid}
           year={year}
           userScore={userScore}
+          exclusionType={exclusionType}
+          exclusionLabels={exclusionLabels}
         />
       )}
     </div>

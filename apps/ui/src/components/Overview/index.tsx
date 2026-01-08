@@ -1,5 +1,4 @@
-import { clone, orderBy } from 'lodash'
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useMemo, useContext, useEffect, useRef, useState } from 'react'
 import { usePlexLibraries } from '../../api/plex'
 import SearchContext from '../../contexts/search-context'
 import GetApiHandler from '../../utils/ApiHandler'
@@ -11,16 +10,13 @@ import OverviewContent from './Content'
 import type { IPlexMetadata } from './iPlexMetadata'
 
 const Overview = () => {
-  // const [isLoading, setIsLoading] = useState<Boolean>(false)
   const loadingRef = useRef<boolean>(false)
 
   const [loadingExtra, setLoadingExtra] = useState<boolean>(false)
 
-  const [data, setData] = useState<IPlexMetadata[]>([])
-  const dataRef = useRef<IPlexMetadata[]>([])
+  const [allData, setAllData] = useState<IPlexMetadata[]>([])
 
-  const [totalSize, setTotalSize] = useState<number>(999)
-  const totalSizeRef = useRef<number>(999)
+  const [visibleData, setVisibleData] = useState<IPlexMetadata[]>([])
 
   const [selectedLibrary, setSelectedLibrary] = useState<number>()
   const selectedLibraryRef = useRef<number>(undefined)
@@ -34,33 +30,20 @@ const Overview = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('poster')
 
   const [sortOption, setSortOption] = useState<SortOption>('title:asc')
-  const sortedData = (() => {
-    const [field, direction] = sortOption.split(':') as [string, 'asc' | 'desc']
-
-    if (field !== 'title') return data
-
-    return orderBy(
-      data,
-      [
-        (el) =>
-          (
-            el.grandparentTitle ||
-            el.parentTitle ||
-            el.title ||
-            ''
-          ).toLowerCase(),
-      ],
-      [direction],
-    )
-  })()
-
   const [filterOption, setFilterOption] = useState<FilterOption>('all')
 
   type OpenDropdown = 'view' | 'sort' | 'filter' | null
 
   const [openDropdown, setOpenDropdown] = useState<OpenDropdown>(null)
 
-  const fetchAmount = 30
+  const fetchAmount = 40
+  const visibleCountRef = useRef<number>(0)
+  const exclusionsRef = useRef<
+    Map<
+      number,
+      { ids: number[]; type: 'global' | 'specific'; labels: string[] }
+    >
+  >(new Map())
 
   const setIsLoading = (val: boolean) => {
     loadingRef.current = val
@@ -72,7 +55,7 @@ const Overview = () => {
     setTimeout(() => {
       if (
         loadingRef.current &&
-        data.length === 0 &&
+        allData.length === 0 &&
         SearchCtx.search.text === ''
       ) {
         switchLib(selectedLibrary ? selectedLibrary : +plexLibraries[0].key)
@@ -81,9 +64,7 @@ const Overview = () => {
 
     // Cleanup on unmount
     return () => {
-      setData([])
-      dataRef.current = []
-      totalSizeRef.current = 999
+      setAllData([])
       pageData.current = 0
     }
   }, [plexLibraries])
@@ -92,20 +73,24 @@ const Overview = () => {
     if (!plexLibraries || plexLibraries.length === 0) return
 
     if (SearchCtx.search.text !== '') {
-      GetApiHandler(`/plex/search/${SearchCtx.search.text}`).then(
-        (resp: IPlexMetadata[]) => {
-          setSearchUsed(true)
-          setTotalSize(resp.length)
-          pageData.current = resp.length * 50
-          setData(resp ? resp : [])
-          setIsLoading(false)
-        },
-      )
+      ;(async () => {
+        await fetchExclusions()
+        const resp: IPlexMetadata[] = await GetApiHandler(
+          `/plex/search/${SearchCtx.search.text}`,
+        )
+        setSearchUsed(true)
+        pageData.current = resp.length * 50
+        const annotated = attachExclusions(
+          resp ? resp : [],
+          exclusionsRef.current,
+        )
+        setAllData(annotated)
+        setIsLoading(false)
+      })()
       setSelectedLibrary(+plexLibraries[0]?.key)
     } else {
       setSearchUsed(false)
-      setData([])
-      setTotalSize(999)
+      setAllData([])
       pageData.current = 0
       setIsLoading(true)
       fetchData()
@@ -124,51 +109,143 @@ const Overview = () => {
   }, [selectedLibrary])
 
   useEffect(() => {
-    dataRef.current = data
-  }, [data])
-
-  useEffect(() => {
-    totalSizeRef.current = totalSize
-  }, [totalSize])
+    if (SearchCtx.search.text === '') {
+      fetchData()
+    }
+  }, [sortOption])
 
   const switchLib = (libraryId: number) => {
     // get all movies & shows from plex
     setOpenDropdown(null)
     setIsLoading(true)
     pageData.current = 0
-    setTotalSize(999)
-    setData([])
-    dataRef.current = []
     setSearchUsed(false)
     setSelectedLibrary(libraryId)
   }
 
-  const fetchData = async () => {
-    // This function didn't work with normal state. Used a state/ref hack as a result.
-    if (
-      selectedLibraryRef.current &&
-      SearchCtx.search.text === '' &&
-      totalSizeRef.current >= pageData.current * fetchAmount
-    ) {
-      const askedLib = clone(selectedLibraryRef.current)
+  const plexSortFromOption = (option: SortOption) => {
+    const [field, direction] = option.split(':') as [string, 'asc' | 'desc']
+    if (field === 'title') return `titleSort:${direction}`
+    if (field === 'added') return `addedAt:${direction}`
+    return `${field}:${direction}`
+  }
 
+  const attachExclusions = (
+    items: IPlexMetadata[],
+    exclMap: Map<
+      number,
+      { ids: number[]; type: 'global' | 'specific'; labels: string[] }
+    >,
+  ) =>
+    items.map((el) => {
+      const exclusion = exclMap.get(+el.ratingKey)
+      return {
+        ...el,
+        maintainerrExclusionId: exclusion ? exclusion.ids[0] : undefined,
+        maintainerrExclusionType: exclusion ? exclusion.type : undefined,
+        maintainerrExclusionLabels: exclusion ? exclusion.labels : undefined,
+      }
+    })
+
+  const fetchExclusions = async () => {
+    const resp: {
+      id: number
+      plexId: number
+      ruleGroupId: number | null
+      parent?: number
+      collectionTitle?: string
+      ruleGroupName?: string
+    }[] =
+      await GetApiHandler('/rules/exclusions/all')
+    const map = new Map<
+      number,
+      { ids: number[]; type: 'global' | 'specific'; labels: string[] }
+    >()
+
+    const addToMap = (plexId: number, excl: (typeof resp)[number]) => {
+      const label =
+        excl.ruleGroupId === null
+          ? 'Global'
+          : excl.collectionTitle || excl.ruleGroupName || 'Collection'
+      const type = excl.ruleGroupId === null ? 'global' : 'specific'
+      const existing = map.get(plexId)
+      if (existing) {
+        existing.ids.push(excl.id)
+        if (!existing.labels.includes(label)) {
+          existing.labels.push(label)
+        }
+        existing.type =
+          existing.type === 'global' || type === 'global'
+            ? 'global'
+            : 'specific'
+        map.set(plexId, existing)
+      } else {
+        map.set(plexId, {
+          ids: [excl.id],
+          type: type,
+          labels: [label],
+        })
+      }
+    }
+
+    resp?.forEach((excl) => {
+      addToMap(excl.plexId, excl)
+      if (excl.parent) {
+        addToMap(excl.parent, excl)
+      }
+    })
+    exclusionsRef.current = map
+  }
+
+  const fetchData = async () => {
+    if (selectedLibraryRef.current && SearchCtx.search.text === '') {
+      setIsLoading(true)
+      await fetchExclusions()
+
+      const sort = plexSortFromOption(sortOption)
       const resp: { totalSize: number; items: IPlexMetadata[] } =
         await GetApiHandler(
-          `/plex/library/${selectedLibraryRef.current}/content/${
-            pageData.current + 1
-          }?amount=${fetchAmount}`,
+          `/plex/library/${selectedLibraryRef.current}/content/1?all=true&sort=${encodeURIComponent(
+            sort,
+          )}`,
         )
 
-      if (askedLib === selectedLibraryRef.current) {
-        // check lib again, we don't want to change array when lib was changed
-        setTotalSize(resp.totalSize)
-        pageData.current = pageData.current + 1
-        setData([...dataRef.current, ...(resp && resp.items ? resp.items : [])])
-        setIsLoading(false)
-      }
-      setLoadingExtra(false)
+      pageData.current = 1
+      const annotated = attachExclusions(
+        resp && resp.items ? resp.items : [],
+        exclusionsRef.current,
+      )
+      setAllData(annotated ?? [])
       setIsLoading(false)
+      setLoadingExtra(false)
     }
+  }
+
+  const filteredData = useMemo(() => {
+    return allData.filter((el) => {
+      if (filterOption === 'excluded') return !!el.maintainerrExclusionType
+      if (filterOption === 'nonExcluded') return !el.maintainerrExclusionType
+      return true
+    })
+  }, [allData, filterOption])
+
+  useEffect(() => {
+    // reset visible slice when dataset or filters change
+    visibleCountRef.current = Math.min(fetchAmount, filteredData.length)
+    setVisibleData(filteredData.slice(0, visibleCountRef.current))
+  }, [filteredData])
+
+  const loadMoreVisible = () => {
+    if (loadingExtra) return
+    if (visibleCountRef.current >= filteredData.length) return
+    setLoadingExtra(true)
+    const nextCount = Math.min(
+      visibleCountRef.current + fetchAmount,
+      filteredData.length,
+    )
+    visibleCountRef.current = nextCount
+    setVisibleData(filteredData.slice(0, nextCount))
+    setLoadingExtra(false)
   }
 
   return (
@@ -221,20 +298,13 @@ const Overview = () => {
         <div className="mt-4 px-4">
           {selectedLibrary ? (
             <OverviewContent
-              dataFinished={
-                !(totalSizeRef.current >= pageData.current * fetchAmount)
-              }
-              fetchData={() => {
-                setLoadingExtra(true)
-                fetchData()
-              }}
+              dataFinished={visibleData.length >= filteredData.length}
+              fetchData={loadMoreVisible}
               loading={loadingRef.current}
               extrasLoading={
-                loadingExtra &&
-                !loadingRef.current &&
-                totalSizeRef.current >= pageData.current * fetchAmount
+                loadingExtra && !loadingRef.current && !searchUsed
               }
-              data={sortedData}
+              data={visibleData}
               libraryId={selectedLibrary}
               viewMode={viewMode}
             />
