@@ -20,12 +20,19 @@ import {
   PlexCollection,
 } from './interfaces/collection.interface';
 import { PlexHub, PlexLibraryItem } from './interfaces/library.interfaces';
+import {
+  EnrichedLibraryItem,
+  LibraryEnrichmentService,
+} from './library-enrichment.service';
 import { PlexApiService } from './plex-api.service';
 
 @UseGuards(PlexSetupGuard)
 @Controller('api/plex')
 export class PlexApiController {
-  constructor(private readonly plexApiService: PlexApiService) {}
+  constructor(
+    private readonly plexApiService: PlexApiService,
+    private readonly libraryEnrichmentService: LibraryEnrichmentService,
+  ) {}
   @Get()
   async getStatus(): Promise<any> {
     const status = await this.plexApiService.getStatus();
@@ -33,6 +40,32 @@ export class PlexApiController {
       throw new InternalServerErrorException('Could not fetch Plex status');
     }
     return status;
+  }
+
+  @Get('library/:id/enriched{/:page}')
+  async getEnrichedLibraryContent(
+    @Param('id') id: string,
+    @Param('page', new ParseIntPipe()) page: number,
+    @Query('amount') amount: number,
+    @Query('sort') sort?: string,
+    @Query('all') all?: boolean | string,
+  ): Promise<{ totalSize: number; items: EnrichedLibraryItem[] }> {
+    const size = amount ? amount : 50;
+    const offset = (page - 1) * size;
+    const fetchAll = all === true || all === 'true';
+    const result = await this.libraryEnrichmentService.getEnrichedLibrary(id, {
+      offset,
+      size,
+      sort,
+      all: fetchAll,
+    });
+
+    if (result == null) {
+      throw new InternalServerErrorException(
+        'Could not fetch Plex library contents',
+      );
+    }
+    return result;
   }
 
   @Get('libraries')
@@ -50,11 +83,12 @@ export class PlexApiController {
     @Param('page', new ParseIntPipe()) page: number,
     @Query('amount') amount: number,
     @Query('sort') sort?: string,
-    @Query('all') all?: boolean,
+    @Query('all') all?: boolean | string,
   ) {
     const size = amount ? amount : 50;
     const offset = (page - 1) * size;
-    const result = all
+    const fetchAll = all === true || all === 'true';
+    const result = fetchAll
       ? await this.plexApiService.getLibraryContentsAll(
           id,
           sort,

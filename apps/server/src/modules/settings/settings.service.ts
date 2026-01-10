@@ -73,6 +73,10 @@ export class SettingsService implements SettingDto {
 
   rules_handler_job_cron: string;
 
+  image_cache_enabled: boolean;
+
+  image_cache_max_mb: number;
+
   constructor(
     @Inject(forwardRef(() => PlexApiService))
     private readonly plexApi: PlexApiService,
@@ -123,6 +127,8 @@ export class SettingsService implements SettingDto {
       this.collection_handler_job_cron =
         settingsDb?.collection_handler_job_cron;
       this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron;
+      this.image_cache_enabled = settingsDb?.image_cache_enabled ?? true;
+      this.image_cache_max_mb = settingsDb?.image_cache_max_mb ?? 200;
     } else {
       this.logger.log('Settings not found.. Creating initial settings');
       await this.settingsRepo.insert({
@@ -551,6 +557,10 @@ export class SettingsService implements SettingDto {
       settings.plex_hostname = settings.plex_hostname
         ?.replace('https://', '')
         ?.replace('http://', '');
+      settings.image_cache_max_mb =
+        settings.image_cache_max_mb && settings.image_cache_max_mb >= 100
+          ? settings.image_cache_max_mb
+          : 100;
 
       await this.saveSettings({
         ...settingsDb,

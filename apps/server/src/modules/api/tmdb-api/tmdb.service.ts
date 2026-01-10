@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { MaintainerrLogger } from '../../logging/logs.service';
+import { SettingsService } from '../../settings/settings.service';
 import { ExternalApiService } from '../external-api/external-api.service';
 import cacheManager from '../lib/cache';
 import {
@@ -11,7 +15,13 @@ import {
 
 @Injectable()
 export class TmdbApiService extends ExternalApiService {
-  constructor(protected readonly logger: MaintainerrLogger) {
+  private readonly cacheRoot: string;
+  private readonly cacheTtlMs = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+  constructor(
+    protected readonly logger: MaintainerrLogger,
+    private readonly settingsService: SettingsService,
+  ) {
     logger.setContext(TmdbApiService.name);
     super(
       'https://api.themoviedb.org/3',
@@ -23,6 +33,14 @@ export class TmdbApiService extends ExternalApiService {
         nodeCache: cacheManager.getCache('tmdb').data,
       },
     );
+
+    const baseCacheDir =
+      process.env.IMAGE_CACHE_DIR ||
+      (process.env.NODE_ENV === 'production'
+        ? '/opt/data/cache/tmdb'
+        : path.resolve(process.cwd(), '../../data/cache/tmdb'));
+    this.cacheRoot = baseCacheDir;
+    this.ensureCacheDir();
   }
 
   public getPerson = async ({
@@ -137,6 +155,72 @@ export class TmdbApiService extends ExternalApiService {
     }
   };
 
+  public async getCachedImage({
+    tmdbId,
+    type,
+    size = 'w342',
+    variant = 'poster',
+  }: {
+    tmdbId: number;
+    type: 'movie' | 'show';
+    size?: string;
+    variant?: 'poster' | 'backdrop';
+  }): Promise<{ filePath?: string; remoteUrl?: string }> {
+    const cacheConfig = await this.getCacheConfig();
+
+    const pathResolver =
+      variant === 'backdrop' ? this.getBackdropImagePath : this.getImagePath;
+    const imagePath = await pathResolver({ tmdbId, type });
+    if (!imagePath) return {};
+
+    const ext = path.extname(imagePath) || '.jpg';
+    const filename = `${type}-${tmdbId}-${variant}-${size}${ext}`;
+    const filePath = path.join(this.cacheRoot, filename);
+
+    const fileFresh = this.isFileFresh(filePath);
+    const remoteUrl = `https://image.tmdb.org/t/p/${size}${imagePath}`;
+    if (!cacheConfig.enabled) {
+      return { remoteUrl };
+    }
+
+    if (fileFresh) return { filePath };
+
+    try {
+      const response = await axios.get<ArrayBuffer>(remoteUrl, {
+        responseType: 'arraybuffer',
+      });
+      fs.writeFileSync(filePath, Buffer.from(response.data));
+      this.enforceCacheLimit(cacheConfig.maxBytes).catch((e) =>
+        this.logger.debug(`Failed cache cleanup: ${e.message}`),
+      );
+      return { filePath };
+    } catch (e) {
+      this.logger.warn(
+        `Failed to fetch image for tmdb ${tmdbId} (${variant}): ${e.message}`,
+      );
+      this.logger.debug(e);
+      return fileFresh ? { filePath } : { remoteUrl };
+    }
+  }
+
+  public async clearCache(): Promise<{ deleted: number }> {
+    let deleted = 0;
+    try {
+      if (fs.existsSync(this.cacheRoot)) {
+        const files = fs.readdirSync(this.cacheRoot);
+        deleted = files.length;
+        fs.rmSync(this.cacheRoot, { recursive: true, force: true });
+      }
+      this.ensureCacheDir();
+      cacheManager.getCache('tmdb').data.flushAll();
+    } catch (e) {
+      this.logger.warn(`Failed to clear TMDB cache: ${e.message}`);
+      this.logger.debug(e);
+      throw e;
+    }
+    return { deleted };
+  }
+
   public async getByExternalId({
     externalId,
     type,
@@ -166,6 +250,65 @@ export class TmdbApiService extends ExternalApiService {
     } catch (e) {
       this.logger.warn(`Failed to find by external ID: ${e.message}`);
       this.logger.debug(e);
+    }
+  }
+
+  private ensureCacheDir() {
+    if (!fs.existsSync(this.cacheRoot)) {
+      fs.mkdirSync(this.cacheRoot, { recursive: true });
+    }
+  }
+
+  private isFileFresh(filePath: string): boolean {
+    try {
+      const stats = fs.statSync(filePath);
+      const age = Date.now() - stats.mtimeMs;
+      return age < this.cacheTtlMs;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  private async enforceCacheLimit(maxBytes: number) {
+    try {
+      const files = fs.readdirSync(this.cacheRoot).map((name) => {
+        const fullPath = path.join(this.cacheRoot, name);
+        const stats = fs.statSync(fullPath);
+        return { fullPath, size: stats.size, mtime: stats.mtimeMs };
+      });
+
+      let total = files.reduce((sum, f) => sum + f.size, 0);
+      if (total <= maxBytes) return;
+
+      const sorted = files.sort((a, b) => a.mtime - b.mtime); // oldest first
+      for (const file of sorted) {
+        fs.unlinkSync(file.fullPath);
+        total -= file.size;
+        if (total <= maxBytes * 0.9) break;
+      }
+    } catch (e) {
+      this.logger.debug(`Failed to enforce TMDB cache limit: ${e.message}`);
+    }
+  }
+
+  private async getCacheConfig(): Promise<{
+    enabled: boolean;
+    maxBytes: number;
+  }> {
+    try {
+      const settings = await this.settingsService.getSettings();
+      const enabled =
+        (settings as any)?.image_cache_enabled !== undefined
+          ? !!(settings as any).image_cache_enabled
+          : true;
+      const maxMbRaw =
+        (settings as any)?.image_cache_max_mb !== undefined
+          ? Number((settings as any).image_cache_max_mb)
+          : 200;
+      const maxMb = Number.isFinite(maxMbRaw) ? Math.max(100, maxMbRaw) : 200;
+      return { enabled, maxBytes: maxMb * 1024 * 1024 };
+    } catch {
+      return { enabled: true, maxBytes: 200 * 1024 * 1024 };
     }
   }
 }

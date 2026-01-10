@@ -29,6 +29,8 @@ export interface IPlexMetadata {
   summary: string
   studio: string
   year: number
+  viewCount?: number
+  lastViewedAt?: number
   parentTitle?: string
   grandparentTitle?: string
   parentData?: IPlexMetadata
@@ -38,5 +40,8 @@ export interface IPlexMetadata {
   maintainerrExclusionType?: 'specific' | 'global'
   maintainerrExclusionId?: number
   maintainerrExclusionLabels?: string[]
+  maintainerrExclusionTargets?: { id?: number; label: string }[]
   maintainerrIsManual?: boolean
+  maintainerrCollections?: { id: number; title: string; isManual?: boolean; daysLeft?: number }[]
+  maintainerrDaysLeft?: number
 }

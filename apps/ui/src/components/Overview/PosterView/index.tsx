@@ -8,6 +8,7 @@ interface Props {
   libraryId: number
   extrasLoading?: boolean
 
+  onDataChanged?: () => void | Promise<void>
   collectionPage?: boolean
   collectionInfo?: ICollectionMedia[]
   collectionId?: number
@@ -53,6 +54,7 @@ const OverviewPoster = ({
   data,
   libraryId,
   extrasLoading,
+  onDataChanged,
   collectionPage = false,
   collectionInfo,
   collectionId,
@@ -78,11 +80,14 @@ const OverviewPoster = ({
             exclusionId={el.maintainerrExclusionId ?? undefined}
             exclusionType={el.maintainerrExclusionType}
             exclusionLabels={el.maintainerrExclusionLabels}
+            exclusionTargets={el.maintainerrExclusionTargets}
             tmdbid={getTmdbId(el)}
             collectionPage={collectionPage}
             onRemove={onRemove}
             collectionId={collectionId}
             isManual={!!el.maintainerrIsManual}
+            collections={el.maintainerrCollections}
+            onDataChanged={onDataChanged}
             {...(collectionInfo
               ? {
                   daysLeft: getDaysLeft(+el.ratingKey),

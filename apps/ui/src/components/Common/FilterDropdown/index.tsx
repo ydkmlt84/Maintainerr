@@ -1,7 +1,12 @@
 import { ChevronDownIcon, FilterIcon } from '@heroicons/react/outline'
 import { useEffect, useRef } from 'react'
 
-export type FilterOption = 'all' | 'excluded' | 'nonExcluded'
+export type FilterOption =
+  | 'all'
+  | 'excluded'
+  | 'nonExcluded'
+  | 'manual'
+  | 'inCollection'
 
 interface Props {
   filterOption: FilterOption
@@ -24,6 +29,8 @@ const FilterDropdown = ({
     { label: 'All Items', value: 'all' },
     { label: 'Excluded Only', value: 'excluded' },
     { label: 'Non-excluded Only', value: 'nonExcluded' },
+    { label: 'Manual Only', value: 'manual' },
+    { label: 'In Collection', value: 'inCollection' },
   ]
 
   useEffect(() => {

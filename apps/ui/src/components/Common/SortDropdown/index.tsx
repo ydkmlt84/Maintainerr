@@ -12,6 +12,8 @@ export type SortOption =
   | 'lastViewedAt:asc'
   | 'viewCount:desc'
   | 'viewCount:asc'
+  | 'daysLeft:desc'
+  | 'daysLeft:asc'
 
 interface Props {
   sortOption: SortOption
@@ -41,6 +43,8 @@ const SortDropdown = ({
     { label: 'Last Viewed (Oldest)', value: 'lastViewedAt:asc' },
     { label: 'Play Count (Most Played)', value: 'viewCount:desc' },
     { label: 'Play Count (Least Played)', value: 'viewCount:asc' },
+    { label: 'Days Left (Most → Least)', value: 'daysLeft:desc' },
+    { label: 'Days Left (Least → Most)', value: 'daysLeft:asc' },
   ]
 
   useEffect(() => {

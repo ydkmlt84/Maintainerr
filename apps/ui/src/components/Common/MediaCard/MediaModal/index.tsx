@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import GetApiHandler from '../../../../utils/ApiHandler'
 
 interface ModalContentProps {
@@ -20,8 +21,15 @@ interface ModalContentProps {
   exclusionId?: number
   exclusionType?: 'global' | 'specific' | undefined
   exclusionLabels?: string[]
+  exclusionTargets?: { id?: number; label: string }[]
   collectionId?: number
   isManual?: boolean
+  collections?: {
+    id?: number
+    title: string
+    isManual?: boolean
+    daysLeft?: number
+  }[]
 }
 
 interface Metadata {
@@ -57,6 +65,8 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     tmdbid,
     exclusionType,
     exclusionLabels,
+    exclusionTargets,
+    collections,
   }) => {
     const [loading, setLoading] = useState<boolean>(true)
     const [backdrop, setBackdrop] = useState<string | null>(null)
@@ -65,6 +75,11 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
       null,
     )
     const [metadata, setMetadata] = useState<Metadata | null>(null)
+    const manualCollections = useMemo(
+      () => collections?.filter((c) => c.isManual) ?? [],
+      [collections],
+    )
+    const allCollections = useMemo(() => collections ?? [], [collections])
 
     const mediaTypeOf = useMemo(
       () =>
@@ -85,15 +100,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
         setMetadata(data)
         setLoading(false)
       })
-      GetApiHandler(`/moviedb/backdrop/${mediaType}/${tmdbid}`)
-        .then((resp) => setBackdrop(resp))
-        .catch((error) => {
-          console.error(
-            'Error fetching backdrop image. Check your Plex metadata',
-            error,
-          )
-          setBackdrop(null)
-        })
+      const basePath = import.meta.env.VITE_BASE_PATH ?? ''
+      setBackdrop(
+        `${basePath}/api/moviedb/backdropfile/${mediaType}/${tmdbid}?size=w1280`,
+      )
     }, [id, mediaType, tmdbid])
 
     useEffect(() => {
@@ -118,7 +128,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               className="h-full w-full rounded-xl bg-cover bg-center bg-no-repeat"
               style={{
                 backgroundImage: backdrop
-                  ? `url(https://image.tmdb.org/t/p/w1280${backdrop})`
+                  ? `url(${backdrop})`
                   : 'linear-gradient(to bottom, #1e293b, #1e293b)',
               }}
             ></div>
@@ -277,15 +287,112 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               <p>{summary || 'No summary available.'}</p>
             </div>
 
-            {exclusionType ? (
+            {(exclusionType || manualCollections.length > 0) && (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {exclusionType ? (
+                  <div className="rounded-md border border-zinc-700 bg-zinc-900 p-3">
+                    <div className="text-sm font-bold text-red-600">
+                      Excluded From
+                    </div>
+                    <div className="mt-1 text-sm text-zinc-200">
+                      {exclusionTargets && exclusionTargets.length > 0 ? (
+                        <ul className="list-disc space-y-1 pl-4">
+                          {exclusionTargets.map((t, idx) => (
+                            <li key={`${t.label}-${idx}`}>
+                              {t.id ? (
+                                <Link
+                                  to={`/collections/${t.id}`}
+                                  className="text-amber-200 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {t.label}
+                                </Link>
+                              ) : (
+                                t.label
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : exclusionLabels && exclusionLabels.length > 0 ? (
+                        <ul className="list-disc space-y-1 pl-4">
+                          {exclusionLabels.map((label, idx) => (
+                            <li key={`${label}-${idx}`}>{label}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        'This item is excluded.'
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
+                {manualCollections.length > 0 ? (
+                  <div className="rounded-md border border-zinc-700 bg-zinc-900 p-3">
+                    <div className="text-sm font-bold text-emerald-300">
+                      Manually Added To
+                    </div>
+                    <div className="mt-1 text-sm text-zinc-200">
+                      <ul className="list-disc space-y-1 pl-4">
+                        {manualCollections.map((c, idx) => (
+                          <li key={`${c.title}-${idx}`}>
+                            {c.id ? (
+                              <Link
+                                to={`/collections/${c.id}`}
+                                className="text-amber-200 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {c.title}
+                              </Link>
+                            ) : (
+                              c.title
+                            )}
+                            {c.daysLeft !== undefined
+                              ? ` ( ${c.daysLeft}d left )`
+                              : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {allCollections.length > 0 ? (
               <div className="mt-4 rounded-md border border-zinc-700 bg-zinc-900 p-3">
-                <div className="text-sm font-semibold text-amber-300">
-                  Excluded ({exclusionType === 'global' ? 'Global' : 'Rule/Collection'})
+                <div className="text-sm font-bold text-amber-500">
+                  Collections
                 </div>
-                <div className="mt-1 text-sm text-zinc-200">
-                  {exclusionLabels && exclusionLabels.length > 0
-                    ? exclusionLabels.join(', ')
-                    : 'This item is excluded.'}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {allCollections.map((c, idx) =>
+                    c.id ? (
+                      <Link
+                        key={`${c.title}-${c.id}-${idx}`}
+                        to={`/collections/${c.id}`}
+                        className="flex items-center gap-2 rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold text-amber-200"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="hover:underline">{c.title}</span>
+                        {c.daysLeft !== undefined ? (
+                          <span className="rounded bg-zinc-700 px-2 py-0.5 text-[10px] font-bold text-zinc-100">
+                            {c.daysLeft}d
+                          </span>
+                        ) : null}
+                      </Link>
+                    ) : (
+                      <span
+                        key={`${c.title}-${idx}`}
+                        className="flex items-center gap-2 rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-200"
+                      >
+                        <span>{c.title}</span>
+                        {c.daysLeft !== undefined ? (
+                          <span className="rounded bg-zinc-700 px-2 py-0.5 text-[10px] font-bold text-zinc-100">
+                            {c.daysLeft}d
+                          </span>
+                        ) : null}
+                      </span>
+                    ),
+                  )}
                 </div>
               </div>
             ) : null}
