@@ -64,6 +64,17 @@ function createDataDirectoryStructure() {
     if (fs.existsSync(db)) {
       fs.accessSync(db, fs.constants.R_OK | fs.constants.W_OK);
     }
+
+    // create image cache dir
+    const cacheDirEnv = process.env.IMAGE_CACHE_DIR;
+    const cacheDir = cacheDirEnv || path.join(dataDir, 'cache', 'tmdb');
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true, mode: 0o777 });
+    }
+    // only check for r/w if custom dir is used
+    if (cacheDirEnv) {
+      fs.accessSync(cacheDir, fs.constants.R_OK | fs.constants.W_OK);
+    }
   } catch (err) {
     console.warn(
       `THE CONTAINER NO LONGER OPERATES WITH PRIVILEGED USER PERMISSIONS. PLEASE UPDATE YOUR CONFIGURATION ACCORDINGLY: https://github.com/Maintainerr/Maintainerr/releases/tag/v2.0.0`,

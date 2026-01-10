@@ -32,6 +32,8 @@ interface ISettings {
   jellyseerr_api_key: string
   collection_handler_job_cron: string
   rules_handler_job_cron: string
+  image_cache_enabled: boolean
+  image_cache_max_mb: number
 }
 
 type UseSettingsQueryKey = ['settings']

@@ -59,4 +59,10 @@ export class Settings implements SettingDto {
 
   @Column({ nullable: false, default: '0 0-23/8 * * *' })
   rules_handler_job_cron: string;
+
+  @Column({ nullable: false, default: true })
+  image_cache_enabled: boolean;
+
+  @Column({ nullable: false, default: 200 })
+  image_cache_max_mb: number;
 }

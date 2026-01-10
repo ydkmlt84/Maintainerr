@@ -24,9 +24,12 @@ interface IMediaCard {
   exclusionId?: number
   exclusionType?: 'global' | 'specific' | undefined
   exclusionLabels?: string[]
+  exclusionTargets?: { id?: number; label: string }[]
   collectionId?: number
   isManual?: boolean
+  collections?: { id: number; title: string; isManual?: boolean; daysLeft?: number }[]
   onRemove?: (id: string) => void
+  onDataChanged?: () => void | Promise<void>
 }
 
 const posterCache = new Map<string, string | null>()
@@ -47,8 +50,11 @@ const MediaCard: React.FC<IMediaCard> = ({
   collectionPage = false,
   exclusionType = undefined,
   exclusionLabels = undefined,
+  exclusionTargets = undefined,
   isManual = false,
+  collections = undefined,
   onRemove = () => {},
+  onDataChanged,
 }) => {
   const isTouch = useIsTouch()
   const [showDetail, setShowDetail] = useState(false)
@@ -85,25 +91,14 @@ const MediaCard: React.FC<IMediaCard> = ({
   useEffect(() => {
     if (!tmdbid || !isVisible) return
     const cacheKey = `${mediaType}:${tmdbid}`
+    const basePath = import.meta.env.VITE_BASE_PATH ?? ''
+    const url = `${basePath}/api/moviedb/imagefile/${mediaType}/${tmdbid}?size=w342`
     if (posterCache.has(cacheKey)) {
       setImage(posterCache.get(cacheKey) ?? null)
       return
     }
-    let cancelled = false
-    import('../../../utils/ApiHandler')
-      .then(({ default: api }) =>
-        api(`/moviedb/image/${mediaType}/${tmdbid}`).then((resp) => {
-          if (cancelled) return
-          posterCache.set(cacheKey, resp)
-          setImage(resp)
-        }),
-      )
-      .catch(() => {
-        if (!cancelled) posterCache.set(cacheKey, null)
-      })
-    return () => {
-      cancelled = true
-    }
+    posterCache.set(cacheKey, url)
+    setImage(url)
   }, [tmdbid, mediaType, isVisible])
 
   // Just to get the year from the date
@@ -118,8 +113,9 @@ const MediaCard: React.FC<IMediaCard> = ({
           plexId={id}
           {...(libraryId ? { libraryId: libraryId } : {})}
           {...(type ? { type: type } : {})}
-          onSubmit={() => {
+          onSubmit={async () => {
             setExcludeModal(false)
+            await onDataChanged?.()
           }}
           onCancel={() => setExcludeModal(false)}
           modalType="exclude"
@@ -131,8 +127,9 @@ const MediaCard: React.FC<IMediaCard> = ({
           plexId={id}
           {...(libraryId ? { libraryId: libraryId } : {})}
           {...(type ? { type: type } : {})}
-          onSubmit={() => {
+          onSubmit={async () => {
             setAddModal(false)
+            await onDataChanged?.()
           }}
           onCancel={() => setAddModal(false)}
           modalType="add"
@@ -156,7 +153,7 @@ const MediaCard: React.FC<IMediaCard> = ({
             <img
               className="absolute inset-0 h-full w-full object-cover"
               alt=""
-              src={`https://image.tmdb.org/t/p/w300_and_h450_face${image}`}
+              src={image}
             />
           ) : undefined}
           <div className="absolute left-0 right-0 flex items-center justify-between p-2">
@@ -366,11 +363,16 @@ const MediaCard: React.FC<IMediaCard> = ({
           userScore={userScore}
           exclusionType={exclusionType}
           exclusionLabels={exclusionLabels}
+          exclusionTargets={exclusionTargets}
+          collections={collections?.map((c) => ({
+            id: c.id,
+            title: c.title,
+            isManual: c.isManual,
+            daysLeft: c.daysLeft,
+          }))}
         />
       )}
     </div>
   )
 }
-const propsEqual = (prev: IMediaCard, next: IMediaCard) => prev.id === next.id
-
-export default memo(MediaCard, propsEqual)
+export default memo(MediaCard)

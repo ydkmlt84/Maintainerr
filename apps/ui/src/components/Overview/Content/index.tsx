@@ -1,5 +1,5 @@
 import { debounce } from 'lodash-es'
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { ICollectionMedia } from '../../Collection'
 import LoadingSpinner from '../../Common/LoadingSpinner'
 import OverviewPoster from '../PosterView'
@@ -13,6 +13,7 @@ interface IOverviewContent {
   extrasLoading?: boolean
   fetchData: () => void
   onRemove?: (id: string) => void
+  onDataChanged?: () => void | Promise<void>
   libraryId: number
   collectionPage?: boolean
   collectionInfo?: ICollectionMedia[]
@@ -21,44 +22,84 @@ interface IOverviewContent {
 }
 
 const OverviewContent = (props: IOverviewContent) => {
-  const handleScroll = () => {
+  const {
+    data,
+    dataFinished,
+    extrasLoading,
+    fetchData,
+    loading,
+    onDataChanged,
+    onRemove,
+    viewMode,
+    libraryId,
+    collectionPage,
+    collectionInfo,
+    collectionId,
+  } = props
+
+  const isTableView = viewMode === 'table'
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const handleScroll = useCallback(() => {
+    if (isTableView) return
     if (
       window.innerHeight + document.documentElement.scrollTop >=
       document.documentElement.scrollHeight * 0.8
     ) {
-      if (!props.extrasLoading && !props.dataFinished) {
-        props.fetchData()
+      if (!extrasLoading && !dataFinished) {
+        fetchData()
       }
     }
-  }
+  }, [isTableView, dataFinished, extrasLoading, fetchData])
 
   useEffect(() => {
+    if (isTableView) return
     const debouncedScroll = debounce(handleScroll, 200)
     window.addEventListener('scroll', debouncedScroll, { passive: true })
     return () => {
       window.removeEventListener('scroll', debouncedScroll)
       debouncedScroll.cancel()
     }
-  }, [])
+  }, [handleScroll, isTableView])
 
   useEffect(() => {
+    if (isTableView) return
     if (
       window.innerHeight + document.documentElement.scrollTop >=
         document.documentElement.scrollHeight * 0.8 &&
-      !props.loading &&
-      !props.extrasLoading &&
-      !props.dataFinished
+      !loading &&
+      !extrasLoading &&
+      !dataFinished
     ) {
-      props.fetchData()
+      fetchData()
     }
-  }, [props.data])
+  }, [isTableView, data, dataFinished, extrasLoading, fetchData, loading])
+
+  useEffect(() => {
+    if (isTableView) return
+    if (!sentinelRef.current) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            !extrasLoading &&
+            !dataFinished
+          ) {
+            fetchData()
+          }
+        })
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [dataFinished, extrasLoading, fetchData, isTableView])
 
   const getDaysLeft = (plexId: number) => {
-    if (!props.collectionInfo) return undefined
+    if (!collectionInfo) return undefined
 
-    const collectionData = props.collectionInfo.find(
-      (colEl) => colEl.plexId === +plexId,
-    )
+    const collectionData = collectionInfo.find((colEl) => colEl.plexId === +plexId)
 
     if (!collectionData?.collection) return undefined
     if (collectionData.collection.deleteAfterDays == null) return undefined
@@ -73,26 +114,38 @@ const OverviewContent = (props: IOverviewContent) => {
     return diffDays
   }
 
-  if (props.loading) return <LoadingSpinner />
-  if (!props.data || props.data.length === 0) return null
+  if (loading) return <LoadingSpinner />
+  if (!data || data.length === 0) return null
 
-  if (props.viewMode === 'table') {
-    return (
-      <OverviewTable data={props.data} extrasLoading={props.extrasLoading} />
+  const content =
+    viewMode === 'table' ? (
+      <OverviewTable
+        data={data}
+        extrasLoading={extrasLoading}
+        libraryId={libraryId}
+        onDataChanged={onDataChanged}
+        fetchData={fetchData}
+        dataFinished={dataFinished}
+      />
+    ) : (
+      <OverviewPoster
+        data={data}
+        libraryId={libraryId}
+        extrasLoading={extrasLoading}
+        collectionPage={collectionPage}
+        collectionInfo={collectionInfo}
+        collectionId={collectionId}
+        onRemove={onRemove}
+        getDaysLeft={getDaysLeft}
+        onDataChanged={onDataChanged}
+      />
     )
-  }
 
   return (
-    <OverviewPoster
-      data={props.data}
-      libraryId={props.libraryId}
-      extrasLoading={props.extrasLoading}
-      collectionPage={props.collectionPage}
-      collectionInfo={props.collectionInfo}
-      collectionId={props.collectionId}
-      onRemove={props.onRemove}
-      getDaysLeft={getDaysLeft}
-    />
+    <>
+      {content}
+      {isTableView ? null : <div ref={sentinelRef} />}
+    </>
   )
 }
 
