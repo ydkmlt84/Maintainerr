@@ -370,10 +370,22 @@ export class JellyfinMapper {
       return [];
     }
 
-    return genres.map((genre, index) => ({
-      id: index,
+    return genres.map((genre) => ({
+      id: JellyfinMapper.hashString(genre),
       name: genre,
     }));
+  }
+
+  /**
+   * Generate a simple hash from a string for stable IDs.
+   * Uses djb2 algorithm for fast, reasonable distribution.
+   */
+  private static hashString(str: string): number {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 33) ^ str.charCodeAt(i);
+    }
+    return hash >>> 0; // Convert to unsigned 32-bit integer
   }
 
   private static toMediaActors(people?: BaseItemDto['People']): MediaActor[] {
