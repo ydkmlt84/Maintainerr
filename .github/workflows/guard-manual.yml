@@ -37,5 +37,5 @@ jobs:
           echo "::error title=Unauthorized manual workflow run::User '${ACTOR}' is not allowed to run this workflow manually. Allowed: ydkmlt84, benscobie."
           exit 1
       - name: Skip check for non-manual runs
-        if: !inputs.is_manual
+        if: ${{ !inputs.is_manual }}
         run: echo "Non-manual run; skipping manual trigger authorization check."
