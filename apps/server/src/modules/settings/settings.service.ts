@@ -142,6 +142,31 @@ export class SettingsService implements SettingDto {
       this.collection_handler_job_cron =
         settingsDb?.collection_handler_job_cron;
       this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron;
+
+      // Auto-detect media server type when not set but credentials exist.
+      // This handles upgrades from pre-Jellyfin versions (Plex) and any future
+      // scenario where media_server_type is missing but a server is configured.
+      if (!this.media_server_type) {
+        if (this.jellyfin_api_key) {
+          this.logger.log(
+            'Detected existing Jellyfin configuration without media_server_type set. Setting to jellyfin.',
+          );
+          this.media_server_type = MediaServerType.JELLYFIN;
+          await this.settingsRepo.update(
+            { id: this.id },
+            { media_server_type: MediaServerType.JELLYFIN },
+          );
+        } else if (this.plex_auth_token) {
+          this.logger.log(
+            'Detected existing Plex configuration without media_server_type set. Setting to plex.',
+          );
+          this.media_server_type = MediaServerType.PLEX;
+          await this.settingsRepo.update(
+            { id: this.id },
+            { media_server_type: MediaServerType.PLEX },
+          );
+        }
+      }
     } else {
       this.logger.log('Settings not found.. Creating initial settings');
       await this.settingsRepo.insert({

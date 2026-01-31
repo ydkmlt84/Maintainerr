@@ -40,8 +40,20 @@ export class MediaServerFactory {
   async initialize(): Promise<void> {
     try {
       await this.getService();
-    } catch {
-      // Media server not configured yet, that's OK for fresh installs
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (
+        message === 'No media server type configured' ||
+        message === 'Settings not available'
+      ) {
+        this.logger.log(
+          'No media server configured yet - skipping initialization',
+        );
+      } else {
+        this.logger.warn(
+          'Media server is configured but could not be reached during startup',
+        );
+      }
     }
   }
 
@@ -53,11 +65,14 @@ export class MediaServerFactory {
     const settings = await this.settingsService.getSettings();
 
     if (!isSettings(settings)) {
-      return this.plexAdapter;
+      throw new Error('Settings not available');
     }
 
-    const serverType =
-      (settings.media_server_type as MediaServerType) || MediaServerType.PLEX;
+    const serverType = settings.media_server_type as MediaServerType;
+
+    if (!serverType) {
+      throw new Error('No media server type configured');
+    }
 
     return await this.getServiceByType(serverType);
   }
@@ -89,15 +104,13 @@ export class MediaServerFactory {
   /**
    * Get the currently configured media server type.
    */
-  async getConfiguredServerType(): Promise<MediaServerType> {
+  async getConfiguredServerType(): Promise<MediaServerType | null> {
     const settings = await this.settingsService.getSettings();
 
     if (!isSettings(settings)) {
-      return MediaServerType.PLEX;
+      return null;
     }
 
-    return (
-      (settings.media_server_type as MediaServerType) || MediaServerType.PLEX
-    );
+    return (settings.media_server_type as MediaServerType) || null;
   }
 }

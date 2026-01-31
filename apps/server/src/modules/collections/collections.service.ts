@@ -83,7 +83,7 @@ export class CollectionsService {
   /**
    * Get the currently configured media server type
    */
-  private async getMediaServerType(): Promise<MediaServerType> {
+  private async getMediaServerType(): Promise<MediaServerType | null> {
     return this.mediaServerFactory.getConfiguredServerType();
   }
 
