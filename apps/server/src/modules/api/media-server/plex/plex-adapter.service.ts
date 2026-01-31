@@ -313,12 +313,10 @@ export class PlexAdapterService implements IMediaServerService {
   }
 
   resetMetadataCache(itemId?: string): void {
-    // PlexApiService uses cacheManager internally
-    // This is a simplified reset - could be enhanced to target specific items
     if (itemId) {
-      // For now, we can't reset specific items in the current Plex cache implementation
-      // Would need to enhance PlexApiService to support this
+      this.plexApi.resetMetadataCache(itemId);
     }
-    // Full cache reset would need access to cacheManager
+    // Note: PlexApiService doesn't support full cache flush through this method
+    // Only individual item cache reset is supported
   }
 }
