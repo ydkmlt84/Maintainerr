@@ -655,18 +655,18 @@ export class JellyfinAdapterService implements IMediaServerService {
           i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY,
         );
 
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           batch.map((user) => this.getItemUserData(itemId, user.id)),
         );
 
-        results.forEach((userData, idx) => {
-          if (userData?.Played) {
+        results.forEach((result, idx) => {
+          if (result.status === 'fulfilled' && result.value?.Played) {
             records.push(
               JellyfinMapper.toWatchRecord(
                 batch[idx].id,
                 itemId,
-                userData.LastPlayedDate
-                  ? new Date(userData.LastPlayedDate)
+                result.value.LastPlayedDate
+                  ? new Date(result.value.LastPlayedDate)
                   : undefined,
               ),
             );
@@ -710,13 +710,13 @@ export class JellyfinAdapterService implements IMediaServerService {
           i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY,
         );
 
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           batch.map((user) => this.getItemUserData(itemId, user.id)),
         );
 
-        results.forEach((userData) => {
-          if (userData?.PlayCount) {
-            totalPlayCount += userData.PlayCount;
+        results.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value?.PlayCount) {
+            totalPlayCount += result.value.PlayCount;
           }
         });
       }
