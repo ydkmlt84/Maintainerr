@@ -25,13 +25,13 @@ const serverOptions: {
   icon: string
 }[] = [
   {
-    value: 'plex',
+    value: MediaServerType.PLEX,
     name: 'Plex',
     description: 'Plex Media Server',
     icon: '/icons_logos/plex_logo.svg',
   },
   {
-    value: 'jellyfin',
+    value: MediaServerType.JELLYFIN,
     name: 'Jellyfin',
     description: 'Jellyfin Media Server',
     icon: '/icons_logos/jellyfin.svg',
@@ -69,7 +69,7 @@ const MediaServerSelector = ({
           targetServerType: type,
         })
         toast.success(
-          `Selected ${type === 'plex' ? 'Plex' : 'Jellyfin'} as your media server`,
+          `Selected ${type === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'} as your media server`,
         )
 
         // Wait for settings to refetch before navigating
@@ -237,12 +237,12 @@ const MediaServerSelector = ({
                           serverOptions.find((o) => o.value === currentType)
                             ?.icon
                         }
-                        alt={currentType === 'plex' ? 'Plex' : 'Jellyfin'}
+                        alt={currentType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                         className="h-16 w-auto object-contain"
                       />
                     </div>
                     <span className="mt-2 text-sm font-medium text-zinc-400">
-                      {currentType === 'plex' ? 'Plex' : 'Jellyfin'}
+                      {currentType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                     </span>
                   </div>
 
@@ -258,12 +258,12 @@ const MediaServerSelector = ({
                     src={
                       serverOptions.find((o) => o.value === pendingType)?.icon
                     }
-                    alt={pendingType === 'plex' ? 'Plex' : 'Jellyfin'}
+                    alt={pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                     className="h-16 w-auto object-contain"
                   />
                 </div>
                 <span className="mt-2 text-sm font-medium text-zinc-400">
-                  {pendingType === 'plex' ? 'Plex' : 'Jellyfin'}
+                  {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                 </span>
               </div>
             </div>
@@ -273,7 +273,7 @@ const MediaServerSelector = ({
                 <>
                   Successfully switched to{' '}
                   <strong className="text-zinc-100">
-                    {pendingType === 'plex' ? 'Plex' : 'Jellyfin'}
+                    {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                   </strong>
                   !
                 </>
@@ -281,11 +281,11 @@ const MediaServerSelector = ({
                 <>
                   We will now switch from{' '}
                   <strong className="text-zinc-100">
-                    {currentType === 'plex' ? 'Plex' : 'Jellyfin'}
+                    {currentType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                   </strong>{' '}
                   to{' '}
                   <strong className="text-zinc-100">
-                    {pendingType === 'plex' ? 'Plex' : 'Jellyfin'}
+                    {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                   </strong>
                   .
                 </>
@@ -358,7 +358,7 @@ const MediaServerSelector = ({
                   <label htmlFor="migrateRules" className="ml-3 cursor-pointer">
                     <span className="block font-medium text-zinc-100">
                       Migrate rules to{' '}
-                      {pendingType === 'plex' ? 'Plex' : 'Jellyfin'}
+                      {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
                     </span>
                     <span className="block text-sm text-zinc-400">
                       {previewData!.ruleMigration!.migratableRules} of{' '}
@@ -369,7 +369,7 @@ const MediaServerSelector = ({
                           {' '}
                           {previewData!.ruleMigration!.skippedRules} rule(s) use
                           properties not available in{' '}
-                          {pendingType === 'plex' ? 'Plex' : 'Jellyfin'}.
+                          {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}.
                         </span>
                       )}
                     </span>

@@ -1,3 +1,4 @@
+import { MediaServerType } from '@maintainerr/contracts'
 import { useMemo } from 'react'
 import { Outlet, useOutletContext } from 'react-router-dom'
 import { useSettings, type UseSettingsResult } from '../../api/settings'
@@ -29,13 +30,13 @@ const SettingsWrapper = () => {
 
     // Only show media server tab after user has selected a type
     // During initial setup, user selects via MediaServerSelector in General tab
-    if (mediaServerType === 'jellyfin') {
+    if (mediaServerType === MediaServerType.JELLYFIN) {
       baseRoutes.push({
         text: 'Jellyfin',
         route: '/settings/jellyfin',
         regex: /^\/settings\/jellyfin$/,
       })
-    } else if (mediaServerType === 'plex') {
+    } else if (mediaServerType === MediaServerType.PLEX) {
       baseRoutes.push({
         text: 'Plex',
         route: '/settings/plex',
