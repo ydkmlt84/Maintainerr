@@ -50,8 +50,9 @@ export class MediaServerFactory {
           'No media server configured yet - skipping initialization',
         );
       } else {
+        // Log the actual error for debugging, but don't crash the app
         this.logger.warn(
-          'Media server is configured but could not be reached during startup',
+          `Media server could not be initialized during startup: ${message}`,
         );
       }
     }
