@@ -27,35 +27,23 @@ const SettingsWrapper = () => {
       },
     ]
 
-    // Show media server tabs based on configuration
-    // If no type selected yet, show both so user can access either
-    if (!mediaServerType) {
-      // Show both tabs during initial setup
-      baseRoutes.push(
-        {
-          text: 'Plex',
-          route: '/settings/plex',
-          regex: /^\/settings\/plex$/,
-        },
-        {
-          text: 'Jellyfin',
-          route: '/settings/jellyfin',
-          regex: /^\/settings\/jellyfin$/,
-        },
-      )
-    } else if (mediaServerType === 'jellyfin') {
+    // Only show media server tab after user has selected a type
+    // During initial setup, user selects via MediaServerSelector in General tab
+    if (mediaServerType === 'jellyfin') {
       baseRoutes.push({
         text: 'Jellyfin',
         route: '/settings/jellyfin',
         regex: /^\/settings\/jellyfin$/,
       })
-    } else {
+    } else if (mediaServerType === 'plex') {
       baseRoutes.push({
         text: 'Plex',
         route: '/settings/plex',
         regex: /^\/settings\/plex$/,
       })
     }
+    // When no mediaServerType is set, don't show either tab
+    // User must select via MediaServerSelector in General settings
 
     // Add remaining tabs
     baseRoutes.push(
