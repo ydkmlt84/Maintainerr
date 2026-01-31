@@ -62,6 +62,14 @@ const JellyfinSettings = () => {
     }
   }, [settings])
 
+  // Clear test result when URL or API key changes
+  const handleCredentialChange = () => {
+    if (testResult) {
+      setTestResult(null)
+      setTestedSettings(null)
+    }
+  }
+
   const handleTest = async () => {
     setError(undefined)
     setTestResult(null)
@@ -206,6 +214,7 @@ const JellyfinSettings = () => {
                     ref={urlRef}
                     placeholder="http://jellyfin.local:8096"
                     defaultValue={settings?.jellyfin_url || ''}
+                    onChange={handleCredentialChange}
                   />
                 </div>
               </div>
@@ -224,6 +233,7 @@ const JellyfinSettings = () => {
                     ref={apiKeyRef}
                     placeholder="Enter your Jellyfin API key"
                     defaultValue={settings?.jellyfin_api_key || ''}
+                    onChange={handleCredentialChange}
                   />
                 </div>
                 <p className="mt-2 text-sm text-zinc-400">
