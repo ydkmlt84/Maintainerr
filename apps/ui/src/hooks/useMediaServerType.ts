@@ -1,4 +1,5 @@
-import { useSettings, type MediaServerType } from '../api/settings'
+import { MediaServerType } from '@maintainerr/contracts'
+import { useSettings } from '../api/settings'
 
 /**
  * Hook to get the current media server type from settings.
@@ -15,8 +16,8 @@ export function useMediaServerType() {
   return {
     mediaServerType,
     isLoading,
-    isPlex: mediaServerType === 'plex',
-    isJellyfin: mediaServerType === 'jellyfin',
+    isPlex: mediaServerType === MediaServerType.PLEX,
+    isJellyfin: mediaServerType === MediaServerType.JELLYFIN,
     isNotConfigured: !mediaServerType,
   }
 }

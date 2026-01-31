@@ -11,6 +11,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { IRule } from '../'
 import { useRuleConstants } from '../../../../../api/rules'
 import { IProperty } from '../../../../../contexts/constants-context'
+import { useMediaServerType } from '../../../../../hooks/useMediaServerType'
 import LoadingSpinner from '../../../../Common/LoadingSpinner'
 
 enum RuleType {
@@ -52,12 +53,14 @@ interface IRuleInput {
 
 /**
  * Helper function to determine if an application should be filtered out
- * based on server selection
+ * based on server selection and media server type
  */
 const shouldFilterApplication = (
   appId: number,
   radarrSettingsId: number | null | undefined,
   sonarrSettingsId: number | null | undefined,
+  isPlex: boolean,
+  isJellyfin: boolean,
 ): boolean => {
   // Filter out Radarr if no Radarr server is selected
   if (
@@ -71,6 +74,17 @@ const shouldFilterApplication = (
     appId === Application.SONARR &&
     (sonarrSettingsId === undefined || sonarrSettingsId === null)
   ) {
+    return true
+  }
+  // Filter out Plex/Tautulli if on Jellyfin
+  if (
+    isJellyfin &&
+    (appId === Application.PLEX || appId === Application.TAUTULLI)
+  ) {
+    return true
+  }
+  // Filter out Jellyfin if on Plex
+  if (isPlex && appId === Application.JELLYFIN) {
     return true
   }
   return false
@@ -90,6 +104,7 @@ const RuleInput = (props: IRuleInput) => {
   const [ruleType, setRuleType] = useState<RuleType>(RuleType.NUMBER)
 
   const { data: constants, isLoading: constantsLoading } = useRuleConstants()
+  const { isPlex, isJellyfin } = useMediaServerType()
 
   useEffect(() => {
     if (props.editData?.rule) {
@@ -433,6 +448,8 @@ const RuleInput = (props: IRuleInput) => {
                     app.id,
                     props.radarrSettingsId,
                     props.sonarrSettingsId,
+                    isPlex,
+                    isJellyfin,
                   ),
               )
               .map((app) =>
@@ -533,6 +550,8 @@ const RuleInput = (props: IRuleInput) => {
                     app.id,
                     props.radarrSettingsId,
                     props.sonarrSettingsId,
+                    isPlex,
+                    isJellyfin,
                   ),
               )
               .map((app) => {
