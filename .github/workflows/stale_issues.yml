@@ -5,7 +5,15 @@ on:
   workflow_dispatch:
 
 jobs:
+  guard_manual_run:
+    uses: ./.github/workflows/guard-manual.yml
+    with:
+      is_manual: ${{ github.event_name == 'workflow_dispatch' }}
+      actor: ${{ github.actor }}
+      allowed: "ydkmlt84,benscobie"
+
   close-issues:
+    needs: guard_manual_run
     runs-on: ubuntu-latest
     permissions:
       issues: write
