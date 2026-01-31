@@ -98,7 +98,7 @@ export class PlexApiLegacyController {
   async getLibraryContent(
     @Param('id') id: string,
     @Param('page', ParseIntPipe) page: number,
-    @Query('amount') amount?: number,
+    @Query('amount', new ParseIntPipe({ optional: true })) amount?: number,
   ) {
     const mediaServer = await this.mediaServerFactory.getService();
     const size = amount ?? 50;

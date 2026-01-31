@@ -55,12 +55,11 @@ export class RulesController {
 
   @Get('/exclusion')
   getExclusion(
-    @Query() query: { rulegroupId?: number; mediaServerId?: string },
+    @Query('rulegroupId', new ParseIntPipe({ optional: true }))
+    rulegroupId?: number,
+    @Query('mediaServerId') mediaServerId?: string,
   ) {
-    return this.rulesService.getExclusions(
-      query.rulegroupId,
-      query.mediaServerId,
-    );
+    return this.rulesService.getExclusions(rulegroupId, mediaServerId);
   }
 
   @Get('/count')
@@ -80,17 +79,14 @@ export class RulesController {
 
   @Get()
   getRuleGroups(
-    @Query()
-    query: {
-      activeOnly?: boolean;
-      libraryId?: string;
-      typeId?: number;
-    },
+    @Query('activeOnly') activeOnly?: string,
+    @Query('libraryId') libraryId?: string,
+    @Query('typeId', new ParseIntPipe({ optional: true })) typeId?: number,
   ) {
     return this.rulesService.getRuleGroups(
-      query.activeOnly !== undefined ? query.activeOnly : false,
-      query.libraryId ? query.libraryId : undefined,
-      query.typeId ? query.typeId : undefined,
+      activeOnly !== undefined ? activeOnly === 'true' : false,
+      libraryId ? libraryId : undefined,
+      typeId ? typeId : undefined,
     );
   }
 

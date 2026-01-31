@@ -19,6 +19,7 @@ import {
   Get,
   Logger,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -63,8 +64,8 @@ export class MediaServerController {
   @Get('library/:id/content')
   async getLibraryContent(
     @Param('id') id: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('type') type?: MediaItemType,
   ): Promise<PagedResult<MediaItem>> {
     const mediaServer = await this.mediaServerFactory.getService();
@@ -92,7 +93,7 @@ export class MediaServerController {
   @Get('library/:id/recent')
   async getRecentlyAdded(
     @Param('id') id: string,
-    @Query('limit') limit?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ): Promise<MediaItem[]> {
     const mediaServer = await this.mediaServerFactory.getService();
     return mediaServer.getRecentlyAdded(id, { limit });
