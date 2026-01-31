@@ -8,9 +8,8 @@ describe('PlexAdapterService', () => {
   let plexApi: Mocked<PlexApiService>;
 
   beforeEach(async () => {
-    const { unit, unitRef } = await TestBed.solitary(
-      PlexAdapterService,
-    ).compile();
+    const { unit, unitRef } =
+      await TestBed.solitary(PlexAdapterService).compile();
 
     service = unit;
     plexApi = unitRef.get(PlexApiService);
