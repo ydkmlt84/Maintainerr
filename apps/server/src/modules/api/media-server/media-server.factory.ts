@@ -1,7 +1,6 @@
 import { MediaServerType } from '@maintainerr/contracts';
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { Settings } from '../../settings/entities/settings.entities';
-import { MediaServerSwitchService } from '../../settings/media-server-switch.service';
 import { SettingsService } from '../../settings/settings.service';
 import { JellyfinAdapterService } from './jellyfin/jellyfin-adapter.service';
 import { IMediaServerService } from './media-server.interface';
@@ -30,8 +29,6 @@ export class MediaServerFactory {
   constructor(
     @Inject(forwardRef(() => SettingsService))
     private readonly settingsService: SettingsService,
-    @Inject(forwardRef(() => MediaServerSwitchService))
-    private readonly switchService: MediaServerSwitchService,
     private readonly plexAdapter: PlexAdapterService,
     private readonly jellyfinAdapter: JellyfinAdapterService,
   ) {}
@@ -66,11 +63,6 @@ export class MediaServerFactory {
    * This method reads from settings on each call to support runtime configuration changes.
    */
   async getService(): Promise<IMediaServerService> {
-    // Block API calls during media server switch to prevent race conditions
-    if (this.switchService.isSwitchInProgress()) {
-      throw new Error('Media server switch in progress');
-    }
-
     const settings = await this.settingsService.getSettings();
 
     if (!isSettings(settings)) {

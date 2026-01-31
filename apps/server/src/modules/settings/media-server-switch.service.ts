@@ -27,13 +27,6 @@ import { SettingsService } from './settings.service';
  */
 @Injectable()
 export class MediaServerSwitchService {
-  /**
-   * Lock to prevent concurrent switch operations and protect against
-   * race conditions where API requests could route to the wrong adapter
-   * during the switch process.
-   */
-  private switchInProgress = false;
-
   constructor(
     @Inject(forwardRef(() => SettingsService))
     private readonly settingsService: SettingsService,
@@ -56,14 +49,6 @@ export class MediaServerSwitchService {
     private readonly logger: MaintainerrLogger,
   ) {
     logger.setContext(MediaServerSwitchService.name);
-  }
-
-  /**
-   * Check if a media server switch is currently in progress.
-   * Can be used by other services to reject API calls during the switch.
-   */
-  isSwitchInProgress(): boolean {
-    return this.switchInProgress;
   }
 
   /**
@@ -121,15 +106,6 @@ export class MediaServerSwitchService {
   ): Promise<SwitchMediaServerResponse> {
     const { targetServerType, migrateRules } = request;
 
-    // Prevent concurrent switch operations
-    if (this.switchInProgress) {
-      return {
-        status: 'NOK',
-        code: 0,
-        message: 'A media server switch is already in progress',
-      };
-    }
-
     // Get current server type - don't default to PLEX on fresh install
     const currentServerType = this.settingsService.getMediaServerType();
 
@@ -141,9 +117,6 @@ export class MediaServerSwitchService {
         message: `Already using ${targetServerType} as media server`,
       };
     }
-
-    // Acquire the lock before starting the switch
-    this.switchInProgress = true;
 
     try {
       this.logger.log(
@@ -221,9 +194,6 @@ export class MediaServerSwitchService {
         code: 0,
         message: `Failed to switch media server: ${error.message || error}`,
       };
-    } finally {
-      // Always release the lock
-      this.switchInProgress = false;
     }
   }
 
