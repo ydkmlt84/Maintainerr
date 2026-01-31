@@ -223,14 +223,24 @@ export class PlexAdapterService implements IMediaServerService {
     });
 
     if (!result) {
-      throw new Error('Failed to create collection');
+      this.logger.error(
+        `Failed to create collection "${params.title}" in library ${params.libraryId}`,
+      );
+      throw new Error(
+        `Failed to create collection "${params.title}" in library ${params.libraryId}`,
+      );
     }
 
     return PlexMapper.toMediaCollection(result);
   }
 
   async deleteCollection(collectionId: string): Promise<void> {
-    await this.plexApi.deleteCollection(collectionId);
+    try {
+      await this.plexApi.deleteCollection(collectionId);
+    } catch (error) {
+      this.logger.error(`Failed to delete collection ${collectionId}`, error);
+      throw error;
+    }
   }
 
   async getCollectionChildren(collectionId: string): Promise<MediaItem[]> {
@@ -240,14 +250,30 @@ export class PlexAdapterService implements IMediaServerService {
   }
 
   async addToCollection(collectionId: string, itemId: string): Promise<void> {
-    await this.plexApi.addChildToCollection(collectionId, itemId);
+    try {
+      await this.plexApi.addChildToCollection(collectionId, itemId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to add item ${itemId} to collection ${collectionId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async removeFromCollection(
     collectionId: string,
     itemId: string,
   ): Promise<void> {
-    await this.plexApi.deleteChildFromCollection(collectionId, itemId);
+    try {
+      await this.plexApi.deleteChildFromCollection(collectionId, itemId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to remove item ${itemId} from collection ${collectionId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   // PLEX-SPECIFIC: COLLECTION UPDATE & VISIBILITY
@@ -264,19 +290,36 @@ export class PlexAdapterService implements IMediaServerService {
       sortTitle: params.sortTitle,
     });
 
+    if (!result) {
+      this.logger.error(
+        `Failed to update collection ${params.collectionId} in library ${params.libraryId}`,
+      );
+      throw new Error(
+        `Failed to update collection ${params.collectionId} in library ${params.libraryId}`,
+      );
+    }
+
     return PlexMapper.toMediaCollection(result);
   }
 
   async updateCollectionVisibility(
     settings: CollectionVisibilitySettings,
   ): Promise<void> {
-    await this.plexApi.UpdateCollectionSettings({
-      libraryId: settings.libraryId,
-      collectionId: settings.collectionId,
-      recommended: settings.recommended ?? false,
-      ownHome: settings.ownHome ?? false,
-      sharedHome: settings.sharedHome ?? false,
-    });
+    try {
+      await this.plexApi.UpdateCollectionSettings({
+        libraryId: settings.libraryId,
+        collectionId: settings.collectionId,
+        recommended: settings.recommended ?? false,
+        ownHome: settings.ownHome ?? false,
+        sharedHome: settings.sharedHome ?? false,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to update visibility for collection ${settings.collectionId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async getWatchlistForUser(userId: string): Promise<string[]> {
@@ -296,7 +339,12 @@ export class PlexAdapterService implements IMediaServerService {
   }
 
   async deleteFromDisk(itemId: string): Promise<void> {
-    await this.plexApi.deleteMediaFromDisk(itemId);
+    try {
+      await this.plexApi.deleteMediaFromDisk(itemId);
+    } catch (error) {
+      this.logger.error(`Failed to delete item ${itemId} from disk`, error);
+      throw error;
+    }
   }
 
   async getAllIdsForContextAction(

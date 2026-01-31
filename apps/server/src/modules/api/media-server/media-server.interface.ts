@@ -25,6 +25,11 @@ import {
  * - Methods that differ significantly between servers have optional variants
  * - All async methods should handle errors gracefully and log appropriately
  * - Cache management is implementation-specific but exposed via resetMetadataCache
+ *
+ * Error handling contract:
+ * - Read operations (get*, search*): Return empty array/undefined on failure, log the error
+ * - Write operations (create*, update*, delete*, add*, remove*): Throw Error with descriptive message
+ * - This allows callers to safely iterate over read results while catching write failures
  */
 export interface IMediaServerService {
   /**
@@ -150,38 +155,43 @@ export interface IMediaServerService {
 
   /**
    * Create a new collection.
+   * @throws Error if creation fails
    */
   createCollection(params: CreateCollectionParams): Promise<MediaCollection>;
 
   /**
    * Delete a collection.
+   * @throws Error if deletion fails
    */
   deleteCollection(collectionId: string): Promise<void>;
 
   /**
    * Get items in a collection.
+   * Returns empty array if collection not found or on error.
    */
   getCollectionChildren(collectionId: string): Promise<MediaItem[]>;
 
   /**
    * Add an item to a collection.
+   * @throws Error if operation fails
    */
   addToCollection(collectionId: string, itemId: string): Promise<void>;
 
   /**
    * Remove an item from a collection.
+   * @throws Error if operation fails
    */
   removeFromCollection(collectionId: string, itemId: string): Promise<void>;
 
   /**
    * Update a collection's metadata (title, summary, etc.)
-   * @throws Error if not supported by media server
+   * @throws Error if not supported by media server or update fails
    */
   updateCollection(params: UpdateCollectionParams): Promise<MediaCollection>;
 
   /**
    * Update collection visibility/hub settings.
-   * @throws Error if not supported by media server (Plex-only feature)
+   * @throws Error if not supported by media server (Plex-only feature) or update fails
    */
   updateCollectionVisibility(
     settings: CollectionVisibilitySettings,
