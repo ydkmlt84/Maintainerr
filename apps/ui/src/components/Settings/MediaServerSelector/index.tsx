@@ -237,12 +237,18 @@ const MediaServerSelector = ({
                           serverOptions.find((o) => o.value === currentType)
                             ?.icon
                         }
-                        alt={currentType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
+                        alt={
+                          currentType === MediaServerType.PLEX
+                            ? 'Plex'
+                            : 'Jellyfin'
+                        }
                         className="h-16 w-auto object-contain"
                       />
                     </div>
                     <span className="mt-2 text-sm font-medium text-zinc-400">
-                      {currentType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
+                      {currentType === MediaServerType.PLEX
+                        ? 'Plex'
+                        : 'Jellyfin'}
                     </span>
                   </div>
 
@@ -258,7 +264,9 @@ const MediaServerSelector = ({
                     src={
                       serverOptions.find((o) => o.value === pendingType)?.icon
                     }
-                    alt={pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
+                    alt={
+                      pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'
+                    }
                     className="h-16 w-auto object-contain"
                   />
                 </div>
@@ -358,7 +366,9 @@ const MediaServerSelector = ({
                   <label htmlFor="migrateRules" className="ml-3 cursor-pointer">
                     <span className="block font-medium text-zinc-100">
                       Migrate rules to{' '}
-                      {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}
+                      {pendingType === MediaServerType.PLEX
+                        ? 'Plex'
+                        : 'Jellyfin'}
                     </span>
                     <span className="block text-sm text-zinc-400">
                       {previewData!.ruleMigration!.migratableRules} of{' '}
@@ -369,7 +379,10 @@ const MediaServerSelector = ({
                           {' '}
                           {previewData!.ruleMigration!.skippedRules} rule(s) use
                           properties not available in{' '}
-                          {pendingType === MediaServerType.PLEX ? 'Plex' : 'Jellyfin'}.
+                          {pendingType === MediaServerType.PLEX
+                            ? 'Plex'
+                            : 'Jellyfin'}
+                          .
                         </span>
                       )}
                     </span>
