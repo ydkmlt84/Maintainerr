@@ -256,17 +256,19 @@ export class JellyfinMapper {
 
   /**
    * Convert to WatchRecord from user data.
+   * @param progress - The watch progress percentage (0-100). Defaults to 100 for completed watches.
    */
   static toWatchRecord(
     userId: string,
     itemId: string,
     lastPlayedDate?: Date,
+    progress?: number,
   ): WatchRecord {
     return {
       userId,
       itemId,
       watchedAt: lastPlayedDate,
-      progress: 100, // Marked as watched = 100%
+      progress: progress ?? 100,
     };
   }
 

@@ -668,6 +668,7 @@ export class JellyfinAdapterService implements IMediaServerService {
                 result.value.LastPlayedDate
                   ? new Date(result.value.LastPlayedDate)
                   : undefined,
+                result.value.PlayedPercentage,
               ),
             );
           }
