@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 env:
-  DOCKERHUB_SLUG: jorenn92/maintainerr
+  DOCKERHUB_SLUG: maintainerr/maintainerr
   GHCR_SLUG: ghcr.io/maintainerr/maintainerr
 
 jobs:
