@@ -205,7 +205,7 @@ jobs:
         with:
           allow-repeats: true
           message-success: |
-            Released to `jorenn92/maintainerr:pr-${{ github.event.issue.number }}` :rocket:
+            Released to `maintainerr/maintainerr:pr-${{ github.event.issue.number }}` :rocket:
           message-failure: |
             :bangbang: There was an error trying to release the PR.
           issue: ${{ github.event.issue.number }}
