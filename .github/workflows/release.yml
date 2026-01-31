@@ -17,8 +17,16 @@ env:
   GHCR_SLUG: ghcr.io/maintainerr/maintainerr
 
 jobs:
+  guard_manual_run:
+    uses: ./.github/workflows/guard-manual.yml
+    with:
+      is_manual: ${{ github.event_name == 'workflow_dispatch' }}
+      actor: ${{ github.actor }}
+      allowed: "ydkmlt84,benscobie"
+
   semantic-release:
     name: Tag and release latest version
+    needs: guard_manual_run
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout

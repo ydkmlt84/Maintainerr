@@ -18,8 +18,16 @@ env:
   GHCR_SLUG: ghcr.io/maintainerr/maintainerr
 
 jobs:
+  guard_manual_run:
+    uses: ./.github/workflows/guard-manual.yml
+    with:
+      is_manual: ${{ github.event_name == 'workflow_dispatch' }}
+      actor: ${{ github.actor }}
+      allowed: "ydkmlt84,benscobie"
+
   build_docker_image:
     name: Build ${{ matrix.platform }}
+    needs: guard_manual_run
     strategy:
       fail-fast: false
       matrix:
