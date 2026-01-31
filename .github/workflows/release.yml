@@ -10,7 +10,7 @@ on:
       with-docker-images:
         type: boolean
         description: Build and push docker images
-        default: true
+        default: false
 
 env:
   DOCKERHUB_SLUG: maintainerr/maintainerr
@@ -50,6 +50,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           if [ "${{ github.event.inputs.dry-run-semantic-release }}" == "true" ]; then
+          echo "Dry run enabled."
           npx semantic-release --dry-run
           else
           npx semantic-release
