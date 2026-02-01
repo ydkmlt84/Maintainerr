@@ -16,8 +16,8 @@ import {
   MediaLibrary,
 } from '@maintainerr/contracts'
 import { isValidCron } from 'cron-validator'
-import { useRef, useState, useSyncExternalStore } from 'react'
-import { useForm } from 'react-hook-form'
+import { useState, useSyncExternalStore } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
@@ -261,8 +261,7 @@ const AddModal = (props: AddModal) => {
   const {
     register,
     handleSubmit,
-    watch,
-    reset,
+    control,
     setValue,
     getValues,
     formState: { errors },
@@ -282,8 +281,8 @@ const AddModal = (props: AddModal) => {
     isPending: isUpdatePending,
   } = useUpdateRuleGroup()
 
-  const selectedLibraryId = watch('libraryId') ?? ''
-  const selectedType = watch('dataType') ?? ''
+  const selectedLibraryId = useWatch({ control, name: 'libraryId' }) ?? ''
+  const selectedType = useWatch({ control, name: 'dataType' }) ?? ''
   // dataType is now stored as MediaItemType string ('movie', 'show', 'season', 'episode')
   const selectedLibraryType: undefined | 'movie' | 'show' = selectedType
     ? selectedType === 'movie'
@@ -291,14 +290,14 @@ const AddModal = (props: AddModal) => {
       : 'show'
     : undefined
 
-  const manualCollectionEnabled = watch('manualCollection')
-  const useRulesEnabled = watch('useRules')
-  const arrActionValue = watch('arrAction') as number | undefined
-  const radarrSettingsId = watch('radarrSettingsId') as
+  const manualCollectionEnabled = useWatch({ control, name: 'manualCollection' })
+  const useRulesEnabled = useWatch({ control, name: 'useRules' })
+  const arrActionValue = useWatch({ control, name: 'arrAction' }) as number | undefined
+  const radarrSettingsId = useWatch({ control, name: 'radarrSettingsId' }) as
     | number
     | null
     | undefined
-  const sonarrSettingsId = watch('sonarrSettingsId') as
+  const sonarrSettingsId = useWatch({ control, name: 'sonarrSettingsId' }) as
     | number
     | null
     | undefined
@@ -307,7 +306,7 @@ const AddModal = (props: AddModal) => {
   const [configureNotificionModal, setConfigureNotificationModal] =
     useState(false)
 
-  const yaml = useRef<string>(undefined)
+  const [yaml, setYaml] = useState<string | undefined>(undefined)
   const [
     configuredNotificationConfigurations,
     setConfiguredNotificationConfigurations,
@@ -320,7 +319,7 @@ const AddModal = (props: AddModal) => {
       : [],
   )
   const [formIncomplete, setFormIncomplete] = useState<boolean>(false)
-  const ruleCreatorVersion = useRef<number>(1)
+  const [ruleCreatorVersion, setRuleCreatorVersion] = useState<number>(1)
 
   const { data: libraries, isLoading: librariesLoading } =
     useMediaServerLibraries()
@@ -359,7 +358,7 @@ const AddModal = (props: AddModal) => {
     const filtered = filterRulesForArrSettings(rules, undefined, undefined)
     if (filtered.length !== rules.length) {
       setRules(filtered)
-      ruleCreatorVersion.current += 1
+      setRuleCreatorVersion((v) => v + 1)
     }
   }
 
@@ -390,7 +389,7 @@ const AddModal = (props: AddModal) => {
     const filtered = filterRulesForArrSettings(rules, newRadarrId, newSonarrId)
     if (filtered.length !== rules.length) {
       setRules(filtered)
-      ruleCreatorVersion.current += 1
+      setRuleCreatorVersion((v) => v + 1)
     }
   }
 
@@ -413,7 +412,7 @@ const AddModal = (props: AddModal) => {
     })
 
     if (response.code === 1) {
-      yaml.current = response.result
+      setYaml(response.result)
 
       if (!yamlImporterModal) {
         setYamlImporterModal(true)
@@ -427,7 +426,7 @@ const AddModal = (props: AddModal) => {
     if (selectedLibraryType == null) {
       alert('Please select a library first.')
     } else {
-      yaml.current = undefined
+      setYaml(undefined)
       if (!yamlImporterModal) {
         setYamlImporterModal(true)
       } else {
@@ -457,7 +456,7 @@ const AddModal = (props: AddModal) => {
 
   const handleLoadRules = (rules: IRule[]) => {
     updateRules(rules)
-    ruleCreatorVersion.current = ruleCreatorVersion.current + 1
+    setRuleCreatorVersion((v) => v + 1)
     setShowCommunityModal(false)
   }
 
@@ -1267,7 +1266,7 @@ const AddModal = (props: AddModal) => {
                 )}
                 {yamlImporterModal && (
                   <YamlImporterModal
-                    yaml={yaml.current ? yaml.current : undefined}
+                    yaml={yaml}
                     onImport={(yaml: string) => {
                       importRulesFromYaml(yaml)
                       setYamlImporterModal(false)
@@ -1292,7 +1291,7 @@ const AddModal = (props: AddModal) => {
                 )}
 
                 <RuleCreator
-                  key={ruleCreatorVersion.current}
+                  key={ruleCreatorVersion}
                   mediaType={
                     selectedLibraryType != null
                       ? selectedLibraryType === 'movie'

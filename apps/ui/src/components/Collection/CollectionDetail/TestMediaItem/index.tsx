@@ -1,5 +1,4 @@
 import { ClipboardCopyIcon } from '@heroicons/react/solid'
-import { MediaItemType } from '@maintainerr/contracts'
 import { Editor } from '@monaco-editor/react'
 import { useMemo, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
@@ -75,7 +74,7 @@ const TestMediaItem = (props: ITestMediaItem) => {
     }
 
     return false
-  }, [mediaItem, selectedSeasons, selectedEpisodes])
+  }, [mediaItem, ruleGroup, selectedSeasons, selectedEpisodes])
 
   function handleEditorDidMount(editor: any) {
     editorRef.current = editor

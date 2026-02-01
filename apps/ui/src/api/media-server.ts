@@ -4,8 +4,6 @@ import {
   MediaLibrary,
   MediaServerStatus,
   MediaUser,
-  PagedResult,
-  WatchRecord,
 } from '@maintainerr/contracts'
 import { useQuery, UseQueryOptions } from '@tanstack/react-query'
 import GetApiHandler from '../utils/ApiHandler'
