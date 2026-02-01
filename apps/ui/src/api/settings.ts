@@ -60,7 +60,6 @@ export interface JellyfinTestResult {
   users?: Array<{
     id: string
     name: string
-    isAdministrator: boolean
   }>
 }
 

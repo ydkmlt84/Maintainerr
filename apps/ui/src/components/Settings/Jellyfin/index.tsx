@@ -31,7 +31,7 @@ const JellyfinSettings = () => {
   } | null>(null)
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [jellyfinUsers, setJellyfinUsers] = useState<
-    Array<{ id: string; name: string; isAdministrator: boolean }>
+    Array<{ id: string; name: string }>
   >([])
 
   const { settings } = useSettingsOutletContext()
@@ -277,29 +277,26 @@ const JellyfinSettings = () => {
                     >
                       <option value="">Auto-detect (recommended)</option>
                       {jellyfinUsers
-                        .filter((user) => user.isAdministrator)
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map((user) => (
                           <option key={user.id} value={user.id}>
-                            {user.name}
+                            {user.name} ({user.id.slice(0, 4)}...
+                            {user.id.slice(-4)})
                           </option>
                         ))}
                     </select>
                   ) : (
-                    <input
-                      name="jellyfin_user_id"
-                      id="jellyfin_user_id"
-                      type="text"
-                      value={selectedUserId}
-                      onChange={(e) => setSelectedUserId(e.target.value)}
-                      placeholder="Admin username or UUID"
-                    />
+                    <select disabled>
+                      <option>
+                        Test connection to load Jellyfin admin users
+                      </option>
+                    </select>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-zinc-400">
                   {jellyfinUsers.length > 0
-                    ? 'Select the admin user for Maintainerr operations. Auto-detect picks the first admin.'
-                    : 'Test the connection first to load available users.'}
+                    ? 'Select the admin user for Maintainerr operations.'
+                    : 'Auto-detected after testing if not selected.'}
                 </p>
               </div>
             </div>
