@@ -172,7 +172,7 @@ const MediaServerSelector = ({
                 type="button"
                 onClick={() => handleServerClick(option.value)}
                 disabled={isPreviewPending || isSwitchPending}
-                className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                   isSelected
                     ? 'border-amber-500 bg-amber-500/10'
                     : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'

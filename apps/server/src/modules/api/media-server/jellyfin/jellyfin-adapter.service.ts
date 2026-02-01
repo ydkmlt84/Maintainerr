@@ -334,7 +334,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     }
 
     try {
+      const userId = await this.getUserId();
       const response = await getItemsApi(this.api).getItems({
+        userId,
         parentId: libraryId,
         recursive: true,
         startIndex: options?.offset || 0,
@@ -397,7 +399,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return 0;
 
     try {
+      const userId = await this.getUserId();
       const response = await getItemsApi(this.api).getItems({
+        userId,
         parentId: libraryId,
         recursive: true,
         limit: 0,
@@ -433,7 +437,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
+      const userId = await this.getUserId();
       const response = await getItemsApi(this.api).getItems({
+        userId,
         parentId: libraryId,
         recursive: true,
         searchTerm: query,
@@ -469,7 +475,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return undefined;
 
     try {
+      const userId = await this.getUserId();
       const response = await getItemsApi(this.api).getItems({
+        userId,
         ids: [itemId],
         fields: [
           ItemFields.ProviderIds,
@@ -499,12 +507,7 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
-      // Get admin user ID from settings - Jellyfin requires userId for UserData fields
-      const settings = await this.settingsService.getSettings();
-      const userId =
-        settings && 'jellyfin_user_id' in settings
-          ? settings.jellyfin_user_id
-          : undefined;
+      const userId = await this.getUserId();
 
       // For seasons, use the dedicated TvShows API which properly handles
       // the Jellyfin data model where seasons have SeriesId pointing to the show,
@@ -559,7 +562,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
+      const userId = await this.getUserId();
       const response = await getItemsApi(this.api).getItems({
+        userId,
         parentId: libraryId,
         recursive: true,
         sortBy: [ItemSortBy.DateCreated],
@@ -599,7 +604,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
+      const userId = await this.getUserId();
       const response = await getSearchApi(this.api).getSearchHints({
+        userId,
         searchTerm: query,
         includeItemTypes: [
           BaseItemKind.Movie,
@@ -748,6 +755,18 @@ export class JellyfinAdapterService implements IMediaServerService {
   }
 
   /**
+   * Get the configured Jellyfin admin user ID from settings.
+   * Jellyfin requires userId for item visibility filtering when
+   * authenticating with an API key (no implicit user session).
+   */
+  private async getUserId(): Promise<string | undefined> {
+    const settings = await this.settingsService.getSettings();
+    return settings && 'jellyfin_user_id' in settings
+      ? settings.jellyfin_user_id
+      : undefined;
+  }
+
+  /**
    * Build a watched cache for an entire library.
    * More efficient than querying per-item for bulk operations.
    */
@@ -795,9 +814,11 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
+      const userId = await this.getUserId();
       // Get all BoxSets system-wide - Jellyfin collections can contain items
       // from any library, so we can't filter by parentId
       const response = await getItemsApi(this.api).getItems({
+        userId,
         includeItemTypes: [BaseItemKind.BoxSet],
         recursive: true,
         fields: [
@@ -820,7 +841,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return undefined;
 
     try {
+      const userId = await this.getUserId();
       const response = await getItemsApi(this.api).getItems({
+        userId,
         ids: [collectionId],
         fields: [
           ItemFields.Overview,
@@ -887,17 +910,12 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
-      // Get admin user ID from settings - Jellyfin BoxSets require userId to return their children
-      const settings = await this.settingsService.getSettings();
-      const userId =
-        settings && 'jellyfin_user_id' in settings
-          ? settings.jellyfin_user_id
-          : undefined;
+      const userId = await this.getUserId();
 
       // For BoxSets in Jellyfin, we need to use the Items endpoint
       // with the collection's ID as parentId AND a userId
       const response = await getItemsApi(this.api).getItems({
-        userId: userId,
+        userId,
         parentId: collectionId,
         fields: [
           ItemFields.ProviderIds,
@@ -911,7 +929,7 @@ export class JellyfinAdapterService implements IMediaServerService {
       // If parentId approach returns nothing, try recursive search
       if (!response.data.Items?.length) {
         const itemsResponse = await getItemsApi(this.api).getItems({
-          userId: userId,
+          userId,
           parentId: collectionId,
           recursive: true,
           includeItemTypes: [
@@ -992,8 +1010,10 @@ export class JellyfinAdapterService implements IMediaServerService {
     }
 
     try {
+      const userId = await this.getUserId();
       // First, get the existing collection to preserve all properties
       const existingResponse = await getItemsApi(this.api).getItems({
+        userId,
         ids: [params.collectionId],
         includeItemTypes: [BaseItemKind.BoxSet],
         fields: [
@@ -1037,6 +1057,7 @@ export class JellyfinAdapterService implements IMediaServerService {
 
       // Return updated collection info
       const response = await getItemsApi(this.api).getItems({
+        userId,
         ids: [params.collectionId],
         includeItemTypes: [BaseItemKind.BoxSet],
         fields: [
@@ -1083,9 +1104,12 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
+      const userId = await this.getUserId();
+
       // Jellyfin playlists are not library-specific, but we filter by parentId
       // to maintain consistency with the interface contract
       const response = await getItemsApi(this.api).getItems({
+        userId,
         parentId: libraryId,
         includeItemTypes: [BaseItemKind.Playlist],
         recursive: true,
@@ -1106,7 +1130,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (!this.api) return [];
 
     try {
+      const userId = await this.getUserId();
       const response = await getPlaylistsApi(this.api).getPlaylistItems({
+        userId,
         playlistId,
       });
 
