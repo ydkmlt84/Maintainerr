@@ -57,6 +57,11 @@ export interface JellyfinTestResult {
   message: string
   serverName?: string
   version?: string
+  users?: Array<{
+    id: string
+    name: string
+    isAdministrator: boolean
+  }>
 }
 
 type UseSettingsQueryKey = ['settings']

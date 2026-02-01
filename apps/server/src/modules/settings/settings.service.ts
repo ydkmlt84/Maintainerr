@@ -408,7 +408,13 @@ export class SettingsService implements SettingDto {
     jellyfin_url: string;
     jellyfin_api_key: string;
     jellyfin_user_id?: string;
-  }): Promise<BasicResponseDto & { serverName?: string; version?: string }> {
+  }): Promise<
+    BasicResponseDto & {
+      serverName?: string;
+      version?: string;
+      users?: Array<{ id: string; name: string; isAdministrator: boolean }>;
+    }
+  > {
     const result = await this.jellyfinAdapter.testConnection(
       settings.jellyfin_url,
       settings.jellyfin_api_key,
@@ -421,6 +427,7 @@ export class SettingsService implements SettingDto {
         message: `Connected to ${result.serverName}`,
         serverName: result.serverName,
         version: result.version,
+        users: result.users,
       };
     } else {
       return {
@@ -452,8 +459,48 @@ export class SettingsService implements SettingDto {
         };
       }
 
-      // Auto-detect admin user if not provided
+      // Resolve username to UUID if a non-UUID value was provided
       let userId = settings.jellyfin_user_id;
+      const isUuid = userId
+        ? /^[0-9a-f]{32}$/i.test(userId) ||
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            userId,
+          )
+        : false;
+      if (userId && !isUuid) {
+        // Value looks like a username, not a UUID — try to resolve it
+        const resolved = testResult.users?.find(
+          (u) => u.name.toLowerCase() === userId.toLowerCase(),
+        );
+        if (resolved) {
+          this.logger.log(
+            `Resolved Jellyfin username "${userId}" to ID: ${resolved.id}`,
+          );
+          userId = resolved.id;
+        } else {
+          this.logger.warn(
+            `Could not resolve Jellyfin username "${userId}", using as-is`,
+          );
+        }
+      }
+
+      // Validate selected user is an admin (if provided)
+      if (userId && testResult.users && testResult.users.length > 0) {
+        const selectedUser = testResult.users.find(
+          (u) =>
+            u.id === userId || u.name.toLowerCase() === userId.toLowerCase(),
+        );
+        if (!selectedUser) {
+          return {
+            status: 'NOK',
+            code: 0,
+            message:
+              'Selected Jellyfin user must be an admin. Please re-test connection and select a valid admin.',
+          };
+        }
+      }
+
+      // Auto-detect admin user if not provided
       if (!userId) {
         userId = await this.autoDetectJellyfinAdminUser(settings);
         if (userId) {

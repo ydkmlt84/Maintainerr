@@ -19,7 +19,6 @@ import DocsButton from '../../Common/DocsButton'
 const JellyfinSettings = () => {
   const urlRef = useRef<HTMLInputElement>(null)
   const apiKeyRef = useRef<HTMLInputElement>(null)
-  const userIdRef = useRef<HTMLInputElement>(null)
 
   const [error, setError] = useState<string | undefined>()
   const [testResult, setTestResult] = useState<{
@@ -30,6 +29,10 @@ const JellyfinSettings = () => {
     url: string
     apiKey: string
   } | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string>('')
+  const [jellyfinUsers, setJellyfinUsers] = useState<
+    Array<{ id: string; name: string; isAdministrator: boolean }>
+  >([])
 
   const { settings } = useSettingsOutletContext()
 
@@ -57,8 +60,8 @@ const JellyfinSettings = () => {
     if (settings?.jellyfin_api_key && apiKeyRef.current) {
       apiKeyRef.current.value = settings.jellyfin_api_key
     }
-    if (settings?.jellyfin_user_id && userIdRef.current) {
-      userIdRef.current.value = settings.jellyfin_user_id
+    if (settings?.jellyfin_user_id) {
+      setSelectedUserId(settings.jellyfin_user_id)
     }
   }, [settings])
 
@@ -67,6 +70,8 @@ const JellyfinSettings = () => {
     if (testResult) {
       setTestResult(null)
       setTestedSettings(null)
+      setJellyfinUsers([])
+      setSelectedUserId('')
     }
   }
 
@@ -86,7 +91,6 @@ const JellyfinSettings = () => {
       const result = await testJellyfin({
         jellyfin_url: url,
         jellyfin_api_key: apiKey,
-        jellyfin_user_id: userIdRef.current?.value?.trim() || undefined,
       })
 
       if (result.code === 1) {
@@ -97,16 +101,31 @@ const JellyfinSettings = () => {
             : result.message,
         })
         setTestedSettings({ url, apiKey })
+
+        // Populate user dropdown
+        if (result.users && result.users.length > 0) {
+          setJellyfinUsers(result.users)
+          // Reset selection if the previously selected user no longer exists
+          if (
+            selectedUserId &&
+            !result.users.find((u) => u.id === selectedUserId)
+          ) {
+            setSelectedUserId('')
+          }
+        }
+
         toast.success('Jellyfin connection successful!')
       } else {
         setTestResult({ status: false, message: result.message })
         setTestedSettings(null)
+        setJellyfinUsers([])
         toast.error(`Connection failed: ${result.message}`)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection failed'
       setTestResult({ status: false, message })
       setTestedSettings(null)
+      setJellyfinUsers([])
       toast.error(message)
     }
   }
@@ -158,7 +177,7 @@ const JellyfinSettings = () => {
       await saveSettings({
         jellyfin_url: url,
         jellyfin_api_key: apiKey,
-        jellyfin_user_id: userIdRef.current?.value?.trim() || undefined,
+        jellyfin_user_id: selectedUserId || undefined,
       })
       toast.success('Jellyfin settings saved successfully!')
     } catch (err) {
@@ -245,21 +264,42 @@ const JellyfinSettings = () => {
 
             <div className="form-row">
               <label htmlFor="jellyfin_user_id" className="text-label">
-                Admin User ID (Optional)
+                Admin User
               </label>
               <div className="form-input">
                 <div className="form-input-field">
-                  <input
-                    name="jellyfin_user_id"
-                    id="jellyfin_user_id"
-                    type="text"
-                    ref={userIdRef}
-                    placeholder="Auto-detected if not specified"
-                    defaultValue={settings?.jellyfin_user_id || ''}
-                  />
+                  {jellyfinUsers.length > 0 ? (
+                    <select
+                      name="jellyfin_user_id"
+                      id="jellyfin_user_id"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                    >
+                      <option value="">Auto-detect (recommended)</option>
+                      {jellyfinUsers
+                        .filter((user) => user.isAdministrator)
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <input
+                      name="jellyfin_user_id"
+                      id="jellyfin_user_id"
+                      type="text"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      placeholder="Admin username or UUID"
+                    />
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-zinc-400">
-                  Used for admin operations. Leave blank to auto-detect.
+                  {jellyfinUsers.length > 0
+                    ? 'Select the admin user for Maintainerr operations. Auto-detect picks the first admin.'
+                    : 'Test the connection first to load available users.'}
                 </p>
               </div>
             </div>

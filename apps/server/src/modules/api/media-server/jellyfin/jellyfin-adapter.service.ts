@@ -106,14 +106,24 @@ export class JellyfinAdapterService implements IMediaServerService {
     serverName?: string;
     version?: string;
     error?: string;
+    users?: Array<{ id: string; name: string; isAdministrator: boolean }>;
   }> {
     try {
       // First get public system info to check if server is reachable
       const systemInfo = await getSystemApi(api).getPublicSystemInfo();
 
       // Then verify API key by calling an authenticated endpoint
+      let users: Array<{ id: string; name: string; isAdministrator: boolean }> =
+        [];
       try {
-        await getUserApi(api).getUsers();
+        const usersResponse = await getUserApi(api).getUsers();
+        users = (usersResponse.data || [])
+          .filter((u) => u.Policy?.IsAdministrator)
+          .map((u) => ({
+            id: u.Id || '',
+            name: u.Name || '',
+            isAdministrator: true,
+          }));
       } catch (authError) {
         return {
           success: false,
@@ -125,6 +135,7 @@ export class JellyfinAdapterService implements IMediaServerService {
         success: true,
         serverName: systemInfo.data.ServerName || undefined,
         version: systemInfo.data.Version || undefined,
+        users,
       };
     } catch (e) {
       const error = e instanceof Error ? e.message : 'Connection failed';
@@ -187,6 +198,7 @@ export class JellyfinAdapterService implements IMediaServerService {
     serverName?: string;
     version?: string;
     error?: string;
+    users?: Array<{ id: string; name: string; isAdministrator: boolean }>;
   }> {
     const api = this.createApiClient(url, apiKey, 'test');
     const result = await this.verifyConnection(api);
