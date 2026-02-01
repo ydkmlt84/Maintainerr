@@ -102,15 +102,18 @@ const JellyfinSettings = () => {
         })
         setTestedSettings({ url, apiKey })
 
-        // Populate user dropdown
+        // Populate user dropdown and auto-select first admin
         if (result.users && result.users.length > 0) {
-          setJellyfinUsers(result.users)
-          // Reset selection if the previously selected user no longer exists
+          const sorted = [...result.users].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          )
+          setJellyfinUsers(sorted)
+          // Keep current selection if it still exists, otherwise select first
           if (
-            selectedUserId &&
-            !result.users.find((u) => u.id === selectedUserId)
+            !selectedUserId ||
+            !sorted.find((u) => u.id === selectedUserId)
           ) {
-            setSelectedUserId('')
+            setSelectedUserId(sorted[0].id)
           }
         }
 
@@ -275,10 +278,7 @@ const JellyfinSettings = () => {
                       value={selectedUserId}
                       onChange={(e) => setSelectedUserId(e.target.value)}
                     >
-                      <option value="">Auto-detect (recommended)</option>
-                      {jellyfinUsers
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((user) => (
+                      {jellyfinUsers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.name} ({user.id.slice(0, 4)}...
                             {user.id.slice(-4)})
