@@ -109,10 +109,7 @@ const JellyfinSettings = () => {
           )
           setJellyfinUsers(sorted)
           // Keep current selection if it still exists, otherwise select first
-          if (
-            !selectedUserId ||
-            !sorted.find((u) => u.id === selectedUserId)
-          ) {
+          if (!selectedUserId || !sorted.find((u) => u.id === selectedUserId)) {
             setSelectedUserId(sorted[0].id)
           }
         }
@@ -279,11 +276,11 @@ const JellyfinSettings = () => {
                       onChange={(e) => setSelectedUserId(e.target.value)}
                     >
                       {jellyfinUsers.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.name} ({user.id.slice(0, 4)}...
-                            {user.id.slice(-4)})
-                          </option>
-                        ))}
+                        <option key={user.id} value={user.id}>
+                          {user.name} ({user.id.slice(0, 4)}...
+                          {user.id.slice(-4)})
+                        </option>
+                      ))}
                     </select>
                   ) : (
                     <select disabled>
