@@ -290,9 +290,14 @@ const AddModal = (props: AddModal) => {
       : 'show'
     : undefined
 
-  const manualCollectionEnabled = useWatch({ control, name: 'manualCollection' })
+  const manualCollectionEnabled = useWatch({
+    control,
+    name: 'manualCollection',
+  })
   const useRulesEnabled = useWatch({ control, name: 'useRules' })
-  const arrActionValue = useWatch({ control, name: 'arrAction' }) as number | undefined
+  const arrActionValue = useWatch({ control, name: 'arrAction' }) as
+    | number
+    | undefined
   const radarrSettingsId = useWatch({ control, name: 'radarrSettingsId' }) as
     | number
     | null
