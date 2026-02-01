@@ -35,6 +35,7 @@ const JellyfinSettings = () => {
   >([])
 
   const { settings } = useSettingsOutletContext()
+  const savedUserId = settings?.jellyfin_user_id ?? ''
 
   const { mutateAsync: testJellyfin, isPending: isTestPending } =
     useTestJellyfin()
@@ -283,17 +284,26 @@ const JellyfinSettings = () => {
                       ))}
                     </select>
                   ) : (
-                    <select disabled>
-                      <option>
-                        Test connection to load Jellyfin admin users
-                      </option>
+                    <select disabled value={savedUserId}>
+                      {savedUserId ? (
+                        <option value={savedUserId}>
+                          Selected: {savedUserId.slice(0, 4)}...
+                          {savedUserId.slice(-4)}
+                        </option>
+                      ) : (
+                        <option value="">
+                          Test connection to load Jellyfin admin users
+                        </option>
+                      )}
                     </select>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-zinc-400">
                   {jellyfinUsers.length > 0
                     ? 'Select the admin user for Maintainerr operations.'
-                    : 'Auto-detected after testing if not selected.'}
+                    : savedUserId
+                      ? 'Saved admin user. Test connection to change.'
+                      : 'Test connection to load available admin users.'}
                 </p>
               </div>
             </div>
