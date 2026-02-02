@@ -351,14 +351,18 @@ export class RuleMigrationService {
         this.logger.warn(
           `Skipping imported rule migration: ${analysis.reason}${analysis.propertyName ? ` (property: ${analysis.propertyName})` : ''}`,
         );
-        return rule;
+        return undefined;
       }
 
       migratedRules += 1;
       return this.migrateRuleDto(rule, sourceApp, targetApp);
     });
 
-    return { rules: migrated, migratedRules, skippedRules };
+    return {
+      rules: migrated.filter((rule): rule is RuleDto => rule !== undefined),
+      migratedRules,
+      skippedRules,
+    };
   }
 
   /**
