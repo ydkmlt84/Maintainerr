@@ -20,6 +20,7 @@ import { ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CommunityRule } from './dtos/communityRule.dto';
 import { ExclusionAction, ExclusionContextDto } from './dtos/exclusion.dto';
+import { RulesDto } from './dtos/rules.dto';
 import { ReturnStatus, RulesService } from './rules.service';
 import { RuleExecutorJobManagerService } from './tasks/rule-executor-job-manager.service';
 import { RuleExecutorSchedulerService } from './tasks/rule-executor-scheduler.service';

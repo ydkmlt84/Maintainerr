@@ -1,14 +1,15 @@
+import { MediaServerType } from '@maintainerr/contracts';
 import { TestBed, type Mocked } from '@suites/unit';
 import { Repository } from 'typeorm';
-import { RuleMigrationService } from './rule-migration.service';
-import { Rules } from '../rules/entities/rules.entities';
-import { RuleGroup } from '../rules/entities/rule-group.entities';
-import { MediaServerType } from '@maintainerr/contracts';
 import {
   Application,
   RuleOperators,
   RulePossibility,
 } from '../rules/constants/rules.constants';
+import { RuleDto } from '../rules/dtos/rule.dto';
+import { RuleGroup } from '../rules/entities/rule-group.entities';
+import { Rules } from '../rules/entities/rules.entities';
+import { RuleMigrationService } from './rule-migration.service';
 
 describe('RuleMigrationService', () => {
   let service: RuleMigrationService;
@@ -297,6 +298,28 @@ describe('RuleMigrationService', () => {
       const updatedJson = JSON.parse(updateCall[1].ruleJson as string);
       // Should still be Radarr, not changed to Jellyfin
       expect(updatedJson.firstVal[0]).toBe(Application.RADARR);
+    });
+  });
+
+  describe('migrateImportedRuleDtos', () => {
+    it('should migrate Plex rules to Jellyfin for community imports', () => {
+      const rules: RuleDto[] = [
+        {
+          operator: RuleOperators.AND,
+          action: RulePossibility.BIGGER,
+          firstVal: [0, 0], // Use literal 0 for PLEX
+          customVal: { ruleTypeId: 1, value: '30' },
+          section: 0,
+        },
+      ];
+
+      const result = service.migrateImportedRuleDtos(
+        rules,
+        MediaServerType.JELLYFIN,
+      );
+
+      expect(result.migratedRules).toBe(1);
+      expect(result.rules[0].firstVal?.[0]).toBe(6); // 6 = JELLYFIN
     });
   });
 

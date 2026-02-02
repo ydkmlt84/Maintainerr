@@ -332,7 +332,7 @@ export class RuleMigrationService {
       const sourceApp = this.detectRuleSourceApp(rule);
 
       // Only migrate if rule clearly belongs to Plex/Jellyfin and is not already on target.
-      if (!sourceApp || sourceApp === targetApp) {
+      if (sourceApp === undefined || sourceApp === targetApp) {
         return rule;
       }
 
