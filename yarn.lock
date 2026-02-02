@@ -2998,7 +2998,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.54.0"
     "@typescript-eslint/parser": "npm:^8.54.0"
     "@vitejs/plugin-react": "npm:^5.1.2"
-    autoprefixer: "npm:10.4.23"
+    autoprefixer: "npm:10.4.24"
     axios: "npm:^1.13.4"
     bowser: "npm:^2.13.1"
     clsx: "npm:^2.1.1"
@@ -6852,12 +6852,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"autoprefixer@npm:10.4.23":
-  version: 10.4.23
-  resolution: "autoprefixer@npm:10.4.23"
+"autoprefixer@npm:10.4.24":
+  version: 10.4.24
+  resolution: "autoprefixer@npm:10.4.24"
   dependencies:
     browserslist: "npm:^4.28.1"
-    caniuse-lite: "npm:^1.0.30001760"
+    caniuse-lite: "npm:^1.0.30001766"
     fraction.js: "npm:^5.3.4"
     picocolors: "npm:^1.1.1"
     postcss-value-parser: "npm:^4.2.0"
@@ -6865,7 +6865,7 @@ __metadata:
     postcss: ^8.1.0
   bin:
     autoprefixer: bin/autoprefixer
-  checksum: 10c0/3765c5d0fa3e95fb2ebe9d5a6d4da0156f5d346c7ec9ac0fbf5c97c8139d0ca1e8743bf5dc1b4aa954467be6929fddf8498a3b6202d468d70b5f359f3b6af90f
+  checksum: 10c0/16737dfc865afed338f3166718ece0f77539e53c1ba9f064f2e6369b9dec9ea0542f3fb98bcb7ab37e64897dc3304bae6b2004fbf79ada8b2aeaa3db336e4b77
   languageName: node
   linkType: hard
 
@@ -7445,10 +7445,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"caniuse-lite@npm:^1.0.30001759, caniuse-lite@npm:^1.0.30001760":
+"caniuse-lite@npm:^1.0.30001759":
   version: 1.0.30001760
   resolution: "caniuse-lite@npm:1.0.30001760"
   checksum: 10c0/cee26dff5c5b15ba073ab230200e43c0d4e88dc3bac0afe0c9ab963df70aaa876c3e513dde42a027f317136bf6e274818d77b073708b74c5807dfad33c029d3c
+  languageName: node
+  linkType: hard
+
+"caniuse-lite@npm:^1.0.30001766":
+  version: 1.0.30001767
+  resolution: "caniuse-lite@npm:1.0.30001767"
+  checksum: 10c0/37067c6d2b26623f81494a1f206adbff2b80baed3318ba430684e428bd7d81be889f39db8ef081501d1db5f7dd5d15972892f173eb59c9f3bb780e0b38e6610a
   languageName: node
   linkType: hard
 
@@ -13105,9 +13112,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"knip@npm:^5.82.1":
-  version: 5.82.1
-  resolution: "knip@npm:5.82.1"
+"knip@npm:^5.83.0":
+  version: 5.83.0
+  resolution: "knip@npm:5.83.0"
   dependencies:
     "@nodelib/fs.walk": "npm:^1.2.3"
     fast-glob: "npm:^3.3.3"
@@ -13127,7 +13134,7 @@ __metadata:
   bin:
     knip: bin/knip.js
     knip-bun: bin/knip-bun.js
-  checksum: 10c0/c3bfe898fe3103bb6a59ee2ba4297f05ea4d2db474571db89ae199ebbd74eafa5061d05b3bc2c75e4ec2322ba7ffee44493c76132d3d8991fae66ba742b9ccb4
+  checksum: 10c0/17087d7fbdf02d77004105cb8b020a6b04742078a8b98f6ff817560dd45663a00b47f4f507cbf8af034b4d5a1f7ef7a6be88bf836428fa482a31ac8f09e92823
   languageName: node
   linkType: hard
 
@@ -13679,9 +13686,9 @@ __metadata:
     "@semantic-release/exec": "npm:^7.1.0"
     "@semantic-release/git": "npm:^10.0.1"
     "@types/node": "npm:^22.19.7"
-    knip: "npm:^5.82.1"
+    knip: "npm:^5.83.0"
     semantic-release: "npm:^25.0.2"
-    turbo: "npm:^2.8.0"
+    turbo: "npm:^2.8.1"
     typescript: "npm:^5.9.3"
   languageName: unknown
   linkType: soft
@@ -19183,58 +19190,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:2.8.0":
-  version: 2.8.0
-  resolution: "turbo-darwin-64@npm:2.8.0"
+"turbo-darwin-64@npm:2.8.1":
+  version: 2.8.1
+  resolution: "turbo-darwin-64@npm:2.8.1"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:2.8.0":
-  version: 2.8.0
-  resolution: "turbo-darwin-arm64@npm:2.8.0"
+"turbo-darwin-arm64@npm:2.8.1":
+  version: 2.8.1
+  resolution: "turbo-darwin-arm64@npm:2.8.1"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:2.8.0":
-  version: 2.8.0
-  resolution: "turbo-linux-64@npm:2.8.0"
+"turbo-linux-64@npm:2.8.1":
+  version: 2.8.1
+  resolution: "turbo-linux-64@npm:2.8.1"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:2.8.0":
-  version: 2.8.0
-  resolution: "turbo-linux-arm64@npm:2.8.0"
+"turbo-linux-arm64@npm:2.8.1":
+  version: 2.8.1
+  resolution: "turbo-linux-arm64@npm:2.8.1"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:2.8.0":
-  version: 2.8.0
-  resolution: "turbo-windows-64@npm:2.8.0"
+"turbo-windows-64@npm:2.8.1":
+  version: 2.8.1
+  resolution: "turbo-windows-64@npm:2.8.1"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:2.8.0":
-  version: 2.8.0
-  resolution: "turbo-windows-arm64@npm:2.8.0"
+"turbo-windows-arm64@npm:2.8.1":
+  version: 2.8.1
+  resolution: "turbo-windows-arm64@npm:2.8.1"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:^2.8.0":
-  version: 2.8.0
-  resolution: "turbo@npm:2.8.0"
+"turbo@npm:^2.8.1":
+  version: 2.8.1
+  resolution: "turbo@npm:2.8.1"
   dependencies:
-    turbo-darwin-64: "npm:2.8.0"
-    turbo-darwin-arm64: "npm:2.8.0"
-    turbo-linux-64: "npm:2.8.0"
-    turbo-linux-arm64: "npm:2.8.0"
-    turbo-windows-64: "npm:2.8.0"
-    turbo-windows-arm64: "npm:2.8.0"
+    turbo-darwin-64: "npm:2.8.1"
+    turbo-darwin-arm64: "npm:2.8.1"
+    turbo-linux-64: "npm:2.8.1"
+    turbo-linux-arm64: "npm:2.8.1"
+    turbo-windows-64: "npm:2.8.1"
+    turbo-windows-arm64: "npm:2.8.1"
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -19250,7 +19257,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: 10c0/a5745d0f1f759f116650710dadb7cbd263354e49be8fc5dc49f14aa996f87a8809de6cefd3e05fa36de81ed58b9a8e09dc8e3302dbbf4990b56b1e233bec70e2
+  checksum: 10c0/3803ea109b27c837f7575c32513e6520d1975bdaf04f56b2cc51eaff22cea26f1802dd7c1b5b25c23a27f206190217e3ddbe134c19b8e2d1900a535270048501
   languageName: node
   linkType: hard
 
