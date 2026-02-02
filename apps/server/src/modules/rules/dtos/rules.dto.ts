@@ -24,4 +24,5 @@ export class RulesDto {
   notifications?: Notification[];
   radarrSettingsId?: number;
   sonarrSettingsId?: number;
+  isFromCommunity?: boolean;
 }

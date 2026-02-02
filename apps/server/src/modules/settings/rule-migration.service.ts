@@ -307,6 +307,61 @@ export class RuleMigrationService {
   }
 
   /**
+   * Migrate in-memory RuleDto objects to match the configured media server type.
+   * This is intended for imports (e.g. community/YAML) and does not touch the DB.
+   *
+   * Behavior:
+   * - Auto-detects source app per rule (Plex/Jellyfin only)
+   * - Rewrites firstVal/lastVal app ID to the target app
+   * - Skips rules that use properties not available on the target server
+   */
+  migrateImportedRuleDtos(
+    rules: RuleDto[],
+    toServer: MediaServerType,
+  ): { rules: RuleDto[]; migratedRules: number; skippedRules: number } {
+    if (!Array.isArray(rules) || rules.length === 0) {
+      return { rules, migratedRules: 0, skippedRules: 0 };
+    }
+
+    const targetApp = this.getApplicationId(toServer);
+
+    let migratedRules = 0;
+    let skippedRules = 0;
+
+    const migrated = rules.map((rule) => {
+      const sourceApp = this.detectRuleSourceApp(rule);
+
+      // Only migrate if rule clearly belongs to Plex/Jellyfin and is not already on target.
+      if (!sourceApp || sourceApp === targetApp) {
+        return rule;
+      }
+
+      const incompatibleProperties = this.getIncompatibleProperties(
+        this.getServerType(sourceApp),
+        toServer,
+      );
+
+      const analysis = this.analyzeRuleDto(
+        rule,
+        sourceApp,
+        incompatibleProperties,
+      );
+      if (!analysis.canMigrate) {
+        skippedRules += 1;
+        this.logger.warn(
+          `Skipping imported rule migration: ${analysis.reason}${analysis.propertyName ? ` (property: ${analysis.propertyName})` : ''}`,
+        );
+        return rule;
+      }
+
+      migratedRules += 1;
+      return this.migrateRuleDto(rule, sourceApp, targetApp);
+    });
+
+    return { rules: migrated, migratedRules, skippedRules };
+  }
+
+  /**
    * Get the Application enum value for a media server type.
    */
   private getApplicationId(serverType: MediaServerType): Application {
@@ -317,6 +372,21 @@ export class RuleMigrationService {
         return Application.JELLYFIN;
       default:
         throw new Error(`Unknown media server type: ${serverType}`);
+    }
+  }
+
+  /**
+   * Get the MediaServerType for an Application enum value.
+   * This is the inverse of getApplicationId().
+   */
+  private getServerType(
+    app: Application.PLEX | Application.JELLYFIN,
+  ): MediaServerType {
+    switch (app) {
+      case Application.PLEX:
+        return MediaServerType.PLEX;
+      case Application.JELLYFIN:
+        return MediaServerType.JELLYFIN;
     }
   }
 
@@ -352,38 +422,80 @@ export class RuleMigrationService {
   ): { canMigrate: boolean; reason: string; propertyName?: string } {
     try {
       const ruleDto: RuleDto = JSON.parse(rule.ruleJson);
-
-      // Check firstVal (required)
-      if (ruleDto.firstVal && ruleDto.firstVal[0] === sourceApp) {
-        const propertyId = ruleDto.firstVal[1];
-        if (incompatibleProperties.has(propertyId)) {
-          return {
-            canMigrate: false,
-            reason: `Uses property ID ${propertyId} which is not available in target server`,
-            propertyName: this.getPropertyName(sourceApp, propertyId),
-          };
-        }
-      }
-
-      // Check lastVal (optional - for comparing two properties)
-      if (ruleDto.lastVal && ruleDto.lastVal[0] === sourceApp) {
-        const propertyId = ruleDto.lastVal[1];
-        if (incompatibleProperties.has(propertyId)) {
-          return {
-            canMigrate: false,
-            reason: `Uses property ID ${propertyId} in comparison which is not available in target server`,
-            propertyName: this.getPropertyName(sourceApp, propertyId),
-          };
-        }
-      }
-
-      return { canMigrate: true, reason: '' };
+      return this.analyzeRuleDto(ruleDto, sourceApp, incompatibleProperties);
     } catch (error) {
       return {
         canMigrate: false,
         reason: `Invalid rule JSON: ${error.message}`,
       };
     }
+  }
+
+  private analyzeRuleDto(
+    ruleDto: RuleDto,
+    sourceApp: Application,
+    incompatibleProperties: Set<number>,
+  ): { canMigrate: boolean; reason: string; propertyName?: string } {
+    // Check firstVal (required)
+    if (ruleDto.firstVal && ruleDto.firstVal[0] === sourceApp) {
+      const propertyId = ruleDto.firstVal[1];
+      if (incompatibleProperties.has(propertyId)) {
+        return {
+          canMigrate: false,
+          reason: `Uses property ID ${propertyId} which is not available in target server`,
+          propertyName: this.getPropertyName(sourceApp, propertyId),
+        };
+      }
+    }
+
+    // Check lastVal (optional)
+    if (ruleDto.lastVal && ruleDto.lastVal[0] === sourceApp) {
+      const propertyId = ruleDto.lastVal[1];
+      if (incompatibleProperties.has(propertyId)) {
+        return {
+          canMigrate: false,
+          reason: `Uses property ID ${propertyId} in comparison which is not available in target server`,
+          propertyName: this.getPropertyName(sourceApp, propertyId),
+        };
+      }
+    }
+
+    return { canMigrate: true, reason: '' };
+  }
+
+  private detectRuleSourceApp(
+    rule: RuleDto,
+  ): Application.PLEX | Application.JELLYFIN | undefined {
+    const firstApp = rule.firstVal?.[0];
+    const lastApp = rule.lastVal?.[0];
+
+    if (firstApp !== Application.PLEX && firstApp !== Application.JELLYFIN) {
+      return undefined;
+    }
+
+    if (lastApp !== undefined && lastApp !== firstApp) {
+      return undefined;
+    }
+
+    return firstApp;
+  }
+
+  private migrateRuleDto(
+    ruleDto: RuleDto,
+    sourceApp: Application,
+    targetApp: Application,
+  ): RuleDto {
+    const migrated: RuleDto = JSON.parse(JSON.stringify(ruleDto));
+
+    if (migrated.firstVal && migrated.firstVal[0] === sourceApp) {
+      migrated.firstVal = [targetApp, migrated.firstVal[1]];
+    }
+
+    if (migrated.lastVal && migrated.lastVal[0] === sourceApp) {
+      migrated.lastVal = [targetApp, migrated.lastVal[1]];
+    }
+
+    return migrated;
   }
 
   /**
@@ -395,18 +507,8 @@ export class RuleMigrationService {
     targetApp: Application,
   ): string {
     const ruleDto: RuleDto = JSON.parse(ruleJson);
-
-    // Migrate firstVal
-    if (ruleDto.firstVal && ruleDto.firstVal[0] === sourceApp) {
-      ruleDto.firstVal = [targetApp, ruleDto.firstVal[1]];
-    }
-
-    // Migrate lastVal (if present and from source app)
-    if (ruleDto.lastVal && ruleDto.lastVal[0] === sourceApp) {
-      ruleDto.lastVal = [targetApp, ruleDto.lastVal[1]];
-    }
-
-    return JSON.stringify(ruleDto);
+    const migrated = this.migrateRuleDto(ruleDto, sourceApp, targetApp);
+    return JSON.stringify(migrated);
   }
 
   /**

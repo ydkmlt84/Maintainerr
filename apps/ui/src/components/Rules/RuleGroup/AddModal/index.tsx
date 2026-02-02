@@ -310,6 +310,7 @@ const AddModal = (props: AddModal) => {
   const [yamlImporterModal, setYamlImporterModal] = useState(false)
   const [configureNotificionModal, setConfigureNotificationModal] =
     useState(false)
+  const [isFromCommunity, setIsFromCommunity] = useState(false)
 
   const [yaml, setYaml] = useState<string | undefined>(undefined)
   const [
@@ -450,7 +451,7 @@ const AddModal = (props: AddModal) => {
       const result: { mediaType: string; rules: IRule[] } = JSON.parse(
         response.result,
       )
-      handleLoadRules(result.rules)
+      handleLoadRulesFromYaml(result.rules)
       toast.success('Successfully imported rules from Yaml.', {
         autoClose: 5000,
       })
@@ -459,10 +460,17 @@ const AddModal = (props: AddModal) => {
     }
   }
 
-  const handleLoadRules = (rules: IRule[]) => {
+  const handleLoadRulesFromCommunity = (rules: IRule[]) => {
     updateRules(rules)
+    setIsFromCommunity(true)
     setRuleCreatorVersion((v) => v + 1)
     setShowCommunityModal(false)
+  }
+
+  const handleLoadRulesFromYaml = (rules: IRule[]) => {
+    updateRules(rules)
+    setIsFromCommunity(false)
+    setRuleCreatorVersion((v) => v + 1)
   }
 
   const cancel = () => {
@@ -506,6 +514,7 @@ const AddModal = (props: AddModal) => {
       rules: data.useRules ? rules : [],
       notifications: configuredNotificationConfigurations,
       ruleHandlerCronSchedule: data.ruleHandlerCronSchedule,
+      isFromCommunity: isFromCommunity,
     }
 
     try {
@@ -1265,7 +1274,7 @@ const AddModal = (props: AddModal) => {
                   <CommunityRuleModal
                     currentRules={rules}
                     type={selectedLibraryType}
-                    onUpdate={handleLoadRules}
+                    onUpdate={handleLoadRulesFromCommunity}
                     onCancel={() => setShowCommunityModal(false)}
                   />
                 )}

@@ -22,6 +22,7 @@ import { Notification } from '../notifications/entities/notification.entities';
 import { RadarrSettings } from '../settings/entities/radarr_settings.entities';
 import { Settings } from '../settings/entities/settings.entities';
 import { SonarrSettings } from '../settings/entities/sonarr_settings.entities';
+import { RuleMigrationService } from '../settings/rule-migration.service';
 import {
   Application,
   Property,
@@ -74,6 +75,7 @@ export class RulesService {
     private readonly connection: DataSource,
     private readonly ruleYamlService: RuleYamlService,
     private readonly ruleComparatorServiceFactory: RuleComparatorServiceFactory,
+    private readonly ruleMigrationService: RuleMigrationService,
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: MaintainerrLogger,
   ) {
@@ -297,6 +299,47 @@ export class RulesService {
 
   async setRules(params: RulesDto) {
     try {
+      // Migrate community rules if needed (auto-detects source media server)
+      if (params.isFromCommunity) {
+        const currentMediaServer =
+          (await this.mediaServerFactory.getConfiguredServerType()) ?? null;
+
+        if (!currentMediaServer) {
+          this.logger.warn(
+            'Community-import migration skipped: no media server type configured',
+          );
+        } else {
+          const ruleDtos = params.rules.map((rule) => {
+            if (rule && typeof (rule as RuleDbDto).ruleJson === 'string') {
+              try {
+                return JSON.parse((rule as RuleDbDto).ruleJson) as RuleDto;
+              } catch (error) {
+                this.logger.warn(
+                  `Unable to parse imported rule JSON for migration: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`,
+                );
+              }
+            }
+
+            return rule as RuleDto;
+          });
+
+          const migration = this.ruleMigrationService.migrateImportedRuleDtos(
+            ruleDtos as RuleDto[],
+            currentMediaServer,
+          );
+
+          if (migration.migratedRules > 0) {
+            this.logger.log(
+              `Migrated ${migration.migratedRules} community-imported rule(s) to ${currentMediaServer}`,
+            );
+          }
+
+          (params.rules as unknown[]) = migration.rules;
+        }
+      }
+
       let state: ReturnStatus = this.createReturnStatus(true, 'Success');
       params.rules.forEach((rule) => {
         if (state.code === 1) {
@@ -315,7 +358,6 @@ export class RulesService {
         return state;
       }
 
-      // create the collection
       const mediaServer = await this.getMediaServer();
       const lib = (await mediaServer.getLibraries()).find(
         (el) => el.id === params.libraryId,
@@ -353,7 +395,6 @@ export class RulesService {
         return undefined;
       }
 
-      // create group
       const groupId = await this.createOrUpdateGroup(
         params.name,
         params.description,
@@ -366,7 +407,7 @@ export class RulesService {
         params.notifications,
         params.ruleHandlerCronSchedule,
       );
-      // create rules
+
       if (params.useRules) {
         for (const rule of params.rules) {
           const ruleJson = JSON.stringify(rule);
