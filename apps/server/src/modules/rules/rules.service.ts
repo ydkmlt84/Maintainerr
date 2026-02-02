@@ -299,47 +299,6 @@ export class RulesService {
 
   async setRules(params: RulesDto) {
     try {
-      // Migrate community rules if needed (auto-detects source media server)
-      if (params.isFromCommunity) {
-        const currentMediaServer =
-          (await this.mediaServerFactory.getConfiguredServerType()) ?? null;
-
-        if (!currentMediaServer) {
-          this.logger.warn(
-            'Community-import migration skipped: no media server type configured',
-          );
-        } else {
-          const ruleDtos = params.rules.map((rule) => {
-            if (rule && typeof (rule as RuleDbDto).ruleJson === 'string') {
-              try {
-                return JSON.parse((rule as RuleDbDto).ruleJson) as RuleDto;
-              } catch (error) {
-                this.logger.warn(
-                  `Unable to parse imported rule JSON for migration: ${
-                    error instanceof Error ? error.message : String(error)
-                  }`,
-                );
-              }
-            }
-
-            return rule as RuleDto;
-          });
-
-          const migration = this.ruleMigrationService.migrateImportedRuleDtos(
-            ruleDtos as RuleDto[],
-            currentMediaServer,
-          );
-
-          if (migration.migratedRules > 0) {
-            this.logger.log(
-              `Migrated ${migration.migratedRules} community-imported rule(s) to ${currentMediaServer}`,
-            );
-          }
-
-          (params.rules as unknown[]) = migration.rules;
-        }
-      }
-
       let state: ReturnStatus = this.createReturnStatus(true, 'Success');
       params.rules.forEach((rule) => {
         if (state.code === 1) {
@@ -1230,8 +1189,56 @@ export class RulesService {
     return this.ruleYamlService.encode(rules, mediaType);
   }
 
-  public decodeFromYaml(yaml: string, mediaType: MediaItemType): ReturnStatus {
-    return this.ruleYamlService.decode(yaml, mediaType);
+  public async decodeFromYaml(
+    yaml: string,
+    mediaType: MediaItemType,
+  ): Promise<ReturnStatus> {
+    const result = this.ruleYamlService.decode(yaml, mediaType);
+
+    // Migrate decoded rules to the configured media server
+    if (result.code === 1 && result.result) {
+      const parsed = JSON.parse(result.result);
+      const migrationResult = await this.migrateRules(parsed.rules);
+      if (migrationResult.code === 1 && migrationResult.result) {
+        parsed.rules = JSON.parse(migrationResult.result);
+        result.result = JSON.stringify(parsed);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Migrate imported rules to match the configured media server type.
+   * Used for community and YAML rule imports to convert Plex ↔ Jellyfin rules.
+   */
+  public async migrateRules(rules: RuleDto[]): Promise<ReturnStatus> {
+    const serverType = await this.mediaServerFactory.getConfiguredServerType();
+
+    if (!serverType) {
+      return {
+        code: 1,
+        result: JSON.stringify(rules),
+        message: 'No migration needed - no media server configured',
+      };
+    }
+
+    const migration = this.ruleMigrationService.migrateImportedRuleDtos(
+      rules,
+      serverType,
+    );
+
+    if (migration.migratedRules > 0) {
+      this.logger.log(
+        `Migrated ${migration.migratedRules} rule(s) to ${serverType}`,
+      );
+    }
+
+    return {
+      code: 1,
+      result: JSON.stringify(migration.rules),
+      message: `Migrated ${migration.migratedRules} rules, skipped ${migration.skippedRules}`,
+    };
   }
 
   public async testRuleGroupWithData(

@@ -310,7 +310,6 @@ const AddModal = (props: AddModal) => {
   const [yamlImporterModal, setYamlImporterModal] = useState(false)
   const [configureNotificionModal, setConfigureNotificationModal] =
     useState(false)
-  const [isFromCommunity, setIsFromCommunity] = useState(false)
 
   const [yaml, setYaml] = useState<string | undefined>(undefined)
   const [
@@ -460,16 +459,26 @@ const AddModal = (props: AddModal) => {
     }
   }
 
-  const handleLoadRulesFromCommunity = (rules: IRule[]) => {
-    updateRules(rules)
-    setIsFromCommunity(true)
+  const handleLoadRulesFromCommunity = async (rules: IRule[]) => {
+    // Migrate rules to the configured media server before displaying
+    const response = await PostApiHandler('/rules/migrate', {
+      rules: JSON.stringify(rules),
+    })
+
+    if (response && response.code === 1) {
+      const migratedRules = JSON.parse(response.result) as IRule[]
+      updateRules(migratedRules)
+    } else {
+      // If migration fails, use original rules
+      updateRules(rules)
+    }
     setRuleCreatorVersion((v) => v + 1)
     setShowCommunityModal(false)
   }
 
   const handleLoadRulesFromYaml = (rules: IRule[]) => {
+    // YAML decode already migrates rules on the backend
     updateRules(rules)
-    setIsFromCommunity(false)
     setRuleCreatorVersion((v) => v + 1)
   }
 
@@ -514,7 +523,6 @@ const AddModal = (props: AddModal) => {
       rules: data.useRules ? rules : [],
       notifications: configuredNotificationConfigurations,
       ruleHandlerCronSchedule: data.ruleHandlerCronSchedule,
-      isFromCommunity: isFromCommunity,
     }
 
     try {
