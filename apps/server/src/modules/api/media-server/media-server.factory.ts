@@ -42,10 +42,7 @@ export class MediaServerFactory {
       await this.getService();
     } catch (err) {
       const message = err instanceof Error ? err.message : '';
-      if (
-        message === 'No media server type configured' ||
-        message === 'Settings not available'
-      ) {
+      if (message === 'No media server type configured') {
         this.logger.log(
           'No media server configured yet - skipping initialization',
         );
