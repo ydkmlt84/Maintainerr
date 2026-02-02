@@ -63,14 +63,7 @@ export class MediaServerFactory {
    * This method reads from settings on each call to support runtime configuration changes.
    */
   async getService(): Promise<IMediaServerService> {
-    const settings = await this.settingsService.getSettings();
-
-    if (!isSettings(settings)) {
-      throw new Error('Settings not available');
-    }
-
-    const serverType = settings.media_server_type as MediaServerType;
-
+    const serverType = await this.getConfiguredServerType();
     if (!serverType) {
       throw new Error('No media server type configured');
     }
@@ -112,6 +105,43 @@ export class MediaServerFactory {
       return null;
     }
 
-    return (settings.media_server_type as MediaServerType) || null;
+    const configuredType = settings.media_server_type as MediaServerType | null;
+    const jellyfinConfigured = Boolean(
+      settings.jellyfin_url && settings.jellyfin_api_key,
+    );
+    const plexConfigured = Boolean(
+      settings.plex_hostname &&
+      settings.plex_name &&
+      settings.plex_port &&
+      settings.plex_auth_token,
+    );
+    const inferredType = this.resolveServerType(
+      plexConfigured,
+      jellyfinConfigured,
+    );
+
+    if (!configuredType) {
+      return inferredType;
+    }
+
+    return configuredType === inferredType || inferredType === null
+      ? configuredType
+      : inferredType;
+  }
+
+  private resolveServerType(
+    plexConfigured: boolean,
+    jellyfinConfigured: boolean,
+  ): MediaServerType | null {
+    if (jellyfinConfigured && !plexConfigured) {
+      return MediaServerType.JELLYFIN;
+    }
+
+    if (plexConfigured && !jellyfinConfigured) {
+      return MediaServerType.PLEX;
+    }
+
+    // Both configured or neither configured - can't infer
+    return null;
   }
 }

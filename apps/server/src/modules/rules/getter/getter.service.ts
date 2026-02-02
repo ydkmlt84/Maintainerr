@@ -1,9 +1,11 @@
 import {
   MediaItem,
   MediaItemType,
+  MediaServerType,
   RuleValueType,
 } from '@maintainerr/contracts';
 import { Injectable } from '@nestjs/common';
+import { MediaServerFactory } from '../../api/media-server/media-server.factory';
 import { Application } from '../constants/rules.constants';
 import { RulesDto } from '../dtos/rules.dto';
 import { JellyfinGetterService } from './jellyfin-getter.service';
@@ -24,6 +26,7 @@ export class ValueGetterService {
     private readonly tautulliGetter: TautulliGetterService,
     private readonly jellyseerrGetter: JellyseerrGetterService,
     private readonly jellyfinGetter: JellyfinGetterService,
+    private readonly mediaServerFactory: MediaServerFactory,
   ) {}
 
   async get(
@@ -33,16 +36,21 @@ export class ValueGetterService {
     dataType?: MediaItemType,
   ): Promise<RuleValueType> {
     switch (val1) {
-      case Application.PLEX: {
-        return await this.plexGetter.get(val2, libItem, dataType, ruleGroup);
-      }
+      // Route both PLEX and JELLYFIN to the configured media server's getter
+      // This handles community rules that may reference the wrong server type
+      case Application.PLEX:
       case Application.JELLYFIN: {
-        return await this.jellyfinGetter.get(
-          val2,
-          libItem,
-          dataType,
-          ruleGroup,
-        );
+        const serverType =
+          await this.mediaServerFactory.getConfiguredServerType();
+
+        const getter =
+          serverType === MediaServerType.JELLYFIN
+            ? this.jellyfinGetter
+            : serverType === MediaServerType.PLEX
+              ? this.plexGetter
+              : null;
+
+        return getter?.get(val2, libItem, dataType, ruleGroup) ?? null;
       }
       case Application.RADARR: {
         return await this.radarrGetter.get(val2, libItem, ruleGroup);
