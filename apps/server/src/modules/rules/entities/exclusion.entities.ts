@@ -6,7 +6,7 @@ export class Exclusion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   mediaServerId: string;
 
   @Column({ nullable: true })
