@@ -382,22 +382,7 @@ export class JellyfinAdapterService implements IMediaServerService {
         limit: options?.limit || JELLYFIN_BATCH_SIZE.DEFAULT_PAGE_SIZE,
       };
     } catch (error) {
-      // Check if this looks like a migration issue:
-      // - Empty/null library ID
-      // - Plex-style numeric ID (Jellyfin uses 32-char hex UUIDs)
-      const isMigrationIssue =
-        !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId); // Plex uses numeric IDs like "1", "15"
-
-      if (isMigrationIssue) {
-        this.logger.warn(
-          `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
-        );
-      } else {
-        this.logger.error(
-          `Failed to get library contents for ${libraryId}`,
-          error,
-        );
-      }
+      this.logLibraryError(libraryId, 'get library contents', error);
       return { items: [], totalSize: 0, offset: 0, limit: 50 };
     }
   }
@@ -422,19 +407,7 @@ export class JellyfinAdapterService implements IMediaServerService {
 
       return response.data.TotalRecordCount || 0;
     } catch (error) {
-      const isMigrationIssue =
-        !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId);
-
-      if (isMigrationIssue) {
-        this.logger.warn(
-          `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
-        );
-      } else {
-        this.logger.error(
-          `Failed to get library count for ${libraryId}`,
-          error,
-        );
-      }
+      this.logLibraryError(libraryId, 'get library count', error);
       return 0;
     }
   }
@@ -467,16 +440,7 @@ export class JellyfinAdapterService implements IMediaServerService {
 
       return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
     } catch (error) {
-      const isMigrationIssue =
-        !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId);
-
-      if (isMigrationIssue) {
-        this.logger.warn(
-          `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
-        );
-      } else {
-        this.logger.error(`Failed to search library ${libraryId}`, error);
-      }
+      this.logLibraryError(libraryId, 'search library', error);
       return [];
     }
   }
@@ -593,19 +557,7 @@ export class JellyfinAdapterService implements IMediaServerService {
 
       return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
     } catch (error) {
-      const isMigrationIssue =
-        !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId);
-
-      if (isMigrationIssue) {
-        this.logger.warn(
-          `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
-        );
-      } else {
-        this.logger.error(
-          `Failed to get recently added for ${libraryId}`,
-          error,
-        );
-      }
+      this.logLibraryError(libraryId, 'get recently added', error);
       return [];
     }
   }
@@ -1284,6 +1236,31 @@ export class JellyfinAdapterService implements IMediaServerService {
     } else {
       // Clear all Jellyfin cache
       this.cache.data.flushAll();
+    }
+  }
+
+  /**
+   * Check if a library ID looks like it's from a different media server
+   * (e.g. Plex numeric IDs) or is empty/invalid.
+   */
+  private isLikelyMigrationId(libraryId: string): boolean {
+    return !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId);
+  }
+
+  /**
+   * Log a library access error, distinguishing migration issues from real failures.
+   */
+  private logLibraryError(
+    libraryId: string,
+    operation: string,
+    error: unknown,
+  ): void {
+    if (this.isLikelyMigrationId(libraryId)) {
+      this.logger.warn(
+        `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
+      );
+    } else {
+      this.logger.error(`Failed to ${operation} for ${libraryId}`, error);
     }
   }
 }

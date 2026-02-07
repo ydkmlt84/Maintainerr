@@ -88,6 +88,7 @@ export class PlexAdapterService implements IMediaServerService {
     options?: LibraryQueryOptions,
   ): Promise<PagedResult<MediaItem>> {
     // Check for migration issue: Jellyfin uses 32-char hex UUIDs, Plex uses numeric IDs
+    // TODO: Extract migration ID detection to shared utility (see JellyfinAdapterService.isLikelyMigrationId)
     const isJellyfinId = /^[a-f0-9]{32}$/i.test(libraryId);
     if (!libraryId || libraryId.trim() === '' || isJellyfinId) {
       this.logger.warn(
