@@ -1,4 +1,4 @@
-import { CanActivate, Injectable } from '@nestjs/common';
+import { CanActivate, Injectable, Logger } from '@nestjs/common';
 import { SettingsService } from '../../../settings/settings.service';
 
 /**
@@ -11,9 +11,16 @@ import { SettingsService } from '../../../settings/settings.service';
  */
 @Injectable()
 export class MediaServerSetupGuard implements CanActivate {
+  private readonly logger = new Logger(MediaServerSetupGuard.name);
+
   constructor(private readonly settingsService: SettingsService) {}
 
   async canActivate(): Promise<boolean> {
-    return await this.settingsService.testSetup();
+    try {
+      return await this.settingsService.testSetup();
+    } catch (error) {
+      this.logger.error('Media server setup check failed', error);
+      return false;
+    }
   }
 }
