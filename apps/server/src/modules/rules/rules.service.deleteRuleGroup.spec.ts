@@ -138,9 +138,10 @@ describe('RulesService.deleteRuleGroup', () => {
     });
 
     it('still performs exclusion and ruleGroup deletes when group is null', async () => {
-      const { service, exclusionRepo, ruleGroupRepository } = createRulesService({
-        group: null,
-      });
+      const { service, exclusionRepo, ruleGroupRepository } =
+        createRulesService({
+          group: null,
+        });
 
       await service.deleteRuleGroup(999);
 
@@ -193,9 +194,10 @@ describe('RulesService.deleteRuleGroup', () => {
 
     it('cleans up exclusions and ruleGroup rows', async () => {
       const group = { id: 42, collectionId: null };
-      const { service, exclusionRepo, ruleGroupRepository } = createRulesService({
-        group,
-      });
+      const { service, exclusionRepo, ruleGroupRepository } =
+        createRulesService({
+          group,
+        });
 
       await service.deleteRuleGroup(42);
 
