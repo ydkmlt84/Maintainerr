@@ -21,6 +21,17 @@ import {
 } from '@maintainerr/contracts';
 import { JELLYFIN_TICKS_PER_MS } from './jellyfin.constants';
 
+/**
+ * Extended BaseItemDto that includes fields returned by the Jellyfin API
+ * but not present in the SDK's generated types.
+ *
+ * DateLastSaved exists on Jellyfin's BaseItem server model and is serialized
+ * in API responses, but is missing from the SDK's BaseItemDto definition.
+ */
+interface JellyfinItemDto extends BaseItemDto {
+  DateLastSaved?: string;
+}
+
 export class JellyfinMapper {
   static toMediaItemType(kind?: BaseItemKind | string): MediaItemType {
     switch (kind) {
@@ -126,11 +137,7 @@ export class JellyfinMapper {
     // For episodes, Jellyfin provides SeasonId for the parent season.
     // ParentId may refer to the series or library depending on context.
     if (itemType === 'episode') {
-      return (
-        (item as unknown as { SeasonId?: string }).SeasonId ||
-        item.ParentId ||
-        undefined
-      );
+      return item.SeasonId || item.ParentId || undefined;
     }
 
     // For all other types, use the standard ParentId
@@ -176,8 +183,8 @@ export class JellyfinMapper {
       grandparentGuid: grandparentId,
       type: JellyfinMapper.toMediaItemType(item.Type),
       addedAt: item.DateCreated ? new Date(item.DateCreated) : new Date(),
-      updatedAt: (item as { DateLastSaved?: string }).DateLastSaved
-        ? new Date((item as { DateLastSaved?: string }).DateLastSaved!)
+      updatedAt: (item as JellyfinItemDto).DateLastSaved
+        ? new Date((item as JellyfinItemDto).DateLastSaved!)
         : undefined,
       providerIds: JellyfinMapper.extractProviderIds(item.ProviderIds),
       mediaSources: JellyfinMapper.toMediaSources(item.MediaSources),
@@ -285,8 +292,8 @@ export class JellyfinMapper {
         : undefined,
       childCount: item.ChildCount || 0,
       addedAt: item.DateCreated ? new Date(item.DateCreated) : undefined,
-      updatedAt: (item as { DateLastSaved?: string }).DateLastSaved
-        ? new Date((item as { DateLastSaved?: string }).DateLastSaved!)
+      updatedAt: (item as JellyfinItemDto).DateLastSaved
+        ? new Date((item as JellyfinItemDto).DateLastSaved!)
         : undefined,
       smart: false, // Jellyfin doesn't have smart collections
       libraryId: item.ParentId || undefined,
@@ -307,8 +314,8 @@ export class JellyfinMapper {
         ? Math.floor(item.RunTimeTicks / JELLYFIN_TICKS_PER_MS)
         : undefined,
       addedAt: item.DateCreated ? new Date(item.DateCreated) : undefined,
-      updatedAt: (item as { DateLastSaved?: string }).DateLastSaved
-        ? new Date((item as { DateLastSaved?: string }).DateLastSaved!)
+      updatedAt: (item as JellyfinItemDto).DateLastSaved
+        ? new Date((item as JellyfinItemDto).DateLastSaved!)
         : undefined,
     };
   }
