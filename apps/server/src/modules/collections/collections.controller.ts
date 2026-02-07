@@ -165,10 +165,13 @@ export class CollectionsController {
   ) {
     const size = amount ?? 25;
     const offset = (page - 1) * size;
-    return this.collectionService.getCollectionMediaWithServerDataAndPaging(id, {
-      offset: offset,
-      size: size,
-    });
+    return this.collectionService.getCollectionMediaWithServerDataAndPaging(
+      id,
+      {
+        offset: offset,
+        size: size,
+      },
+    );
   }
 
   @Get('/exclusions/:id/content/:page')
