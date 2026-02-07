@@ -125,7 +125,7 @@ export class CollectionsService {
     return await this.CollectionMediaRepo.count();
   }
 
-  public async getCollectionMediaWitPlexDataAndhPaging(
+  public async getCollectionMediaWithServerDataAndPaging(
     id: number,
     { offset = 0, size = 25 }: { offset?: number; size?: number } = {},
   ): Promise<{ totalSize: number; items: CollectionMediaWithMetadata[] }> {
@@ -187,7 +187,7 @@ export class CollectionsService {
     }
   }
 
-  public async getCollectionExclusionsWithPlexDataAndhPaging(
+  public async getCollectionExclusionsWithServerDataAndPaging(
     id: number,
     { offset = 0, size = 25 }: { offset?: number; size?: number } = {},
   ): Promise<{ totalSize: number; items: Exclusion[] }> {

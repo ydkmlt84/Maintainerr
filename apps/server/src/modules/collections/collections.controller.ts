@@ -165,7 +165,7 @@ export class CollectionsController {
   ) {
     const size = amount ?? 25;
     const offset = (page - 1) * size;
-    return this.collectionService.getCollectionMediaWitPlexDataAndhPaging(id, {
+    return this.collectionService.getCollectionMediaWithServerDataAndPaging(id, {
       offset: offset,
       size: size,
     });
@@ -179,7 +179,7 @@ export class CollectionsController {
   ) {
     const size = amount ?? 25;
     const offset = (page - 1) * size;
-    return this.collectionService.getCollectionExclusionsWithPlexDataAndhPaging(
+    return this.collectionService.getCollectionExclusionsWithServerDataAndPaging(
       id,
       {
         offset: offset,
