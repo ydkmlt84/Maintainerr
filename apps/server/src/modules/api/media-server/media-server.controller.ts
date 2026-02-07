@@ -69,7 +69,7 @@ export class MediaServerController {
     @Query('type') type?: MediaItemType,
   ): Promise<PagedResult<MediaItem>> {
     const mediaServer = await this.mediaServerFactory.getService();
-    const pageNum = page ?? 1;
+    const pageNum = Math.max(page ?? 1, 1);
     const size = limit ?? 50;
     const offset = (pageNum - 1) * size;
 
