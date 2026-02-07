@@ -121,9 +121,15 @@ export class MediaServerFactory {
       return inferredType;
     }
 
-    return configuredType === inferredType || inferredType === null
-      ? configuredType
-      : inferredType;
+    // Always respect the user's explicitly configured server type.
+    // inferredType is only used as a fallback when nothing is configured.
+    if (inferredType && configuredType !== inferredType) {
+      this.logger.warn(
+        `Configured server type '${configuredType}' differs from inferred type '${inferredType}'. Using configured type.`,
+      );
+    }
+
+    return configuredType;
   }
 
   private resolveServerType(
