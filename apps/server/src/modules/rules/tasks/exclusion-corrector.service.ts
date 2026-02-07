@@ -1,6 +1,5 @@
 import { MediaItemType } from '@maintainerr/contracts';
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Timeout } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MediaServerFactory } from '../../api/media-server/media-server.factory';
@@ -39,25 +38,22 @@ export class ExclusionTypeCorrectorService implements OnModuleInit {
     logger.setContext(ExclusionTypeCorrectorService.name);
   }
 
-  onModuleInit() {
-    // nothing
-  }
-
-  @Timeout(5000)
-  private async execute() {
+  async onModuleInit() {
     try {
-      // Convert integer-as-string types to MediaItemType strings
+      // Convert integer-as-string types to MediaItemType strings.
+      // This MUST complete before the app accepts requests to prevent
+      // the collection-clearing race condition (Bug #2358).
       await this.convertLegacyIntegerTypes();
 
-      // Check if any media server is configured (Plex or Jellyfin)
+      // Backfill null exclusion types by fetching metadata from the media server.
+      // Only runs work when there are exclusions with null types (typically once
+      // after migration). Subsequent startups return immediately.
       const isSetup = await this.settings.testSetup();
-
       if (isSetup) {
-        // remove media exclusions that are no longer available
         await this.correctExclusionTypes();
       }
     } catch (e) {
-      this.logger.warn(`Exclusion type corrections failed : ${e.message}`);
+      this.logger.warn(`Exclusion type corrections failed: ${e.message}`);
     }
   }
 
@@ -136,6 +132,14 @@ export class ExclusionTypeCorrectorService implements OnModuleInit {
       .where('type is null')
       .getMany();
 
+    if (exclusionsWithoutType.length === 0) {
+      return;
+    }
+
+    this.logger.log(
+      `Backfilling type for ${exclusionsWithoutType.length} exclusion(s) from media server metadata — this may take a moment on first run`,
+    );
+
     const mediaServer = await this.mediaServerFactory.getService();
 
     // correct the type
@@ -152,5 +156,7 @@ export class ExclusionTypeCorrectorService implements OnModuleInit {
 
     // save edited data
     await this.exclusionRepo.save(exclusionsWithoutType);
+
+    this.logger.log('Exclusion type backfill complete');
   }
 }

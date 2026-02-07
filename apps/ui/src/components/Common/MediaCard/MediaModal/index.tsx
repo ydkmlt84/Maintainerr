@@ -83,7 +83,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
       })
       // Only fetch backdrop if tmdbid is available
       if (tmdbid) {
-        GetApiHandler(`/moviedb/backdrop/${mediaType}/${tmdbid}`)
+        const backdropType = ['season', 'episode'].includes(mediaType)
+          ? 'show'
+          : mediaType
+        GetApiHandler(`/moviedb/backdrop/${backdropType}/${tmdbid}`)
           .then((resp) => setBackdrop(resp))
           .catch((error) => {
             console.error(
@@ -292,7 +295,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             <div className="flex items-center justify-between border-b pb-4">
               <div>
                 <h2 className="text-xl font-semibold text-gray-100">
-                  {title} ({year})
+                  {title}{year ? ` (${year})` : ''}
                 </h2>
               </div>
             </div>

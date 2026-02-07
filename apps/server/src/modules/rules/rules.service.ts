@@ -278,14 +278,17 @@ export class RulesService {
       await this.exclusionRepo.delete({ ruleGroupId: ruleGroupId });
       await this.ruleGroupRepository.delete(ruleGroupId);
 
-      this.eventEmitter.emit(MaintainerrEvent.RuleGroup_Deleted, {
-        ruleGroup: group,
-      });
+      if (group) {
+        this.eventEmitter.emit(MaintainerrEvent.RuleGroup_Deleted, {
+          ruleGroup: group,
+        });
 
-      if (group.collectionId) {
-        // DB cascade doesn't work.. So do it manually
-        await this.collectionService.deleteCollection(group.collectionId);
+        if (group.collectionId) {
+          // DB cascade doesn't work.. So do it manually
+          await this.collectionService.deleteCollection(group.collectionId);
+        }
       }
+
       this.logger.log(
         `Removed rulegroup with id ${ruleGroupId} from the database`,
       );
@@ -411,6 +414,10 @@ export class RulesService {
         const group = await this.ruleGroupRepository.findOne({
           where: { id: params.id },
         });
+
+        if (!group) {
+          return this.createReturnStatus(false, 'Rule group not found');
+        }
 
         const dbCollection = group.collectionId
           ? await this.collectionService.getCollection(group.collectionId)

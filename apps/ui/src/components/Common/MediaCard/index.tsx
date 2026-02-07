@@ -62,7 +62,10 @@ const MediaCard: React.FC<IMediaCard> = ({
 
   useEffect(() => {
     if (tmdbid) {
-      GetApiHandler(`/moviedb/image/${mediaType}/${tmdbid}`).then((resp) =>
+      const imageType = ['season', 'episode'].includes(mediaType)
+        ? 'show'
+        : mediaType
+      GetApiHandler(`/moviedb/image/${imageType}/${tmdbid}`).then((resp) =>
         setImage(resp),
       )
     }

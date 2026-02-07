@@ -30,12 +30,20 @@ interface IOverviewContent {
 function extractTmdbId(
   item: MediaItem | MediaItemWithParent,
 ): string | undefined {
+  const parentItem = (item as MediaItemWithParent).parentItem
+
+  // For seasons/episodes, always use the parent show's TMDB ID
+  if (
+    (item.type === 'season' || item.type === 'episode') &&
+    parentItem?.providerIds?.tmdb?.[0]
+  ) {
+    return parentItem.providerIds.tmdb[0]
+  }
+
   if (item.providerIds?.tmdb?.[0]) {
     return item.providerIds.tmdb[0]
   }
 
-  // For episodes/seasons, check parent item's providerIds
-  const parentItem = (item as MediaItemWithParent).parentItem
   if (parentItem?.providerIds?.tmdb?.[0]) {
     return parentItem.providerIds.tmdb[0]
   }
