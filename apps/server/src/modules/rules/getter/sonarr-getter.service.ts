@@ -61,8 +61,8 @@ export class SonarrGetterService {
 
       // ARR diskspace check doesn't require a show lookup - handle early
       if (
-        prop?.name === 'diskspace_remaining_mb' ||
-        prop?.name === 'diskspace_total_mb'
+        prop?.name === 'diskspace_remaining_gb' ||
+        prop?.name === 'diskspace_total_gb'
       ) {
         const sonarrApiClient = await this.servarrService.getSonarrApiClient(
           ruleGroup.collection.sonarrSettingsId,
@@ -77,9 +77,10 @@ export class SonarrGetterService {
           (acc, d) => acc + (d.totalSpace ?? 0),
           0,
         );
-        return prop.name === 'diskspace_remaining_mb'
-          ? Math.round(totalFree / 1048576)
-          : Math.round(totalSpace / 1048576);
+        // 1 GiB = 1073741824 bytes (1024^3)
+        return prop.name === 'diskspace_remaining_gb'
+          ? parseFloat((totalFree / 1073741824).toFixed(1))
+          : parseFloat((totalSpace / 1073741824).toFixed(1));
       }
 
       let origLibItem: MediaItem = undefined;
