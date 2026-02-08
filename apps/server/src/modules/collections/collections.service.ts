@@ -463,8 +463,19 @@ export class CollectionsService {
           : null;
 
       if (dbCollection?.mediaServerId) {
-        // is the type the same & is it an automatic collection, then update
-        if (
+        // Verify the media server collection still exists before updating
+        const serverColl = await mediaServer.getCollection(
+          dbCollection.mediaServerId,
+        );
+
+        if (!serverColl) {
+          // Collection was deleted from media server - clear the stale link
+          this.logger.log(
+            `Linked media server collection ${dbCollection.mediaServerId} no longer exists, clearing link`,
+          );
+          collection.mediaServerId = null;
+        } else if (
+          // is the type the same & is it an automatic collection, then update
           collection.type === dbCollection.type &&
           !dbCollection.manualCollection &&
           !collection.manualCollection &&
