@@ -149,6 +149,7 @@ export class CollectionsService {
             const mediaItem = await mediaServer.getMetadata(el.mediaServerId);
 
             if (!mediaItem) {
+              await this.CollectionMediaRepo.delete(el.id);
               return { ...el, mediaData: undefined };
             }
 
