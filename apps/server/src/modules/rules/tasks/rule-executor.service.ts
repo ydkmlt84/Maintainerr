@@ -176,7 +176,7 @@ export class RuleExecutorService {
           this.logger.log(`Execution of rules for '${ruleGroup.name}' done.`);
         }
 
-        await this.syncManualPlexMediaToCollectionDB(
+        await this.syncManualMediaServerToCollectionDB(
           await this.rulesService.getRuleGroupById(ruleGroup.id), // refetch to get latest changes
         );
       } else {
@@ -207,7 +207,7 @@ export class RuleExecutorService {
     );
   }
 
-  private async syncManualPlexMediaToCollectionDB(rulegroup: RuleGroup) {
+  private async syncManualMediaServerToCollectionDB(rulegroup: RuleGroup) {
     if (rulegroup && rulegroup.collectionId) {
       let collection = await this.collectionService.getCollection(
         rulegroup.collectionId,
@@ -228,18 +228,42 @@ export class RuleExecutorService {
 
         // Handle manually added
         if (children && children.length > 0) {
+          // Fetch exclusions to avoid re-adding excluded items as manual
+          const exclusions = await this.rulesService.getExclusions(
+            rulegroup.id,
+          );
+          const excludedMediaServerIds = new Set<string>(
+            exclusions.map((e) => e.mediaServerId),
+          );
+          const excludedParentIds = new Set<string>(
+            exclusions.filter((e) => e.parent).map((e) => String(e.parent)),
+          );
+
           for (const child of children) {
-            if (child && child.id)
+            if (child && child.id) {
+              const childId = child.id.toString();
+
+              // Skip items that are excluded
+              if (
+                excludedMediaServerIds.has(childId) ||
+                (child.parentId &&
+                  excludedParentIds.has(child.parentId.toString())) ||
+                (child.grandparentId &&
+                  excludedParentIds.has(child.grandparentId.toString()))
+              ) {
+                continue;
+              }
+
               if (
                 !collectionMedia.find((e) => {
-                  return e.mediaServerId === child.id.toString();
+                  return e.mediaServerId === childId;
                 })
               ) {
                 await this.collectionService.addToCollection(
                   collection.id,
                   [
                     {
-                      mediaServerId: child.id.toString(),
+                      mediaServerId: childId,
                       reason: {
                         type: 'media_added_manually',
                       },
@@ -248,6 +272,7 @@ export class RuleExecutorService {
                   true,
                 );
               }
+            }
           }
         }
 
