@@ -516,7 +516,7 @@ const AddModal = (props: AddModal) => {
             : data.deleteAfterDays,
         manualCollection: data.manualCollection,
         manualCollectionName:
-          data.manualCollectionName || `My custom ${collectionTerm}`,
+          data.manualCollectionName ?? `My custom ${collectionTerm}`,
         keepLogsForMonths: data.keepLogsForMonths,
         sortTitle: data.sortTitle?.trim() ? data.sortTitle : undefined,
       },
