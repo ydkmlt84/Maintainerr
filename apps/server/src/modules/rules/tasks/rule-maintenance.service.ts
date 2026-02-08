@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MediaServerFactory } from '../../api/media-server/media-server.factory';
 import { Collection } from '../../collections/entities/collection.entities';
+import { CollectionsService } from '../../collections/collections.service';
 import { MaintainerrLogger } from '../../logging/logs.service';
 import { SettingsService } from '../../settings/settings.service';
 import { TaskBase } from '../../tasks/task.base';
@@ -22,6 +23,7 @@ export class RuleMaintenanceService extends TaskBase {
     @InjectRepository(Collection)
     private readonly collectionRepo: Repository<Collection>,
     private readonly mediaServerFactory: MediaServerFactory,
+    private readonly collectionsService: CollectionsService,
   ) {
     logger.setContext(RuleMaintenanceService.name);
     super(taskService, logger);
@@ -35,6 +37,8 @@ export class RuleMaintenanceService extends TaskBase {
       if (appStatus) {
         // remove media exclusions that are no longer available
         await this.removeLeftoverExclusions();
+        // remove collection media entries for items deleted from media server
+        await this.collectionsService.removeStaleCollectionMedia();
         await this.removeCollectionsWithoutRule();
         this.logger.log('Maintenance done');
       } else {

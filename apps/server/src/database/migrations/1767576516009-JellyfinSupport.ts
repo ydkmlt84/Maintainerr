@@ -401,11 +401,11 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
             SELECT "id",
                 "name",
                 "description",
-                "libraryId",
+                CAST("libraryId" AS TEXT),
                 "isActive",
                 "collectionId",
                 "useRules",
-                "dataType",
+                CAST("dataType" AS TEXT),
                 "ruleHandlerCronSchedule"
             FROM "rule_group"
         `);
@@ -443,7 +443,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 )
             SELECT "id",
                 "collectionId",
-                "mediaServerId",
+                CAST("mediaServerId" AS TEXT),
                 "tmdbId",
                 "addDate",
                 "image_path",
@@ -518,14 +518,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                     "mediaServerType"
                 )
             SELECT "id",
-                "libraryId",
+                CAST("libraryId" AS TEXT),
                 "title",
                 "description",
                 "isActive",
                 "arrAction",
                 "visibleOnHome",
                 "deleteAfterDays",
-                "type",
+                CAST("type" AS TEXT),
                 "manualCollection",
                 "manualCollectionName",
                 "listExclusions",
@@ -658,7 +658,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
             SELECT "id",
                 "ruleGroupId",
                 "parent",
-                "type",
+                CAST("type" AS TEXT),
                 "mediaServerId"
             FROM "exclusion"
         `);

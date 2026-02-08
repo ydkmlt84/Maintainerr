@@ -187,6 +187,31 @@ export class CollectionsService {
     }
   }
 
+  /**
+   * Removes collection_media entries whose mediaServerId no longer exists
+   * on the media server. Only call after verifying the server is reachable
+   * (e.g., after testConnections() in the maintenance task).
+   */
+  async removeStaleCollectionMedia(): Promise<void> {
+    const allMedia = await this.CollectionMediaRepo.find();
+    const mediaServer = await this.getMediaServer();
+    let removedCount = 0;
+
+    for (const entry of allMedia) {
+      const metadata = await mediaServer.getMetadata(entry.mediaServerId);
+      if (!metadata?.id) {
+        await this.CollectionMediaRepo.delete(entry.id);
+        removedCount++;
+      }
+    }
+
+    if (removedCount > 0) {
+      this.logger.log(
+        `Removed ${removedCount} stale collection media entries (items no longer on media server)`,
+      );
+    }
+  }
+
   public async getCollectionExclusionsWithServerDataAndPaging(
     id: number,
     { offset = 0, size = 25 }: { offset?: number; size?: number } = {},
