@@ -8,7 +8,7 @@ export class ExclusionDto {
 }
 
 export interface ExclusionContextDto {
-  mediaId: number;
+  mediaId: string;
   context: IAlterableMediaDto;
   collectionId: number;
   ruleGroupId: number;

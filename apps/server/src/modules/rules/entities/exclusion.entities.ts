@@ -13,7 +13,7 @@ export class Exclusion {
   ruleGroupId: number;
 
   @Column({ nullable: true })
-  parent: number;
+  parent: string;
 
   @Column({ nullable: true }) // nullable because old exclusions don't have the type. They'll be added by a maintenance task
   type: MediaItemType | undefined;

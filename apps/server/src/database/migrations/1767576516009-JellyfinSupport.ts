@@ -159,7 +159,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
             CREATE TABLE "temporary_exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "ruleGroupId" integer,
-                "parent" integer,
+                "parent" varchar,
                 "type" integer DEFAULT (NULL),
                 "mediaServerId" varchar
             )
@@ -350,7 +350,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
             CREATE TABLE "temporary_exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "ruleGroupId" integer,
-                "parent" integer,
+                "parent" varchar,
                 "type" integer DEFAULT (NULL),
                 "mediaServerId" varchar
             )
@@ -642,7 +642,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
             CREATE TABLE "temporary_exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "ruleGroupId" integer,
-                "parent" integer,
+                "parent" varchar,
                 "type" varchar,
                 "mediaServerId" varchar
             )
