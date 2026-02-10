@@ -659,7 +659,7 @@ export class RulesService {
       return this.createReturnStatus(true, 'Success');
     } catch (e) {
       this.logger.warn(
-        `Adding exclusion for Plex ID ${data.mediaId} and rulegroup id ${data.ruleGroupId} failed.`,
+        `Adding exclusion for media ID ${data.mediaId} and rulegroup id ${data.ruleGroupId} failed.`,
       );
       this.logger.debug(e);
       return this.createReturnStatus(false, 'Failed');
@@ -1296,12 +1296,12 @@ export class RulesService {
   }
 
   /**
-   * Reset the Plex cache if any rule in the rule group requires it.
+   * Reset the media server cache if any rule in the rule group requires it.
    *
    * @param {RulesDto} rulegroup - The rule group to check for cache reset requirement.
-   * @return {Promise<boolean>} Whether the Plex cache was reset.
+   * @return {Promise<boolean>} Whether the media server cache was reset.
    */
-  public async resetPlexCacheIfgroupUsesRuleThatRequiresIt(
+  public async resetCacheIfGroupUsesRuleThatRequiresIt(
     rulegroup: RulesDto,
   ): Promise<boolean> {
     try {

@@ -227,7 +227,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                       </a>
                     </div>
                   )}
-                  {tautulliModalUrl && (
+                  {isPlex && tautulliModalUrl && (
                     <div>
                       <a
                         href={`${tautulliModalUrl}/info?rating_key=${id}&source=history`}
@@ -236,7 +236,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                       >
                         <img
                           src={`${basePath}/icons_logos/tautulli_logo.svg`}
-                          alt="Plex Logo"
+                          alt="Tautulli Logo"
                           width={128}
                           height={32}
                           className="mt-1 h-8 w-32 rounded-lg bg-black bg-opacity-70 p-1.5 shadow-lg"

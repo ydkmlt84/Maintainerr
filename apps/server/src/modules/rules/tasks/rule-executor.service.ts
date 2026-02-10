@@ -135,8 +135,8 @@ export class RuleExecutorService {
           this.logger.log(`Executing rules for '${ruleGroup.name}'`);
           this.startTime = new Date();
 
-          // reset Plex cache if group uses a rule that requires it (collection rules for example)
-          await this.rulesService.resetPlexCacheIfgroupUsesRuleThatRequiresIt(
+          // reset media server cache if group uses a rule that requires it (collection rules for example)
+          await this.rulesService.resetCacheIfGroupUsesRuleThatRequiresIt(
             ruleGroup,
           );
 
@@ -530,7 +530,7 @@ export class RuleExecutorService {
       }
     } catch (err) {
       this.logger.warn(
-        `Execption occurred whild handling rule: ${err.message}`,
+        `Exception occurred while handling rule: ${err.message}`,
       );
 
       this.eventEmitter.emit(

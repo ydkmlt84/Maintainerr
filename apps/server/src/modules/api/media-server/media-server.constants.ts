@@ -33,8 +33,3 @@ export function supportsFeature(
 ): boolean {
   return MEDIA_SERVER_FEATURES[serverType]?.has(feature) ?? false;
 }
-
-/**
- * Injection token for the media server service interface.
- */
-export const MEDIA_SERVER_SERVICE = 'MEDIA_SERVER_SERVICE';
