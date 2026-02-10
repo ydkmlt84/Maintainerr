@@ -4,8 +4,15 @@ import {
   ExclamationIcon,
   SaveIcon,
 } from '@heroicons/react/solid'
-import { useEffect, useRef, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  type JellyfinSetting,
+  jellyfinSettingSchema,
+} from '@maintainerr/contracts'
+import { useEffect, useState } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'react-toastify'
+import { z } from 'zod'
 import { useSettingsOutletContext } from '..'
 import {
   useDeleteJellyfinSettings,
@@ -15,12 +22,25 @@ import {
 import Alert from '../../Common/Alert'
 import Button from '../../Common/Button'
 import DocsButton from '../../Common/DocsButton'
+import { InputGroup } from '../../Forms/Input'
+import { Select } from '../../Forms/Select'
+
+const JellyfinSettingDeleteSchema = z.object({
+  jellyfin_url: z.literal(''),
+  jellyfin_api_key: z.literal(''),
+  jellyfin_user_id: z.string().optional(),
+})
+
+const JellyfinSettingFormSchema = z.union([
+  jellyfinSettingSchema,
+  JellyfinSettingDeleteSchema,
+])
+
+type JellyfinSettingFormResult = z.infer<typeof JellyfinSettingFormSchema>
+
+const stripTrailingSlashes = (url: string) => url.replace(/\/+$/, '')
 
 const JellyfinSettings = () => {
-  const urlRef = useRef<HTMLInputElement>(null)
-  const apiKeyRef = useRef<HTMLInputElement>(null)
-
-  const [error, setError] = useState<string | undefined>()
   const [testResult, setTestResult] = useState<{
     status: boolean
     message: string
@@ -29,69 +49,82 @@ const JellyfinSettings = () => {
     url: string
     apiKey: string
   } | null>(null)
-  const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [jellyfinUsers, setJellyfinUsers] = useState<
     Array<{ id: string; name: string }>
   >([])
 
   const { settings } = useSettingsOutletContext()
-  const savedUserId = settings?.jellyfin_user_id ?? ''
 
   const { mutateAsync: testJellyfin, isPending: isTestPending } =
     useTestJellyfin()
-
   const {
     mutateAsync: saveSettings,
     isPending: isSavePending,
     isSuccess: saveSuccess,
     isError: saveError,
   } = useSaveJellyfinSettings()
-
   const {
     mutateAsync: deleteSettings,
     isPending: isDeletePending,
     isSuccess: deleteSuccess,
   } = useDeleteJellyfinSettings()
 
-  // Initialize form with existing settings
-  useEffect(() => {
-    if (settings?.jellyfin_url && urlRef.current) {
-      urlRef.current.value = settings.jellyfin_url
-    }
-    if (settings?.jellyfin_api_key && apiKeyRef.current) {
-      apiKeyRef.current.value = settings.jellyfin_api_key
-    }
-    if (settings?.jellyfin_user_id) {
-      setSelectedUserId(settings.jellyfin_user_id)
-    }
-  }, [settings])
+  const {
+    register,
+    handleSubmit,
+    trigger,
+    control,
+    setValue,
+    getValues,
+    reset,
+    formState: { errors },
+  } = useForm<JellyfinSettingFormResult, any, JellyfinSettingFormResult>({
+    resolver: zodResolver(JellyfinSettingFormSchema),
+    defaultValues: {
+      jellyfin_url: '',
+      jellyfin_api_key: '',
+      jellyfin_user_id: '',
+    },
+  })
 
-  // Clear test result when URL or API key changes
-  const handleCredentialChange = () => {
-    if (testResult) {
-      setTestResult(null)
-      setTestedSettings(null)
-      setJellyfinUsers([])
-      setSelectedUserId('')
+  const jellyfinUrl = useWatch({ control, name: 'jellyfin_url' })
+  const jellyfinApiKey = useWatch({ control, name: 'jellyfin_api_key' })
+
+  // Initialize form when settings load
+  useEffect(() => {
+    if (settings) {
+      reset({
+        jellyfin_url: settings.jellyfin_url ?? '',
+        jellyfin_api_key: settings.jellyfin_api_key ?? '',
+        jellyfin_user_id: settings.jellyfin_user_id ?? '',
+      })
     }
-  }
+  }, [settings, reset])
+
+  const isGoingToRemoveSettings = jellyfinUrl === '' && jellyfinApiKey === ''
+  const enteredSettingsAreSameAsSaved =
+    jellyfinUrl === (settings?.jellyfin_url ?? '') &&
+    jellyfinApiKey === (settings?.jellyfin_api_key ?? '')
+  const enteredSettingsHaveBeenTested =
+    jellyfinUrl === testedSettings?.url &&
+    jellyfinApiKey === testedSettings?.apiKey &&
+    testResult?.status
+  const canSaveSettings =
+    (enteredSettingsAreSameAsSaved ||
+      enteredSettingsHaveBeenTested ||
+      isGoingToRemoveSettings) &&
+    !isSavePending &&
+    !isDeletePending
 
   const handleTest = async () => {
-    setError(undefined)
+    if (isTestPending || !(await trigger())) return
+
     setTestResult(null)
-
-    const url = urlRef.current?.value?.trim()
-    const apiKey = apiKeyRef.current?.value?.trim()
-
-    if (!url || !apiKey) {
-      setError('Please fill in the Jellyfin URL and API key')
-      return
-    }
 
     try {
       const result = await testJellyfin({
-        jellyfin_url: url,
-        jellyfin_api_key: apiKey,
+        jellyfin_url: jellyfinUrl,
+        jellyfin_api_key: jellyfinApiKey,
       })
 
       if (result.code === 1) {
@@ -101,18 +134,21 @@ const JellyfinSettings = () => {
             ? `Connected to ${result.serverName} (v${result.version})`
             : result.message,
         })
-        setTestedSettings({ url, apiKey })
+        setTestedSettings({ url: jellyfinUrl, apiKey: jellyfinApiKey })
 
-        // Populate user dropdown and auto-select first admin
         if (result.users && result.users.length > 0) {
           const sorted = [...result.users].sort((a, b) =>
             a.name.localeCompare(b.name),
           )
           setJellyfinUsers(sorted)
-          // Keep current selection if it still exists, otherwise select first
-          if (!selectedUserId || !sorted.find((u) => u.id === selectedUserId)) {
-            setSelectedUserId(sorted[0].id)
-          }
+
+          const currentUserId = getValues('jellyfin_user_id')
+          const keepCurrentSelection =
+            currentUserId && sorted.find((u) => u.id === currentUserId)
+          setValue(
+            'jellyfin_user_id',
+            keepCurrentSelection ? currentUserId : sorted[0].id,
+          )
         }
 
         toast.success('Jellyfin connection successful!')
@@ -131,55 +167,22 @@ const JellyfinSettings = () => {
     }
   }
 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError(undefined)
-
-    const url = urlRef.current?.value?.trim() ?? ''
-    const apiKey = apiKeyRef.current?.value?.trim() ?? ''
-
-    // If both fields are empty, delete the settings (like Jellyseerr pattern)
-    const isRemovingSettings = url === '' && apiKey === ''
-
-    if (isRemovingSettings) {
+  const onSubmit = async (data: JellyfinSettingFormResult) => {
+    if (data.jellyfin_url === '' && data.jellyfin_api_key === '') {
       try {
         await deleteSettings()
         setTestResult(null)
         setTestedSettings(null)
+        setJellyfinUsers([])
         toast.success('Jellyfin settings cleared')
-      } catch (err) {
+      } catch {
         toast.error('Failed to clear Jellyfin settings')
       }
       return
     }
 
-    // Validate required fields for saving
-    if (!url || !apiKey) {
-      setError('Please fill in the Jellyfin URL and API key')
-      toast.error('Please fill in the required fields')
-      return
-    }
-
-    // Check if settings have been tested
-    const currentSettingsAreSameAsSaved =
-      url === settings?.jellyfin_url && apiKey === settings?.jellyfin_api_key
-    const currentSettingsHaveBeenTested =
-      testedSettings?.url === url &&
-      testedSettings?.apiKey === apiKey &&
-      testResult?.status
-
-    if (!currentSettingsAreSameAsSaved && !currentSettingsHaveBeenTested) {
-      setError('Please test the connection before saving')
-      toast.error('Please test the connection before saving')
-      return
-    }
-
     try {
-      await saveSettings({
-        jellyfin_url: url,
-        jellyfin_api_key: apiKey,
-        jellyfin_user_id: selectedUserId || undefined,
-      })
+      await saveSettings(data as JellyfinSetting)
       toast.success('Jellyfin settings saved successfully!')
     } catch (err) {
       const message =
@@ -187,6 +190,8 @@ const JellyfinSettings = () => {
       toast.error(message)
     }
   }
+
+  const savedUserId = settings?.jellyfin_user_id ?? ''
 
   return (
     <>
@@ -198,8 +203,6 @@ const JellyfinSettings = () => {
             Configure your Jellyfin server connection
           </p>
         </div>
-
-        {error && <Alert type="error" title={error} />}
 
         {saveError && (
           <Alert
@@ -220,71 +223,58 @@ const JellyfinSettings = () => {
         )}
 
         <div className="section">
-          <form onSubmit={handleSave}>
-            <div className="form-row">
-              <label htmlFor="jellyfin_url" className="text-label">
-                Jellyfin URL
-              </label>
-              <div className="form-input">
-                <div className="form-input-field">
-                  <input
-                    name="jellyfin_url"
-                    id="jellyfin_url"
-                    type="text"
-                    ref={urlRef}
-                    placeholder="http://jellyfin.local:8096"
-                    defaultValue={settings?.jellyfin_url || ''}
-                    onChange={handleCredentialChange}
-                  />
-                </div>
-              </div>
-            </div>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Controller
+              name="jellyfin_url"
+              control={control}
+              render={({ field }) => (
+                <InputGroup
+                  label="Jellyfin URL"
+                  value={field.value}
+                  placeholder="http://jellyfin.local:8096"
+                  onChange={field.onChange}
+                  onBlur={(event) =>
+                    field.onChange(stripTrailingSlashes(event.target.value))
+                  }
+                  ref={field.ref}
+                  name={field.name}
+                  type="text"
+                  error={errors.jellyfin_url?.message}
+                  required
+                />
+              )}
+            />
 
-            <div className="form-row">
-              <label htmlFor="jellyfin_api_key" className="text-label">
-                API Key
-              </label>
-              <div className="form-input">
-                <div className="form-input-field">
-                  <input
-                    name="jellyfin_api_key"
-                    id="jellyfin_api_key"
-                    type="password"
-                    ref={apiKeyRef}
-                    placeholder="Enter your Jellyfin API key"
-                    defaultValue={settings?.jellyfin_api_key || ''}
-                    onChange={handleCredentialChange}
-                  />
-                </div>
-                <p className="mt-2 text-sm text-zinc-400">
-                  In Jellyfin, go to <strong>Dashboard → API Keys</strong> and
-                  create a new API key named &quot;Maintainerr&quot;.
-                </p>
-              </div>
-            </div>
+            <InputGroup
+              label="API Key"
+              type="password"
+              {...register('jellyfin_api_key')}
+              error={errors.jellyfin_api_key?.message}
+              helpText={
+                <>
+                  In Jellyfin, go to <strong>Dashboard &rarr; API Keys</strong>{' '}
+                  and create a new API key named &quot;Maintainerr&quot;.
+                </>
+              }
+            />
 
-            <div className="form-row">
-              <label htmlFor="jellyfin_user_id" className="text-label">
+            <div className="mt-6 max-w-6xl sm:mt-5 sm:grid sm:grid-cols-3 sm:items-start sm:gap-4">
+              <label htmlFor="jellyfin_user_id" className="sm:mt-2">
                 Admin User
               </label>
-              <div className="form-input">
-                <div className="form-input-field">
-                  {jellyfinUsers.length > 0 ? (
-                    <select
-                      name="jellyfin_user_id"
-                      id="jellyfin_user_id"
-                      value={selectedUserId}
-                      onChange={(e) => setSelectedUserId(e.target.value)}
-                    >
+              <div className="px-3 py-2 sm:col-span-2">
+                <div className="max-w-xl">
+                  {jellyfinUsers.length > 0 && enteredSettingsHaveBeenTested ? (
+                    <Select {...register('jellyfin_user_id')}>
                       {jellyfinUsers.map((user) => (
                         <option key={user.id} value={user.id}>
                           {user.name} ({user.id.slice(0, 4)}...
                           {user.id.slice(-4)})
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   ) : (
-                    <select disabled value={savedUserId}>
+                    <Select disabled value={savedUserId}>
                       {savedUserId ? (
                         <option value={savedUserId}>
                           Selected: {savedUserId.slice(0, 4)}...
@@ -295,16 +285,16 @@ const JellyfinSettings = () => {
                           Test connection to load Jellyfin admin users
                         </option>
                       )}
-                    </select>
+                    </Select>
                   )}
+                  <p className="mt-1 text-sm text-zinc-400">
+                    {jellyfinUsers.length > 0 && enteredSettingsHaveBeenTested
+                      ? 'Select the admin user for Maintainerr operations.'
+                      : savedUserId
+                        ? 'Saved admin user. Test connection to change.'
+                        : 'Test connection to load available admin users.'}
+                  </p>
                 </div>
-                <p className="mt-1 text-sm text-zinc-400">
-                  {jellyfinUsers.length > 0
-                    ? 'Select the admin user for Maintainerr operations.'
-                    : savedUserId
-                      ? 'Saved admin user. Test connection to change.'
-                      : 'Test connection to load available admin users.'}
-                </p>
               </div>
             </div>
 
@@ -322,7 +312,7 @@ const JellyfinSettings = () => {
                           : 'default'
                       }
                       onClick={handleTest}
-                      disabled={isTestPending}
+                      disabled={isTestPending || isGoingToRemoveSettings}
                     >
                       {testResult ? (
                         testResult.status ? (
@@ -343,7 +333,7 @@ const JellyfinSettings = () => {
                     <Button
                       buttonType="primary"
                       type="submit"
-                      disabled={isSavePending || isDeletePending}
+                      disabled={!canSaveSettings}
                     >
                       <SaveIcon className="h-5 w-5" />
                       <span className="ml-1">
