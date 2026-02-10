@@ -359,7 +359,10 @@ export class JellyfinMapper {
         width: videoStream?.Width || undefined,
         height: videoStream?.Height || undefined,
         aspectRatio: videoStream?.AspectRatio
-          ? parseFloat(videoStream.AspectRatio)
+          ? videoStream.AspectRatio.includes(':')
+            ? parseFloat(videoStream.AspectRatio.split(':')[0]) /
+              parseFloat(videoStream.AspectRatio.split(':')[1])
+            : parseFloat(videoStream.AspectRatio)
           : undefined,
         audioChannels: audioStream?.Channels || undefined,
         audioCodec: audioStream?.Codec || undefined,
