@@ -29,15 +29,6 @@ export interface JellyfinCollectionCreatedResult {
   Id: string;
 }
 
-export interface JellyfinWatchedCacheEntry {
-  [itemId: string]: string[];
-}
-
-export interface BuildWatchedCacheOptions {
-  force?: boolean;
-  userIds?: string[];
-}
-
 export function hasProviderIds(item: BaseItemDto): item is BaseItemDto & {
   ProviderIds: NonNullable<BaseItemDto['ProviderIds']>;
 } {

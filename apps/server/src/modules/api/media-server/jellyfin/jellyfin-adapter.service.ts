@@ -2,7 +2,6 @@ import { Jellyfin, type Api } from '@jellyfin/sdk';
 import {
   BaseItemKind,
   ItemFields,
-  ItemFilter,
   ItemSortBy,
   SortOrder,
 } from '@jellyfin/sdk/lib/generated-client/models';
@@ -48,7 +47,6 @@ import {
   JELLYFIN_DEVICE_INFO,
 } from './jellyfin.constants';
 import { JellyfinMapper } from './jellyfin.mapper';
-import type { JellyfinWatchedCacheEntry } from './jellyfin.types';
 
 /**
  * Jellyfin media server service implementation.
@@ -726,50 +724,6 @@ export class JellyfinAdapterService implements IMediaServerService {
     return settings && 'jellyfin_user_id' in settings
       ? settings.jellyfin_user_id
       : undefined;
-  }
-
-  /**
-   * Build a watched cache for an entire library.
-   * More efficient than querying per-item for bulk operations.
-   */
-  async buildWatchedCacheForLibrary(libraryId: string): Promise<void> {
-    if (!this.api) return;
-
-    const users = await this.getUsers();
-    const watchedMap: JellyfinWatchedCacheEntry = {};
-
-    for (const user of users) {
-      try {
-        const response = await getItemsApi(this.api).getItems({
-          userId: user.id,
-          parentId: libraryId,
-          recursive: true,
-          filters: [ItemFilter.IsPlayed],
-          fields: [], // Minimal fields
-          enableUserData: false,
-        });
-
-        for (const item of response.data.Items || []) {
-          if (item.Id) {
-            const existing = watchedMap[item.Id] || [];
-            existing.push(user.id);
-            watchedMap[item.Id] = existing;
-          }
-        }
-      } catch (error) {
-        this.logger.warn(
-          `Failed to get watched items for user ${user.name}`,
-          error,
-        );
-      }
-    }
-
-    const cacheKey = `${JELLYFIN_CACHE_KEYS.WATCHED_LIBRARY}:${libraryId}`;
-    this.cache.data.set(
-      cacheKey,
-      watchedMap,
-      JELLYFIN_CACHE_TTL.WATCHED_LIBRARY,
-    );
   }
 
   async getCollections(libraryId: string): Promise<MediaCollection[]> {

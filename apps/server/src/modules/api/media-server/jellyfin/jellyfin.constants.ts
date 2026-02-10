@@ -1,6 +1,5 @@
 export const JELLYFIN_CACHE_TTL = {
   WATCH_HISTORY: 300000,
-  WATCHED_LIBRARY: 600000,
   USERS: 1800000,
   LIBRARIES: 1800000,
   STATUS: 60000,
@@ -14,7 +13,6 @@ export const JELLYFIN_BATCH_SIZE = {
 
 export const JELLYFIN_CACHE_KEYS = {
   WATCH_HISTORY: 'jellyfin:watch',
-  WATCHED_LIBRARY: 'jellyfin:watched:library',
   USERS: 'jellyfin:users',
   LIBRARIES: 'jellyfin:libraries',
   STATUS: 'jellyfin:status',
