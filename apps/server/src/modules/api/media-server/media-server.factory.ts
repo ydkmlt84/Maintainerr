@@ -84,11 +84,13 @@ export class MediaServerFactory {
         return this.jellyfinAdapter;
 
       case MediaServerType.PLEX:
-      default:
         if (!this.plexAdapter.isSetup()) {
           await this.plexAdapter.initialize();
         }
         return this.plexAdapter;
+
+      default:
+        throw new Error(`Unsupported media server type: ${serverType}`);
     }
   }
 
