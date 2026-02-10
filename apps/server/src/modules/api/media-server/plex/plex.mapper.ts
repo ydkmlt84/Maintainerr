@@ -183,6 +183,7 @@ export class PlexMapper {
       originallyAvailableAt: plex.originallyAvailableAt
         ? new Date(plex.originallyAvailableAt)
         : undefined,
+      contentRating: plex.contentRating,
       ratings: PlexMapper.toMediaRatings(plex),
       userRating: plex.userRating,
       genres: PlexMapper.toMediaGenres(plex.Genre),
@@ -229,6 +230,7 @@ export class PlexMapper {
       originallyAvailableAt: plex.originallyAvailableAt
         ? new Date(plex.originallyAvailableAt)
         : undefined,
+      contentRating: plex.contentRating,
       ratings: PlexMapper.metadataToMediaRatings(plex),
       userRating: plex.userRating,
       genres: PlexMapper.toMediaGenres(plex.Genre),

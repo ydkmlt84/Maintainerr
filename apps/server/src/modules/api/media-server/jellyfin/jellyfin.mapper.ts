@@ -205,6 +205,7 @@ export class JellyfinMapper {
       originallyAvailableAt: item.PremiereDate
         ? new Date(item.PremiereDate)
         : undefined,
+      contentRating: item.OfficialRating || undefined,
       ratings: JellyfinMapper.toMediaRatings(item),
       userRating: item.UserData?.Rating || undefined,
       genres: JellyfinMapper.toMediaGenres(item.Genres),

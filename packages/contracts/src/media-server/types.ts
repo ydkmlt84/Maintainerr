@@ -83,6 +83,7 @@ export interface MediaItem {
   year?: number
   durationMs?: number
   originallyAvailableAt?: Date
+  contentRating?: string
   ratings?: MediaRating[]
   userRating?: number
   genres?: MediaGenre[]
