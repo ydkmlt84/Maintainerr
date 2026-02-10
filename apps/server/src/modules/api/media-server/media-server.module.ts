@@ -42,7 +42,9 @@ import { PlexAdapterService } from './plex/plex-adapter.service';
     MediaServerSetupGuard,
   ],
   exports: [
-    PlexAdapterService,
+    // JellyfinAdapterService is exported for JellyfinGetterService, which needs
+    // Jellyfin-specific methods not on IMediaServerService (analogous to
+    // PlexApiModule exporting PlexApiService for PlexGetterService).
     JellyfinAdapterService,
     MediaServerFactory,
     MediaServerSetupGuard,

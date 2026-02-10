@@ -134,6 +134,40 @@ export class MediaServerFactory {
     return configuredType;
   }
 
+  /**
+   * Uninitialize a specific media server adapter.
+   * Used during settings changes and server switching to clear cached state.
+   */
+  uninitializeServer(serverType: MediaServerType): void {
+    switch (serverType) {
+      case MediaServerType.PLEX:
+        this.plexAdapter.uninitialize();
+        break;
+      case MediaServerType.JELLYFIN:
+        this.jellyfinAdapter.uninitialize();
+        break;
+      default:
+        throw new Error(`Unsupported media server type: ${serverType}`);
+    }
+  }
+
+  /**
+   * Test a Jellyfin connection with the given credentials.
+   * Used by settings to validate credentials before saving.
+   */
+  async testJellyfinConnection(
+    url: string,
+    apiKey: string,
+  ): Promise<{
+    success: boolean;
+    serverName?: string;
+    version?: string;
+    error?: string;
+    users?: Array<{ id: string; name: string }>;
+  }> {
+    return this.jellyfinAdapter.testConnection(url, apiKey);
+  }
+
   private resolveServerType(
     plexConfigured: boolean,
     jellyfinConfigured: boolean,

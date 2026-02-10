@@ -7,8 +7,7 @@ import {
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { JellyfinAdapterService } from '../api/media-server/jellyfin/jellyfin-adapter.service';
-import { PlexApiService } from '../api/plex-api/plex-api.service';
+import { MediaServerFactory } from '../api/media-server/media-server.factory';
 import { Collection } from '../collections/entities/collection.entities';
 import { CollectionLog } from '../collections/entities/collection_log.entities';
 import { CollectionMedia } from '../collections/entities/collection_media.entities';
@@ -30,10 +29,8 @@ export class MediaServerSwitchService {
   constructor(
     @Inject(forwardRef(() => SettingsService))
     private readonly settingsService: SettingsService,
-    @Inject(forwardRef(() => PlexApiService))
-    private readonly plexApi: PlexApiService,
-    @Inject(forwardRef(() => JellyfinAdapterService))
-    private readonly jellyfinAdapter: JellyfinAdapterService,
+    @Inject(forwardRef(() => MediaServerFactory))
+    private readonly mediaServerFactory: MediaServerFactory,
     @InjectRepository(Collection)
     private readonly collectionRepo: Repository<Collection>,
     @InjectRepository(CollectionMedia)
@@ -283,10 +280,8 @@ export class MediaServerSwitchService {
   private uninitializeOldServer(
     currentServerType: MediaServerType | null,
   ): void {
-    if (currentServerType === MediaServerType.PLEX) {
-      this.plexApi.uninitialize();
-    } else if (currentServerType === MediaServerType.JELLYFIN) {
-      this.jellyfinAdapter.uninitialize();
+    if (currentServerType) {
+      this.mediaServerFactory.uninitializeServer(currentServerType);
     }
   }
 }
