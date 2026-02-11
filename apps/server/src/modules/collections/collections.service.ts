@@ -225,6 +225,10 @@ export class CollectionsService {
         },
       });
 
+      if (!rulegroup) {
+        return { totalSize: 0, items: [] };
+      }
+
       const groupId = rulegroup.id;
 
       // Determine which exclusion types to show based on collection dataType
@@ -938,6 +942,14 @@ export class CollectionsService {
       let collection = await this.collectionRepo.findOne({
         where: { id: collectionDbId },
       });
+
+      if (!collection) {
+        this.logger.warn(
+          `Collection with id ${collectionDbId} not found in database`,
+        );
+        return undefined;
+      }
+
       collection = await this.checkAutomaticMediaServerLink(collection);
 
       if (collection.mediaServerId && !collection.manualCollection) {

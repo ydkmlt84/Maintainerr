@@ -1,6 +1,5 @@
 import { MediaServerType } from '@maintainerr/contracts';
 import { CronExpression } from '@nestjs/schedule';
-import { randomUUID } from 'crypto';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { SettingDto } from "../dto's/setting.dto";
 
@@ -9,7 +8,8 @@ export class Settings implements SettingDto {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true, default: randomUUID() })
+  // clientId is set explicitly via randomUUID() in SettingsService.init()
+  @Column({ nullable: true })
   clientId: string;
 
   @Column({ nullable: false, default: 'Maintainerr' })
