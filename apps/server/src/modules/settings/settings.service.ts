@@ -1010,15 +1010,12 @@ export class SettingsService implements SettingDto {
   // Test if all configured applications are reachable. Media server is required.
   public async testConnections(): Promise<boolean> {
     try {
-      // Test the configured media server
-      let mediaServerState: boolean;
-
       // If no media server type is configured, connections cannot be tested
       if (!this.media_server_type) {
         return false;
       }
 
-      mediaServerState = await this.testMediaServerConnection();
+      const mediaServerState = await this.testMediaServerConnection();
 
       let radarrState = true;
       let sonarrState = true;
