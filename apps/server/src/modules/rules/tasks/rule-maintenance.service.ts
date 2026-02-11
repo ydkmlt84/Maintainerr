@@ -32,20 +32,22 @@ export class RuleMaintenanceService extends TaskBase {
   protected async executeTask() {
     try {
       this.logger.log('Starting maintenance');
-      const appStatus = await this.settings.testConnections();
+      const mediaServerReachable =
+        await this.settings.testMediaServerConnection();
 
-      if (appStatus) {
+      if (mediaServerReachable) {
         // remove media exclusions that are no longer available
         await this.removeLeftoverExclusions();
         // remove collection media entries for items deleted from media server
         await this.collectionsService.removeStaleCollectionMedia();
-        await this.removeCollectionsWithoutRule();
-        this.logger.log('Maintenance done');
       } else {
-        this.logger.error(
-          `Maintenance skipped, not all applications were reachable.`,
+        this.logger.warn(
+          'Skipping media server cleanup; media server was not reachable.',
         );
       }
+
+      await this.removeCollectionsWithoutRule();
+      this.logger.log('Maintenance done');
     } catch (e) {
       this.logger.error(`Rule Maintenance failed : ${e.message}`);
     }

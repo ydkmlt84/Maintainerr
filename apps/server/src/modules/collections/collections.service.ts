@@ -13,7 +13,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, LessThan, Repository } from 'typeorm';
+import { Brackets, DataSource, LessThan, Repository } from 'typeorm';
 import { CollectionLog } from '../../modules/collections/entities/collection_log.entities';
 import { MediaServerFactory } from '../api/media-server/media-server.factory';
 import { IMediaServerService } from '../api/media-server/media-server.interface';
@@ -149,7 +149,9 @@ export class CollectionsService {
             const mediaItem = await mediaServer.getMetadata(el.mediaServerId);
 
             if (!mediaItem) {
-              await this.CollectionMediaRepo.delete(el.id);
+              this.logger.debug(
+                `Missing metadata for collection media ${el.id} (mediaServerId=${el.mediaServerId}); skipping item without deleting`,
+              );
               return { ...el, mediaData: undefined };
             }
 
@@ -243,8 +245,13 @@ export class CollectionsService {
       const queryBuilder = this.exclusionRepo.createQueryBuilder('exclusion');
 
       queryBuilder
-        .where('exclusion.ruleGroupId = :groupId', { groupId })
-        .orWhere('exclusion.ruleGroupId is null')
+        .where(
+          new Brackets((qb) => {
+            qb.where('exclusion.ruleGroupId = :groupId', { groupId }).orWhere(
+              'exclusion.ruleGroupId is null',
+            );
+          }),
+        )
         .andWhere('exclusion.type IN (:...validTypes)', { validTypes })
         .orderBy('id', 'DESC')
         .skip(offset)

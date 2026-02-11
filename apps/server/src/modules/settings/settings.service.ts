@@ -979,6 +979,34 @@ export class SettingsService implements SettingDto {
     }
   }
 
+  public async testMediaServerConnection(): Promise<boolean> {
+    if (!this.media_server_type) {
+      return false;
+    }
+
+    switch (this.media_server_type) {
+      case MediaServerType.JELLYFIN: {
+        if (!this.jellyfin_url || !this.jellyfin_api_key) {
+          return false;
+        }
+
+        return (
+          (
+            await this.testJellyfin({
+              jellyfin_url: this.jellyfin_url,
+              jellyfin_api_key: this.jellyfin_api_key,
+              jellyfin_user_id: this.jellyfin_user_id,
+            })
+          ).status === 'OK'
+        );
+      }
+      case MediaServerType.PLEX:
+        return (await this.testPlex()).status === 'OK';
+      default:
+        return false;
+    }
+  }
+
   // Test if all configured applications are reachable. Media server is required.
   public async testConnections(): Promise<boolean> {
     try {
@@ -990,25 +1018,7 @@ export class SettingsService implements SettingDto {
         return false;
       }
 
-      if (this.media_server_type === MediaServerType.JELLYFIN) {
-        // Test Jellyfin with current settings
-        if (this.jellyfin_url && this.jellyfin_api_key) {
-          mediaServerState =
-            (
-              await this.testJellyfin({
-                jellyfin_url: this.jellyfin_url,
-                jellyfin_api_key: this.jellyfin_api_key,
-                jellyfin_user_id: this.jellyfin_user_id,
-              })
-            ).status === 'OK';
-        } else {
-          mediaServerState = false;
-        }
-      } else if (this.media_server_type === MediaServerType.PLEX) {
-        mediaServerState = (await this.testPlex()).status === 'OK';
-      } else {
-        mediaServerState = false;
-      }
+      mediaServerState = await this.testMediaServerConnection();
 
       let radarrState = true;
       let sonarrState = true;
