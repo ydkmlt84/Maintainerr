@@ -1,4 +1,4 @@
-import { LogSetting, LogSettingDto } from '@maintainerr/contracts';
+import { LogSetting } from '@maintainerr/contracts';
 import { Injectable, LoggerService, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,7 +14,7 @@ export class LogSettingsService {
     private readonly logSettingsRepo: Repository<LogSettings>,
   ) {}
 
-  public async get(): Promise<LogSettingDto> {
+  public async get(): Promise<LogSetting> {
     const logSetting = await this.logSettingsRepo.findOneOrFail({ where: {} });
 
     return {

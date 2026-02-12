@@ -1,12 +1,15 @@
 import {
   BasicResponseDto,
   JellyfinSettingDto,
+  JellyseerrSetting,
   JellyseerrSettingDto,
   MediaServerSwitchPreview,
   MediaServerType,
+  OverseerrSetting,
   OverseerrSettingDto,
   SwitchMediaServerRequest,
   SwitchMediaServerResponse,
+  TautulliSetting,
   TautulliSettingDto,
 } from '@maintainerr/contracts';
 import {
@@ -126,7 +129,7 @@ export class SettingsController {
   }
 
   @Get('/tautulli')
-  async getTautulliSetting(): Promise<TautulliSettingDto | BasicResponseDto> {
+  async getTautulliSetting(): Promise<TautulliSetting | BasicResponseDto> {
     const settings = await this.settingsService.getSettings();
 
     if (!(settings instanceof Settings)) {
@@ -155,9 +158,7 @@ export class SettingsController {
   }
 
   @Get('/jellyseerr')
-  async getJellyseerrSetting(): Promise<
-    JellyseerrSettingDto | BasicResponseDto
-  > {
+  async getJellyseerrSetting(): Promise<JellyseerrSetting | BasicResponseDto> {
     const settings = await this.settingsService.getSettings();
 
     if (!(settings instanceof Settings)) {
@@ -171,7 +172,7 @@ export class SettingsController {
   }
 
   @Get('/overseerr')
-  async getOverseerrSetting(): Promise<OverseerrSettingDto | BasicResponseDto> {
+  async getOverseerrSetting(): Promise<OverseerrSetting | BasicResponseDto> {
     const settings = await this.settingsService.getSettings();
 
     if (!(settings instanceof Settings)) {

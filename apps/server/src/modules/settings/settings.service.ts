@@ -405,9 +405,7 @@ export class SettingsService implements SettingDto {
   /**
    * Test connection to a Jellyfin server
    */
-  public async testJellyfin(
-    settings: JellyfinSetting,
-  ): Promise<
+  public async testJellyfin(settings: JellyfinSetting): Promise<
     BasicResponseDto & {
       serverName?: string;
       version?: string;

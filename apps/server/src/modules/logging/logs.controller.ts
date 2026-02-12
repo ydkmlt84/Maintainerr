@@ -1,4 +1,9 @@
-import { LogEvent, LogFile, LogSettingDto } from '@maintainerr/contracts';
+import {
+  LogEvent,
+  LogFile,
+  LogSetting,
+  LogSettingDto,
+} from '@maintainerr/contracts';
 import {
   BeforeApplicationShutdown,
   Body,
@@ -281,7 +286,7 @@ export class LogsController implements BeforeApplicationShutdown {
   }
 
   @Get('settings')
-  async getLogSettings(): Promise<LogSettingDto> {
+  async getLogSettings(): Promise<LogSetting> {
     return await this.logSettingsService.get();
   }
 
