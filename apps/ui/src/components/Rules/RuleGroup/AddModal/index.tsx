@@ -1151,7 +1151,7 @@ const AddModal = (props: AddModal) => {
                       </div>
                     </div>
 
-                    {tautulliEnabled && useRulesEnabled && (
+                    {isPlex && tautulliEnabled && useRulesEnabled && (
                       <div className="flex flex-row items-center justify-between py-2 md:py-4">
                         <label
                           htmlFor="tautulli_watched_percent_override"

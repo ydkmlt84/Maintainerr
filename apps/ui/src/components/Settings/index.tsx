@@ -68,11 +68,18 @@ const SettingsWrapper = () => {
         route: '/settings/sonarr',
         regex: /^\/settings\/sonarr$/,
       },
-      {
+    )
+
+    // Tautulli is a Plex-only integration
+    if (mediaServerType === MediaServerType.PLEX) {
+      baseRoutes.push({
         text: 'Tautulli',
         route: '/settings/tautulli',
         regex: /^\/settings\/tautulli$/,
-      },
+      })
+    }
+
+    baseRoutes.push(
       {
         text: 'Notifications',
         route: '/settings/notifications',
