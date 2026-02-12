@@ -69,6 +69,8 @@ export const createCollection = (
     visibleOnRecommended: false,
     tautulliWatchedPercentOverride: undefined,
     sortTitle: undefined,
+    replaceExistingFilesAfterQualityProfileChange: false,
+    searchAfterQualityProfileChange: false,
     ...properties,
   };
 };

@@ -603,6 +603,122 @@ describe('SonarrActionHandler', () => {
     });
   });
 
+  it('should change quality profile when action is CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 9,
+      sonarrSettingsId: 1,
+      type: EPlexDataType.SHOWS,
+    });
+    const collectionMedia = createCollectionMediaWithPlexData(collection, {
+      tmdbId: 1,
+    });
+
+    plexApi.getMetadata.mockResolvedValue(collectionMedia.plexData);
+
+    const series = createSonarrSeries();
+
+    const mockedSonarrApi = mockSonarrApi();
+    jest.spyOn(mockedSonarrApi, 'getSeriesByTvdbId').mockResolvedValue(series);
+    jest.spyOn(mockedSonarrApi, 'updateSeries').mockResolvedValue();
+
+    mediaIdFinder.findTvdbId.mockResolvedValue(1);
+
+    await sonarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(mockedSonarrApi.updateSeries).toHaveBeenCalledWith({
+      ...series,
+      qualityProfileId: 9,
+    });
+  });
+
+  it('should not change quality profile for season/episode types', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 9,
+      sonarrSettingsId: 1,
+      type: EPlexDataType.SEASONS,
+    });
+    const collectionMedia = createCollectionMediaWithPlexData(collection, {
+      tmdbId: 1,
+    });
+
+    plexApi.getMetadata.mockResolvedValue(collectionMedia.plexData);
+
+    const series = createSonarrSeries();
+    const mockedSonarrApi = mockSonarrApi();
+    jest.spyOn(mockedSonarrApi, 'getSeriesByTvdbId').mockResolvedValue(series);
+    jest.spyOn(mockedSonarrApi, 'updateSeries').mockResolvedValue();
+
+    mediaIdFinder.findTvdbId.mockResolvedValue(1);
+
+    await sonarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(mockedSonarrApi.updateSeries).not.toHaveBeenCalled();
+    expect(mockedSonarrApi.deleteExistingEpisodeFiles).not.toHaveBeenCalled();
+    expect(mockedSonarrApi.searchSeries).not.toHaveBeenCalled();
+  });
+
+  it('should replace existing files and trigger search when configured for CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 9,
+      replaceExistingFilesAfterQualityProfileChange: true,
+      sonarrSettingsId: 1,
+      type: EPlexDataType.SHOWS,
+    });
+    const collectionMedia = createCollectionMediaWithPlexData(collection, {
+      tmdbId: 1,
+    });
+
+    plexApi.getMetadata.mockResolvedValue(collectionMedia.plexData);
+
+    const series = createSonarrSeries();
+
+    const mockedSonarrApi = mockSonarrApi();
+    jest.spyOn(mockedSonarrApi, 'getSeriesByTvdbId').mockResolvedValue(series);
+    jest.spyOn(mockedSonarrApi, 'updateSeries').mockResolvedValue();
+    jest
+      .spyOn(mockedSonarrApi, 'deleteExistingEpisodeFiles')
+      .mockResolvedValue();
+    jest.spyOn(mockedSonarrApi, 'searchSeries').mockResolvedValue();
+
+    mediaIdFinder.findTvdbId.mockResolvedValue(1);
+
+    await sonarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(mockedSonarrApi.deleteExistingEpisodeFiles).toHaveBeenCalledWith(
+      series.id,
+    );
+    expect(mockedSonarrApi.searchSeries).toHaveBeenCalledWith(series.id);
+  });
+
+  it('should not delete from plex when media is missing and action is CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 9,
+      sonarrSettingsId: 1,
+      type: EPlexDataType.SHOWS,
+    });
+    const collectionMedia = createCollectionMediaWithPlexData(collection, {
+      tmdbId: 1,
+    });
+
+    plexApi.getMetadata.mockResolvedValue(collectionMedia.plexData);
+
+    const mockedSonarrApi = mockSonarrApi();
+    jest
+      .spyOn(mockedSonarrApi, 'getSeriesByTvdbId')
+      .mockResolvedValue(undefined);
+
+    mediaIdFinder.findTvdbId.mockResolvedValue(1);
+
+    await sonarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(plexApi.deleteMediaFromDisk).not.toHaveBeenCalled();
+    validateNoSonarrActionsTaken(mockedSonarrApi);
+  });
+
   const validateNoSonarrActionsTaken = (sonarrApi: SonarrApi) => {
     expect(sonarrApi.unmonitorSeasons).not.toHaveBeenCalled();
     expect(sonarrApi.UnmonitorDeleteEpisodes).not.toHaveBeenCalled();
@@ -626,6 +742,10 @@ describe('SonarrActionHandler', () => {
       .mockImplementation(jest.fn());
     jest.spyOn(mockedSonarrApi, 'deleteShow').mockImplementation(jest.fn());
     jest.spyOn(mockedSonarrApi, 'delete').mockImplementation(jest.fn());
+    jest
+      .spyOn(mockedSonarrApi, 'deleteExistingEpisodeFiles')
+      .mockImplementation(jest.fn());
+    jest.spyOn(mockedSonarrApi, 'searchSeries').mockImplementation(jest.fn());
     servarrService.getSonarrApiClient.mockResolvedValue(mockedSonarrApi);
 
     return mockedSonarrApi;

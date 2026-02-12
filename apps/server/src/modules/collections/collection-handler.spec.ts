@@ -74,6 +74,25 @@ describe('CollectionHandler', () => {
     expect(plexApi.deleteMediaFromDisk).toHaveBeenCalled();
   });
 
+  it('should not delete from disk when no *arr server is selected and action is CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 5,
+      type: EPlexDataType.SHOWS,
+    });
+    const collectionMedia = createCollectionMedia(collection);
+
+    plexApi.getLibraries.mockResolvedValue(
+      createPlexLibraries({
+        key: collection.libraryId.toString(),
+      }),
+    );
+
+    await collectionHandler.handleMedia(collection, collectionMedia);
+
+    expect(plexApi.deleteMediaFromDisk).not.toHaveBeenCalled();
+  });
+
   it('should call Radarr action handler', async () => {
     const collection = createCollection({
       arrAction: ServarrAction.DELETE,

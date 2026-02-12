@@ -306,6 +306,12 @@ export class RulesService {
             params.tautulliWatchedPercentOverride ?? null,
           radarrSettingsId: params.radarrSettingsId ?? null,
           sonarrSettingsId: params.sonarrSettingsId ?? null,
+          qualityProfileId: params.collection?.qualityProfileId ?? null,
+          replaceExistingFilesAfterQualityProfileChange:
+            params.collection?.replaceExistingFilesAfterQualityProfileChange ??
+            false,
+          searchAfterQualityProfileChange:
+            params.collection?.searchAfterQualityProfileChange ?? false,
           visibleOnRecommended: params.collection?.visibleOnRecommended,
           visibleOnHome: params.collection?.visibleOnHome,
           deleteAfterDays: params.collection?.deleteAfterDays ?? null,
@@ -437,6 +443,12 @@ export class RulesService {
               params.tautulliWatchedPercentOverride ?? null,
             radarrSettingsId: params.radarrSettingsId ?? null,
             sonarrSettingsId: params.sonarrSettingsId ?? null,
+            qualityProfileId: params.collection?.qualityProfileId ?? null,
+            replaceExistingFilesAfterQualityProfileChange:
+              params.collection
+                ?.replaceExistingFilesAfterQualityProfileChange ?? false,
+            searchAfterQualityProfileChange:
+              params.collection?.searchAfterQualityProfileChange ?? false,
             visibleOnRecommended: params.collection.visibleOnRecommended,
             visibleOnHome: params.collection.visibleOnHome,
             deleteAfterDays: params.collection.deleteAfterDays ?? null,

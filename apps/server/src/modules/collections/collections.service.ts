@@ -1008,6 +1008,12 @@ export class CollectionsService {
               sonarrSettingsId: collection.sonarrSettingsId,
               radarrSettingsId: collection.radarrSettingsId,
               sortTitle: collection.sortTitle,
+              qualityProfileId: collection.qualityProfileId,
+              replaceExistingFilesAfterQualityProfileChange:
+                collection.replaceExistingFilesAfterQualityProfileChange ??
+                false,
+              searchAfterQualityProfileChange:
+                collection.searchAfterQualityProfileChange ?? false,
             },
           ])
           .execute()

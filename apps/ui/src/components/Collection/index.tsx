@@ -26,6 +26,9 @@ export interface ICollection {
   radarrSettingsId?: number
   sonarrSettingsId?: number
   sortTitle?: string
+  qualityProfileId?: number
+  replaceExistingFilesAfterQualityProfileChange?: boolean
+  searchAfterQualityProfileChange?: boolean
 }
 
 export interface ICollectionMedia {

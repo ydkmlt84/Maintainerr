@@ -97,6 +97,15 @@ export class Collection {
   @Column({ nullable: true })
   sortTitle: string;
 
+  @Column({ nullable: true })
+  qualityProfileId?: number;
+
+  @Column({ nullable: false, default: false })
+  replaceExistingFilesAfterQualityProfileChange: boolean;
+
+  @Column({ nullable: false, default: false })
+  searchAfterQualityProfileChange: boolean;
+
   @OneToMany(
     () => CollectionMedia,
     (collectionMedia) => collectionMedia.collectionId,

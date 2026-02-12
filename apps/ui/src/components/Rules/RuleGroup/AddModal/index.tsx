@@ -25,6 +25,7 @@ import {
   useUpdateRuleGroup,
 } from '../../../../api/rules'
 import { Application } from '../../../../contexts/constants-context'
+import { ServarrAction } from '../../../../types/servarr-action'
 import { PostApiHandler } from '../../../../utils/ApiHandler'
 import { EPlexDataType } from '../../../../utils/PlexDataType-enum'
 import Alert from '../../../Common/Alert'
@@ -114,6 +115,12 @@ const ruleGroupFormSchema = z
     useRules: z.boolean(),
     radarrSettingsId: z.number().int().nullable().optional(),
     sonarrSettingsId: z.number().int().nullable().optional(),
+    qualityProfileId: z.preprocess(
+      numberOrUndefined,
+      z.number().int().optional(),
+    ),
+    replaceExistingFilesAfterQualityProfileChange: z.boolean(),
+    searchAfterQualityProfileChange: z.boolean(),
     ruleHandlerCronSchedule: z.preprocess(
       (val) => (val === '' ? null : val),
       z
@@ -135,6 +142,18 @@ const ruleGroupFormSchema = z
   )
   .superRefine((data, ctx) => {
     if (
+      data.arrAction === ServarrAction.CHANGE_QUALITY_PROFILE &&
+      data.qualityProfileId == null
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['qualityProfileId'],
+        message: 'Quality profile is required for this action',
+      })
+    }
+  })
+  .superRefine((data, ctx) => {
+    if (
       data.radarrSettingsId === undefined &&
       data.sonarrSettingsId === undefined
     ) {
@@ -153,7 +172,7 @@ const ruleGroupFormSchema = z
   .refine(
     (data) =>
       data.arrAction === undefined ||
-      data.arrAction === 4 ||
+      data.arrAction === ServarrAction.DO_NOTHING ||
       data.deleteAfterDays !== undefined,
     {
       path: ['deleteAfterDays'],
@@ -192,6 +211,14 @@ const buildFormDefaults = (editData?: IRuleGroup): RuleGroupFormValues => ({
   sonarrSettingsId: editData
     ? (editData.collection?.sonarrSettingsId ?? null)
     : undefined,
+  qualityProfileId: editData?.collection?.qualityProfileId ?? undefined,
+  replaceExistingFilesAfterQualityProfileChange:
+    editData?.collection?.replaceExistingFilesAfterQualityProfileChange ??
+    false,
+  searchAfterQualityProfileChange:
+    editData?.collection?.searchAfterQualityProfileChange ??
+    editData?.collection?.replaceExistingFilesAfterQualityProfileChange ??
+    false,
   ruleHandlerCronSchedule: editData?.ruleHandlerCronSchedule ?? null,
 })
 
@@ -239,6 +266,13 @@ const AddModal = (props: AddModal) => {
     | number
     | null
     | undefined
+  const qualityProfileId = watch('qualityProfileId') as number | undefined
+  const replaceExistingFilesAfterQualityProfileChange = watch(
+    'replaceExistingFilesAfterQualityProfileChange',
+  ) as boolean
+  const searchAfterQualityProfileChange = watch(
+    'searchAfterQualityProfileChange',
+  ) as boolean
   const [showCommunityModal, setShowCommunityModal] = useState(false)
   const [yamlImporterModal, setYamlImporterModal] = useState(false)
   const [configureNotificionModal, setConfigureNotificationModal] =
@@ -268,6 +302,9 @@ const AddModal = (props: AddModal) => {
     register('arrAction')
     register('radarrSettingsId')
     register('sonarrSettingsId')
+    register('qualityProfileId')
+    register('replaceExistingFilesAfterQualityProfileChange')
+    register('searchAfterQualityProfileChange')
   }, [register])
 
   useEffect(() => {
@@ -354,14 +391,18 @@ const AddModal = (props: AddModal) => {
 
     setValue('radarrSettingsId', undefined)
     setValue('sonarrSettingsId', undefined)
-    updateArrOption(0)
+    setValue('qualityProfileId', undefined)
+    updateArrOption(ServarrAction.DELETE)
   }
 
   function updateArrOption(value: number | undefined) {
     setValue('arrAction', value)
 
-    if (value === undefined || value === 4) {
+    if (value === undefined || value === ServarrAction.DO_NOTHING) {
       setValue('deleteAfterDays', undefined)
+      setValue('qualityProfileId', undefined)
+      setValue('replaceExistingFilesAfterQualityProfileChange', false)
+      setValue('searchAfterQualityProfileChange', false)
     } else if (getValues('deleteAfterDays') === undefined) {
       setValue('deleteAfterDays', 30)
     }
@@ -371,8 +412,19 @@ const AddModal = (props: AddModal) => {
     type: 'Radarr' | 'Sonarr',
     arrAction: number,
     settingId?: number | null,
+    qualityProfileId?: number,
   ) => {
     updateArrOption(arrAction)
+    setValue(
+      'qualityProfileId',
+      arrAction === ServarrAction.CHANGE_QUALITY_PROFILE
+        ? qualityProfileId
+        : undefined,
+    )
+    if (arrAction !== ServarrAction.CHANGE_QUALITY_PROFILE) {
+      setValue('replaceExistingFilesAfterQualityProfileChange', false)
+      setValue('searchAfterQualityProfileChange', false)
+    }
 
     if (type === 'Radarr') {
       setValue('sonarrSettingsId', undefined)
@@ -480,7 +532,7 @@ const AddModal = (props: AddModal) => {
       name: data.name,
       description: data.description ?? '',
       libraryId: +data.libraryId,
-      arrAction: data.arrAction ?? 0,
+      arrAction: data.arrAction ?? ServarrAction.DELETE,
       dataType: +data.dataType as EPlexDataType,
       isActive: data.active,
       useRules: data.useRules,
@@ -493,7 +545,8 @@ const AddModal = (props: AddModal) => {
         visibleOnRecommended: data.showRecommended,
         visibleOnHome: data.showHome,
         deleteAfterDays:
-          data.arrAction === undefined || data.arrAction === 4
+          data.arrAction === undefined ||
+          data.arrAction === ServarrAction.DO_NOTHING
             ? undefined
             : data.deleteAfterDays,
         manualCollection: data.manualCollection,
@@ -501,6 +554,19 @@ const AddModal = (props: AddModal) => {
           data.manualCollectionName ?? DEFAULT_MANUAL_COLLECTION_NAME,
         keepLogsForMonths: data.keepLogsForMonths,
         sortTitle: data.sortTitle?.trim() ? data.sortTitle : undefined,
+        qualityProfileId:
+          data.arrAction === ServarrAction.CHANGE_QUALITY_PROFILE
+            ? data.qualityProfileId
+            : undefined,
+        replaceExistingFilesAfterQualityProfileChange:
+          data.arrAction === ServarrAction.CHANGE_QUALITY_PROFILE
+            ? data.replaceExistingFilesAfterQualityProfileChange
+            : false,
+        searchAfterQualityProfileChange:
+          data.arrAction === ServarrAction.CHANGE_QUALITY_PROFILE
+            ? data.searchAfterQualityProfileChange ||
+              data.replaceExistingFilesAfterQualityProfileChange
+            : false,
       },
       rules: data.useRules ? rules : [],
       notifications: configuredNotificationConfigurations,
@@ -672,25 +738,56 @@ const AddModal = (props: AddModal) => {
                       arrAction={arrActionValue}
                       settingIdError={errors.radarrSettingsId?.message}
                       settingId={radarrSettingsId}
-                      onUpdate={(arrAction: number, settingId) => {
-                        handleUpdateArrAction('Radarr', arrAction, settingId)
+                      qualityProfileId={qualityProfileId}
+                      replaceExistingFilesAfterQualityProfileChange={
+                        replaceExistingFilesAfterQualityProfileChange
+                      }
+                      searchAfterQualityProfileChange={
+                        searchAfterQualityProfileChange
+                      }
+                      qualityProfileError={errors.qualityProfileId?.message}
+                      onQualityProfileBehaviorChange={(
+                        replaceExisting,
+                        searchAfter,
+                      ) => {
+                        setValue(
+                          'replaceExistingFilesAfterQualityProfileChange',
+                          replaceExisting,
+                        )
+                        setValue('searchAfterQualityProfileChange', searchAfter)
+                      }}
+                      onUpdate={(
+                        arrAction: number,
+                        settingId,
+                        qualityProfileId,
+                      ) => {
+                        handleUpdateArrAction(
+                          'Radarr',
+                          arrAction,
+                          settingId,
+                          qualityProfileId,
+                        )
                       }}
                       options={[
                         {
-                          id: 0,
+                          id: ServarrAction.DELETE,
                           name: 'Delete',
                         },
                         {
-                          id: 1,
+                          id: ServarrAction.UNMONITOR_DELETE_ALL,
                           name: 'Unmonitor and delete files',
                         },
                         {
-                          id: 3,
+                          id: ServarrAction.UNMONITOR,
                           name: 'Unmonitor and keep files',
                         },
                         {
-                          id: 4,
+                          id: ServarrAction.DO_NOTHING,
                           name: 'Do nothing',
+                        },
+                        {
+                          id: ServarrAction.CHANGE_QUALITY_PROFILE,
+                          name: 'Change quality profile',
                         },
                       ]}
                     />
@@ -715,7 +812,7 @@ const AddModal = (props: AddModal) => {
                                   {...field}
                                   onChange={(event) => {
                                     field.onChange(event)
-                                    updateArrOption(0)
+                                    updateArrOption(ServarrAction.DELETE)
                                   }}
                                 >
                                   {Object.keys(EPlexDataType)
@@ -756,64 +853,98 @@ const AddModal = (props: AddModal) => {
                         type="Sonarr"
                         arrAction={arrActionValue}
                         settingId={sonarrSettingsId}
-                        onUpdate={(e: number, settingId) => {
-                          handleUpdateArrAction('Sonarr', e, settingId)
+                        onUpdate={(
+                          e: number,
+                          settingId,
+                          selectedQualityProfileId,
+                        ) => {
+                          handleUpdateArrAction(
+                            'Sonarr',
+                            e,
+                            settingId,
+                            selectedQualityProfileId,
+                          )
+                        }}
+                        qualityProfileId={qualityProfileId}
+                        replaceExistingFilesAfterQualityProfileChange={
+                          replaceExistingFilesAfterQualityProfileChange
+                        }
+                        searchAfterQualityProfileChange={
+                          searchAfterQualityProfileChange
+                        }
+                        qualityProfileError={errors.qualityProfileId?.message}
+                        onQualityProfileBehaviorChange={(
+                          replaceExisting,
+                          searchAfter,
+                        ) => {
+                          setValue(
+                            'replaceExistingFilesAfterQualityProfileChange',
+                            replaceExisting,
+                          )
+                          setValue(
+                            'searchAfterQualityProfileChange',
+                            searchAfter,
+                          )
                         }}
                         options={
                           +selectedType === EPlexDataType.SHOWS
                             ? [
                                 {
-                                  id: 0,
+                                  id: ServarrAction.DELETE,
                                   name: 'Delete entire show',
                                 },
                                 {
-                                  id: 1,
+                                  id: ServarrAction.UNMONITOR_DELETE_ALL,
                                   name: 'Unmonitor and delete all seasons / episodes',
                                 },
                                 {
-                                  id: 2,
+                                  id: ServarrAction.UNMONITOR_DELETE_EXISTING,
                                   name: 'Unmonitor and delete existing seasons / episodes',
                                 },
                                 {
-                                  id: 3,
+                                  id: ServarrAction.UNMONITOR,
                                   name: 'Unmonitor show and keep files',
                                 },
                                 {
-                                  id: 4,
+                                  id: ServarrAction.DO_NOTHING,
                                   name: 'Do nothing',
+                                },
+                                {
+                                  id: ServarrAction.CHANGE_QUALITY_PROFILE,
+                                  name: 'Change quality profile',
                                 },
                               ]
                             : +selectedType === EPlexDataType.SEASONS
                               ? [
                                   {
-                                    id: 0,
+                                    id: ServarrAction.DELETE,
                                     name: 'Unmonitor and delete season',
                                   },
                                   {
-                                    id: 2,
+                                    id: ServarrAction.UNMONITOR_DELETE_EXISTING,
                                     name: 'Unmonitor and delete existing episodes',
                                   },
                                   {
-                                    id: 3,
+                                    id: ServarrAction.UNMONITOR,
                                     name: 'Unmonitor season and keep files',
                                   },
                                   {
-                                    id: 4,
+                                    id: ServarrAction.DO_NOTHING,
                                     name: 'Do nothing',
                                   },
                                 ]
                               : // episodes
                                 [
                                   {
-                                    id: 0,
+                                    id: ServarrAction.DELETE,
                                     name: 'Unmonitor and delete episode',
                                   },
                                   {
-                                    id: 3,
+                                    id: ServarrAction.UNMONITOR,
                                     name: 'Unmonitor and keep file',
                                   },
                                   {
-                                    id: 4,
+                                    id: ServarrAction.DO_NOTHING,
                                     name: 'Do nothing',
                                   },
                                 ]
@@ -827,34 +958,35 @@ const AddModal = (props: AddModal) => {
                     </>
                   )}
 
-                  {arrActionValue !== undefined && arrActionValue !== 4 && (
-                    <div className="form-row items-center">
-                      <label
-                        htmlFor="collection_deleteDays"
-                        className="text-label"
-                      >
-                        Take action after days*
-                        <p className="text-xs font-normal">
-                          Duration of days media remains in the collection
-                          before deletion/unmonitor
-                        </p>
-                      </label>
-                      <div className="form-input">
-                        <div className="form-input-field">
-                          <input
-                            type="number"
-                            id="collection_deleteDays"
-                            {...register('deleteAfterDays')}
-                          />
-                        </div>
-                        {errors.deleteAfterDays && (
-                          <p className="mt-1 text-xs text-red-400">
-                            {errors.deleteAfterDays.message}
+                  {arrActionValue !== undefined &&
+                    arrActionValue !== ServarrAction.DO_NOTHING && (
+                      <div className="form-row items-center">
+                        <label
+                          htmlFor="collection_deleteDays"
+                          className="text-label"
+                        >
+                          Take action after days*
+                          <p className="text-xs font-normal">
+                            Duration of days media remains in the collection
+                            before deletion/unmonitor
                           </p>
-                        )}
+                        </label>
+                        <div className="form-input">
+                          <div className="form-input-field">
+                            <input
+                              type="number"
+                              id="collection_deleteDays"
+                              {...register('deleteAfterDays')}
+                            />
+                          </div>
+                          {errors.deleteAfterDays && (
+                            <p className="mt-1 text-xs text-red-400">
+                              {errors.deleteAfterDays.message}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
             </div>

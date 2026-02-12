@@ -23,6 +23,9 @@ export interface ICollection {
   radarrSettingsId?: number;
   sonarrSettingsId?: number;
   sortTitle?: string;
+  qualityProfileId?: number;
+  replaceExistingFilesAfterQualityProfileChange?: boolean;
+  searchAfterQualityProfileChange?: boolean;
 }
 
 export enum ServarrAction {
@@ -31,4 +34,5 @@ export enum ServarrAction {
   UNMONITOR_DELETE_EXISTING,
   UNMONITOR,
   DO_NOTHING,
+  CHANGE_QUALITY_PROFILE,
 }

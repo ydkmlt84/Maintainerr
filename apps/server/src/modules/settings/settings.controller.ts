@@ -35,9 +35,17 @@ export class SettingsController {
   getRadarrSettings() {
     return this.settingsService.getRadarrSettings();
   }
+  @Get('/radarr/:id/quality-profiles')
+  getRadarrQualityProfiles(@Param('id', new ParseIntPipe()) id: number) {
+    return this.settingsService.getRadarrQualityProfiles(id);
+  }
   @Get('/sonarr')
   getSonarrSettings() {
     return this.settingsService.getSonarrSettings();
+  }
+  @Get('/sonarr/:id/quality-profiles')
+  getSonarrQualityProfiles(@Param('id', new ParseIntPipe()) id: number) {
+    return this.settingsService.getSonarrQualityProfiles(id);
   }
   @Get('/version')
   getVersion() {

@@ -136,6 +136,80 @@ describe('RadarrActionHandler', () => {
     },
   );
 
+  it('should change movie quality profile when action is CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 12,
+      radarrSettingsId: 1,
+      type: EPlexDataType.MOVIES,
+    });
+    const collectionMedia = createCollectionMedia(collection, {
+      tmdbId: 1,
+    });
+
+    const mockedRadarrApi = mockRadarrApi();
+    jest
+      .spyOn(mockedRadarrApi, 'getMovieByTmdbId')
+      .mockResolvedValue(createRadarrMovie({ id: 5 }));
+
+    await radarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(mockedRadarrApi.updateMovie).toHaveBeenCalledWith(5, {
+      qualityProfileId: 12,
+      deleteFiles: false,
+    });
+    expect(mockedRadarrApi.deleteMovie).not.toHaveBeenCalled();
+  });
+
+  it('should replace existing files and trigger search when configured for CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 12,
+      replaceExistingFilesAfterQualityProfileChange: true,
+      radarrSettingsId: 1,
+      type: EPlexDataType.MOVIES,
+    });
+    const collectionMedia = createCollectionMedia(collection, {
+      tmdbId: 1,
+    });
+
+    const mockedRadarrApi = mockRadarrApi();
+    jest
+      .spyOn(mockedRadarrApi, 'getMovieByTmdbId')
+      .mockResolvedValue(createRadarrMovie({ id: 5 }));
+    jest.spyOn(mockedRadarrApi, 'searchMovie').mockResolvedValue();
+
+    await radarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(mockedRadarrApi.updateMovie).toHaveBeenCalledWith(5, {
+      qualityProfileId: 12,
+      deleteFiles: true,
+    });
+    expect(mockedRadarrApi.searchMovie).toHaveBeenCalledWith(5);
+  });
+
+  it('should not delete from disk when movie is missing and action is CHANGE_QUALITY_PROFILE', async () => {
+    const collection = createCollection({
+      arrAction: ServarrAction.CHANGE_QUALITY_PROFILE,
+      qualityProfileId: 12,
+      radarrSettingsId: 1,
+      type: EPlexDataType.MOVIES,
+    });
+    const collectionMedia = createCollectionMedia(collection, {
+      tmdbId: 1,
+    });
+
+    const mockedRadarrApi = mockRadarrApi();
+    jest
+      .spyOn(mockedRadarrApi, 'getMovieByTmdbId')
+      .mockResolvedValue(undefined);
+
+    await radarrActionHandler.handleAction(collection, collectionMedia);
+
+    expect(plexApi.deleteMediaFromDisk).not.toHaveBeenCalled();
+    validateNoRadarrActionsTaken(mockedRadarrApi);
+  });
+
   it.each([{ listExclusions: true }, { listExclusions: false }])(
     'should unmonitor and delete movie when action is UNMONITOR_DELETE_ALL',
     async ({ listExclusions }) => {
@@ -174,6 +248,7 @@ describe('RadarrActionHandler', () => {
     const mockedRadarrApi = new RadarrApi({} as any, logger as any);
     jest.spyOn(mockedRadarrApi, 'deleteMovie').mockImplementation(jest.fn());
     jest.spyOn(mockedRadarrApi, 'updateMovie').mockImplementation(jest.fn());
+    jest.spyOn(mockedRadarrApi, 'searchMovie').mockImplementation(jest.fn());
 
     servarrService.getRadarrApiClient.mockResolvedValue(mockedRadarrApi);
 

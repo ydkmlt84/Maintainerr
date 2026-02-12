@@ -65,6 +65,9 @@ export interface RuleGroupCollectionPayload {
   visibleOnRecommended: boolean
   visibleOnHome: boolean
   deleteAfterDays?: number
+  qualityProfileId?: number
+  replaceExistingFilesAfterQualityProfileChange?: boolean
+  searchAfterQualityProfileChange?: boolean
   manualCollection?: boolean
   manualCollectionName?: string
   keepLogsForMonths?: number

@@ -88,7 +88,7 @@ export class SonarrActionHandler {
     let sonarrMedia = await sonarrApiClient.getSeriesByTvdbId(tvdbId);
 
     if (!sonarrMedia?.id) {
-      if (collection.arrAction !== ServarrAction.UNMONITOR) {
+      if (this.shouldDeleteFromPlexWhenMissingInArr(collection.arrAction)) {
         this.logger.log(
           `Couldn't find correct tvdb id. No Sonarr action was taken for show: https://www.themoviedb.org/tv/${media.tmdbId}. Attempting to remove from the filesystem via Plex.`,
         );
@@ -240,6 +240,50 @@ export class SonarrActionHandler {
             break;
         }
         break;
+      case ServarrAction.CHANGE_QUALITY_PROFILE:
+        if (collection.type !== EPlexDataType.SHOWS) {
+          this.logger.warn(
+            `[Sonarr] CHANGE_QUALITY_PROFILE is only supported for whole shows. Type '${collection.type}' is not supported`,
+          );
+          break;
+        }
+
+        if (collection.qualityProfileId == null) {
+          this.logger.warn(
+            `[Sonarr] No quality profile selected for '${sonarrMedia.title}'. Skipping quality profile update`,
+          );
+          break;
+        }
+
+        sonarrMedia.qualityProfileId = collection.qualityProfileId;
+        await sonarrApiClient.updateSeries(sonarrMedia);
+        this.logger.log(
+          `[Sonarr] Changed quality profile for '${sonarrMedia.title}' to profile id ${collection.qualityProfileId}`,
+        );
+
+        const shouldSearch =
+          collection.searchAfterQualityProfileChange ||
+          collection.replaceExistingFilesAfterQualityProfileChange;
+
+        if (collection.replaceExistingFilesAfterQualityProfileChange) {
+          await sonarrApiClient.deleteExistingEpisodeFiles(sonarrMedia.id);
+        }
+
+        if (shouldSearch) {
+          await sonarrApiClient.searchSeries(sonarrMedia.id);
+          this.logger.log(
+            `[Sonarr] Triggered search for '${sonarrMedia.title}' after quality profile change`,
+          );
+        }
+        break;
     }
+  }
+
+  private shouldDeleteFromPlexWhenMissingInArr(action: ServarrAction): boolean {
+    return [
+      ServarrAction.DELETE,
+      ServarrAction.UNMONITOR_DELETE_ALL,
+      ServarrAction.UNMONITOR_DELETE_EXISTING,
+    ].includes(action);
   }
 }

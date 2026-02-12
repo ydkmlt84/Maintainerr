@@ -66,6 +66,18 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
     }
   };
 
+  public getProfilesLive = async (): Promise<QualityProfile[]> => {
+    try {
+      const data = await this.getWithoutCache<QualityProfile[]>(
+        `/qualityProfile`,
+      );
+
+      return data;
+    } catch (e) {
+      this.logger.warn(`Failed to retrieve live profiles: ${e.message}`);
+    }
+  };
+
   public getRootFolders = async (): Promise<RootFolder[]> => {
     try {
       const data = await this.getRolling<RootFolder[]>(

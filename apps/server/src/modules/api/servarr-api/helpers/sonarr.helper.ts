@@ -134,6 +134,28 @@ export class SonarrApi extends ServarrApi<{
     }
   }
 
+  public async deleteExistingEpisodeFiles(seriesId: number): Promise<void> {
+    this.logger.log(`Deleting existing episode files for series ID ${seriesId}`);
+    try {
+      const episodeFiles = await this.get<SonarrEpisodeFile[]>(
+        `episodefile?seriesId=${seriesId}`,
+      );
+
+      if (!episodeFiles?.length) {
+        return;
+      }
+
+      for (const episodeFile of episodeFiles) {
+        await this.runDelete(`episodefile/${episodeFile.id}`);
+      }
+    } catch (e) {
+      this.logger.warn(
+        `Couldn't delete existing episode files for series ID ${seriesId}: ${e.message}`,
+      );
+      this.logger.debug(e);
+    }
+  }
+
   public async deleteShow(
     seriesId: number | string,
     deleteFiles = true,

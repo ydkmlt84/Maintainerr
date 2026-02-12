@@ -69,9 +69,37 @@ export class RadarrActionHandler {
               `Unmonitored movie with tmdb id ${tmdbid}${collection.listExclusions ? ', added to import exclusion list' : ''} & removed files from filesystem in Radarr`,
             );
             break;
+          case ServarrAction.CHANGE_QUALITY_PROFILE:
+            if (collection.qualityProfileId == null) {
+              this.logger.warn(
+                `No quality profile selected for movie with tmdb id ${tmdbid}. Skipping quality profile update in Radarr`,
+              );
+              break;
+            }
+
+            await radarrApiClient.updateMovie(radarrMedia.id, {
+              qualityProfileId: collection.qualityProfileId,
+              deleteFiles:
+                collection.replaceExistingFilesAfterQualityProfileChange,
+            });
+            this.logger.log(
+              `Changed quality profile for movie with tmdb id ${tmdbid} to profile id ${collection.qualityProfileId} in Radarr`,
+            );
+
+            const shouldSearch =
+              collection.searchAfterQualityProfileChange ||
+              collection.replaceExistingFilesAfterQualityProfileChange;
+
+            if (shouldSearch) {
+              await radarrApiClient.searchMovie(radarrMedia.id);
+              this.logger.log(
+                `Triggered search for movie with tmdb id ${tmdbid} in Radarr after quality profile change`,
+              );
+            }
+            break;
         }
       } else {
-        if (collection.arrAction !== ServarrAction.UNMONITOR) {
+        if (this.shouldDeleteFromPlexWhenMissingInArr(collection.arrAction)) {
           this.logger.log(
             `Couldn't find movie with tmdb id ${tmdbid} in Radarr, so no Radarr action was taken for movie with Plex ID ${media.plexId}. Attempting to remove from the filesystem via Plex.`,
           );
@@ -87,5 +115,13 @@ export class RadarrActionHandler {
         `Couldn't find correct tmdb id. No action taken for movie with Plex ID: ${media.plexId}. Please check this movie manually`,
       );
     }
+  }
+
+  private shouldDeleteFromPlexWhenMissingInArr(action: ServarrAction): boolean {
+    return [
+      ServarrAction.DELETE,
+      ServarrAction.UNMONITOR_DELETE_ALL,
+      ServarrAction.UNMONITOR_DELETE_EXISTING,
+    ].includes(action);
   }
 }

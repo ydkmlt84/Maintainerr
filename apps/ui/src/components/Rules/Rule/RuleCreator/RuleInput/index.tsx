@@ -12,6 +12,7 @@ import {
 } from '../../../../../contexts/constants-context'
 import { EPlexDataType } from '../../../../../utils/PlexDataType-enum'
 import LoadingSpinner from '../../../../Common/LoadingSpinner'
+import GetApiHandler from '../../../../../utils/ApiHandler'
 
 enum RuleType {
   NUMBER,
@@ -30,6 +31,7 @@ enum CustomParams {
   CUSTOM_DAYS = 'custom_days',
   CUSTOM_DATE = 'custom_date',
   CUSTOM_TEXT = 'custom_text',
+  CUSTOM_QUALITY_PROFILE = 'custom_quality_profile',
   CUSTOM_TEXT_LIST = 'custom_text_list',
   CUSTOM_BOOLEAN = 'custom_boolean',
 }
@@ -48,6 +50,11 @@ interface IRuleInput {
   allowDelete?: boolean
   radarrSettingsId?: number | null
   sonarrSettingsId?: number | null
+}
+
+interface QualityProfile {
+  id: number
+  name: string
 }
 
 /**
@@ -85,6 +92,9 @@ const RuleInput = (props: IRuleInput) => {
   const [customValType, setCustomValType] = useState<RuleType>()
   const [customVal, setCustomVal] = useState<string>()
   const [customValActive, setCustomValActive] = useState<boolean>(true)
+  const [qualityProfiles, setQualityProfiles] = useState<QualityProfile[]>([])
+  const [qualityProfilesLoading, setQualityProfilesLoading] =
+    useState<boolean>(false)
 
   const [possibilities, setPossibilities] = useState<RulePossibility[]>([])
   const [ruleType, setRuleType] = useState<RuleType>(RuleType.NUMBER)
@@ -156,10 +166,22 @@ const RuleInput = (props: IRuleInput) => {
   }
 
   const updateSecondValue = (event: { target: { value: string } }) => {
-    if (event.target.value === '') {
+    const nextSecondVal =
+      event.target.value === '' ? undefined : event.target.value
+
+    if (
+      (secondVal === CustomParams.CUSTOM_QUALITY_PROFILE &&
+        nextSecondVal === CustomParams.CUSTOM_TEXT) ||
+      (secondVal === CustomParams.CUSTOM_TEXT &&
+        nextSecondVal === CustomParams.CUSTOM_QUALITY_PROFILE)
+    ) {
+      setCustomVal(undefined)
+    }
+
+    if (nextSecondVal === undefined) {
       setSecondVal(undefined)
     } else {
-      setSecondVal(event.target.value)
+      setSecondVal(nextSecondVal)
     }
   }
 
@@ -203,6 +225,7 @@ const RuleInput = (props: IRuleInput) => {
         secondVal !== CustomParams.CUSTOM_DAYS &&
         secondVal !== CustomParams.CUSTOM_NUMBER &&
         secondVal !== CustomParams.CUSTOM_TEXT &&
+        secondVal !== CustomParams.CUSTOM_QUALITY_PROFILE &&
         secondVal !== CustomParams.CUSTOM_TEXT_LIST &&
         secondVal !== CustomParams.CUSTOM_BOOLEAN) ||
         customVal)
@@ -308,6 +331,9 @@ const RuleInput = (props: IRuleInput) => {
       } else if (secondVal === CustomParams.CUSTOM_TEXT) {
         setCustomValActive(true)
         setCustomValType(RuleType.TEXT)
+      } else if (secondVal === CustomParams.CUSTOM_QUALITY_PROFILE) {
+        setCustomValActive(true)
+        setCustomValType(RuleType.TEXT)
       } else if (secondVal === CustomParams.CUSTOM_TEXT_LIST) {
         setCustomValActive(true)
         setCustomValType(RuleType.TEXT_LIST)
@@ -323,6 +349,48 @@ const RuleInput = (props: IRuleInput) => {
       }
     }
   }, [secondVal])
+
+  const loadQualityProfiles = async (
+    type: 'radarr' | 'sonarr',
+    settingId: number,
+    showLoadingState = true,
+  ) => {
+    if (showLoadingState) {
+      setQualityProfilesLoading(true)
+    }
+    const response = await GetApiHandler<QualityProfile[]>(
+      `/settings/${type}/${settingId}/quality-profiles`,
+    )
+    setQualityProfiles(response ?? [])
+    if (showLoadingState) {
+      setQualityProfilesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const firstTuple = parseValueTuple(firstval)
+    if (!firstTuple) {
+      setQualityProfiles([])
+      return
+    }
+
+    const isRadarrQualityProfile =
+      firstTuple[0] === Application.RADARR && firstTuple[1] === 3
+    const isSonarrQualityProfile =
+      firstTuple[0] === Application.SONARR && firstTuple[1] === 25
+
+    if (isRadarrQualityProfile && props.radarrSettingsId != null) {
+      loadQualityProfiles('radarr', props.radarrSettingsId)
+      return
+    }
+
+    if (isSonarrQualityProfile && props.sonarrSettingsId != null) {
+      loadQualityProfiles('sonarr', props.sonarrSettingsId)
+      return
+    }
+
+    setQualityProfiles([])
+  }, [firstval, props.radarrSettingsId, props.sonarrSettingsId])
 
   const getPropFromTuple = (
     value: [number, number] | string,
@@ -340,6 +408,46 @@ const RuleInput = (props: IRuleInput) => {
       return el.id === +value[1]
     })
     return prop
+  }
+
+  const parseValueTuple = (value?: string): [number, number] | undefined => {
+    if (!value) {
+      return undefined
+    }
+
+    try {
+      const parsed = JSON.parse(value) as [number, number]
+      if (
+        Array.isArray(parsed) &&
+        parsed.length === 2 &&
+        typeof parsed[0] === 'number' &&
+        typeof parsed[1] === 'number'
+      ) {
+        return parsed
+      }
+      return undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  const isQualityProfileCustomRule = (): boolean => {
+    const firstTuple = parseValueTuple(firstval)
+    if (!firstTuple) {
+      return false
+    }
+
+    const isRadarrQualityProfile =
+      firstTuple[0] === Application.RADARR && firstTuple[1] === 3
+    const isSonarrQualityProfile =
+      firstTuple[0] === Application.SONARR && firstTuple[1] === 25
+
+    return (
+      secondVal === CustomParams.CUSTOM_QUALITY_PROFILE &&
+      customValActive &&
+      customValType === RuleType.TEXT &&
+      (isRadarrQualityProfile || isSonarrQualityProfile)
+    )
   }
 
   if (!constants || constantsLoading) {
@@ -520,7 +628,16 @@ const RuleInput = (props: IRuleInput) => {
                 <option value={CustomParams.CUSTOM_BOOLEAN}>Boolean</option>
               ) : undefined}
               {ruleType === RuleType.TEXT ? (
-                <option value={CustomParams.CUSTOM_TEXT}>Text</option>
+                <>
+                  <option value={CustomParams.CUSTOM_TEXT}>
+                    Text (manual)
+                  </option>
+                  {isQualityProfileRule(firstval) ? (
+                    <option value={CustomParams.CUSTOM_QUALITY_PROFILE}>
+                      Profile List (select)
+                    </option>
+                  ) : null}
+                </>
               ) : undefined}
               <MaybeTextListOptions ruleType={ruleType} action={action} />
             </optgroup>
@@ -585,6 +702,52 @@ const RuleInput = (props: IRuleInput) => {
                 value={customVal ? +customVal / 86400 : undefined}
                 placeholder="Amount of days"
               ></input>
+            ) : isQualityProfileCustomRule() ? (
+              <select
+                name="custom_val"
+                id="custom_val"
+                onChange={updateCustomValue}
+                value={customVal ?? ''}
+                onFocus={() => {
+                  const firstTuple = parseValueTuple(firstval)
+                  if (
+                    firstTuple?.[0] === Application.RADARR &&
+                    props.radarrSettingsId != null
+                  ) {
+                    loadQualityProfiles(
+                      'radarr',
+                      props.radarrSettingsId,
+                      false,
+                    )
+                  }
+                  if (
+                    firstTuple?.[0] === Application.SONARR &&
+                    props.sonarrSettingsId != null
+                  ) {
+                    loadQualityProfiles(
+                      'sonarr',
+                      props.sonarrSettingsId,
+                      false,
+                    )
+                  }
+                }}
+              >
+                <option value="">Select quality profile...</option>
+                {qualityProfiles.map((profile) => (
+                  <option key={profile.id} value={profile.name}>
+                    {profile.name}
+                  </option>
+                ))}
+                {qualityProfilesLoading && (
+                  <option value="" disabled>
+                    Loading quality profiles...
+                  </option>
+                )}
+                {customVal &&
+                  qualityProfiles.find(
+                    (profile) => profile.name === customVal,
+                  ) == null && <option value={customVal}>{customVal}</option>}
+              </select>
             ) : (customValType === RuleType.TEXT &&
                 secondVal === CustomParams.CUSTOM_TEXT) ||
               customValType === RuleType.TEXT_LIST ? (
@@ -664,7 +827,7 @@ function MaybeTextListOptions({
 
   return (
     <>
-      <option value={CustomParams.CUSTOM_TEXT}>Text</option>
+      <option value={CustomParams.CUSTOM_TEXT}>Text (manual)</option>
       {/* This was accidentally shipped - we keep it as a hidden option so that it still appears in
           the UI if somebody had already selected it, but we don't want it to be able to be selected
           in new rules. We should run a migration at some point to update all
@@ -674,6 +837,22 @@ function MaybeTextListOptions({
       </option>
     </>
   )
+}
+
+function isQualityProfileRule(firstval?: string): boolean {
+  if (!firstval) {
+    return false
+  }
+
+  try {
+    const value = JSON.parse(firstval) as [number, number]
+    return (
+      (value[0] === Application.RADARR && value[1] === 3) ||
+      (value[0] === Application.SONARR && value[1] === 25)
+    )
+  } catch {
+    return false
+  }
 }
 
 export default RuleInput

@@ -18,6 +18,7 @@ import { InternalApiService } from '../api/internal-api/internal-api.service';
 import { JellyseerrApiService } from '../api/jellyseerr-api/jellyseerr-api.service';
 import { OverseerrApiService } from '../api/overseerr-api/overseerr-api.service';
 import { PlexApiService } from '../api/plex-api/plex-api.service';
+import { QualityProfile } from '../api/servarr-api/interfaces/servarr.interface';
 import { ServarrService } from '../api/servarr-api/servarr.service';
 import { TautulliApiService } from '../api/tautulli-api/tautulli-api.service';
 import { MaintainerrLogger } from '../logging/logs.service';
@@ -169,6 +170,19 @@ export class SettingsService implements SettingDto {
     }
   }
 
+  public async getRadarrQualityProfiles(id: number): Promise<QualityProfile[]> {
+    try {
+      const apiClient = await this.servarr.getRadarrApiClient(id);
+      return (await apiClient.getProfilesLive()) ?? [];
+    } catch (err) {
+      this.logger.error(
+        `Something went wrong while getting Radarr quality profiles for setting ${id}.`,
+        err,
+      );
+      return [];
+    }
+  }
+
   public async addRadarrSetting(
     settings: Omit<RadarrSettings, 'id' | 'collections'>,
   ): Promise<RadarrSettingResponseDto> {
@@ -269,6 +283,19 @@ export class SettingsService implements SettingDto {
         `Something went wrong while getting sonarr setting ${id}. Is the database file locked?`,
       );
       return { status: 'NOK', code: 0, message: err } as BasicResponseDto;
+    }
+  }
+
+  public async getSonarrQualityProfiles(id: number): Promise<QualityProfile[]> {
+    try {
+      const apiClient = await this.servarr.getSonarrApiClient(id);
+      return (await apiClient.getProfilesLive()) ?? [];
+    } catch (err) {
+      this.logger.error(
+        `Something went wrong while getting Sonarr quality profiles for setting ${id}.`,
+        err,
+      );
+      return [];
     }
   }
 

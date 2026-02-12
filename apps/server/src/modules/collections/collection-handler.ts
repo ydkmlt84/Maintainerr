@@ -59,7 +59,7 @@ export class CollectionHandler {
     } else if (plexLibrary.type == 'show' && collection.sonarrSettingsId) {
       await this.sonarrActionHandler.handleAction(collection, media);
     } else if (!collection.radarrSettingsId && !collection.sonarrSettingsId) {
-      if (collection.arrAction !== ServarrAction.UNMONITOR) {
+      if (this.shouldDeleteFromPlexAction(collection.arrAction)) {
         this.logger.log(
           `Couldn't utilize *arr to find and remove the media with id ${media.plexId}. Attempting to remove from the filesystem via Plex. No unmonitor action was taken.`,
         );
@@ -72,7 +72,7 @@ export class CollectionHandler {
     }
 
     // Only remove requests & file if needed
-    if (collection.arrAction !== ServarrAction.UNMONITOR) {
+    if (this.shouldHandleOverseerrRequest(collection.arrAction)) {
       // overseerr, if forced. Otherwise rely on media sync
       if (this.settings.overseerrConfigured() && collection.forceOverseerr) {
         switch (collection.type) {
@@ -115,5 +115,17 @@ export class CollectionHandler {
         }
       }
     }
+  }
+
+  private shouldDeleteFromPlexAction(action: ServarrAction): boolean {
+    return [
+      ServarrAction.DELETE,
+      ServarrAction.UNMONITOR_DELETE_ALL,
+      ServarrAction.UNMONITOR_DELETE_EXISTING,
+    ].includes(action);
+  }
+
+  private shouldHandleOverseerrRequest(action: ServarrAction): boolean {
+    return this.shouldDeleteFromPlexAction(action);
   }
 }
