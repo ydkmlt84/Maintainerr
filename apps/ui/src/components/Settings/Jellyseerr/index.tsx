@@ -2,7 +2,7 @@ import { SaveIcon } from '@heroicons/react/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   BasicResponseDto,
-  JellyseerrSettingDto,
+  JellyseerrSetting,
   jellyseerrSettingSchema,
 } from '@maintainerr/contracts'
 import { useState } from 'react'
@@ -38,7 +38,7 @@ const stripLeadingSlashes = (url: string) => url.replace(/\/+$/, '')
 
 const JellyseerrSettings = () => {
   const [testedSettings, setTestedSettings] = useState<
-    JellyseerrSettingDto | undefined
+    JellyseerrSetting | undefined
   >()
 
   const [testing, setTesting] = useState(false)
@@ -55,7 +55,7 @@ const JellyseerrSettings = () => {
   } = useForm<JellyseerrSettingFormResult, any, JellyseerrSettingFormResult>({
     resolver: zodResolver(JellyseerrSettingFormSchema),
     defaultValues: async () => {
-      const resp = await GetApiHandler<JellyseerrSettingDto>(
+      const resp = await GetApiHandler<JellyseerrSetting>(
         '/settings/jellyseerr',
       )
       return {
@@ -82,7 +82,7 @@ const JellyseerrSettings = () => {
     !isSubmitting &&
     !isLoading
 
-  const onSubmit = async (data: JellyseerrSettingDto) => {
+  const onSubmit = async (data: JellyseerrSetting) => {
     setSubmitError(false)
     setIsSubmitSuccessful(false)
 
@@ -111,7 +111,7 @@ const JellyseerrSettings = () => {
     await PostApiHandler<BasicResponseDto>('/settings/test/jellyseerr', {
       api_key: api_key,
       url,
-    } satisfies JellyseerrSettingDto)
+    } satisfies JellyseerrSetting)
       .then((resp) => {
         setTestResult({
           status: resp.code == 1 ? true : false,

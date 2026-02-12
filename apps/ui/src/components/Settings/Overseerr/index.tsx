@@ -2,7 +2,7 @@ import { SaveIcon } from '@heroicons/react/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   BasicResponseDto,
-  OverseerrSettingDto,
+  OverseerrSetting,
   overseerrSettingSchema,
 } from '@maintainerr/contracts'
 import { useState } from 'react'
@@ -38,7 +38,7 @@ const stripLeadingSlashes = (url: string) => url.replace(/\/+$/, '')
 
 const OverseerrSettings = () => {
   const [testedSettings, setTestedSettings] = useState<
-    OverseerrSettingDto | undefined
+    OverseerrSetting | undefined
   >()
 
   const [testing, setTesting] = useState(false)
@@ -55,9 +55,7 @@ const OverseerrSettings = () => {
   } = useForm<OverseerrSettingFormResult, any, OverseerrSettingFormResult>({
     resolver: zodResolver(OverseerrSettingFormSchema),
     defaultValues: async () => {
-      const resp = await GetApiHandler<OverseerrSettingDto>(
-        '/settings/overseerr',
-      )
+      const resp = await GetApiHandler<OverseerrSetting>('/settings/overseerr')
       return {
         url: resp.url ?? '',
         api_key: resp.api_key ?? '',
@@ -82,7 +80,7 @@ const OverseerrSettings = () => {
     !isSubmitting &&
     !isLoading
 
-  const onSubmit = async (data: OverseerrSettingDto) => {
+  const onSubmit = async (data: OverseerrSetting) => {
     setSubmitError(false)
     setIsSubmitSuccessful(false)
 
@@ -111,7 +109,7 @@ const OverseerrSettings = () => {
     await PostApiHandler<BasicResponseDto>('/settings/test/overseerr', {
       api_key: api_key,
       url,
-    } satisfies OverseerrSettingDto)
+    } satisfies OverseerrSetting)
       .then((resp) => {
         setTestResult({
           status: resp.code == 1 ? true : false,

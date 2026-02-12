@@ -2,7 +2,7 @@ import {
   LogEvent,
   LogFile,
   LogSetting,
-  LogSettingDto,
+  logSettingSchema,
 } from '@maintainerr/contracts';
 import {
   BeforeApplicationShutdown,
@@ -20,6 +20,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ZodValidationPipe } from 'nestjs-zod';
 import { Response } from 'express';
 import { createReadStream, readdir } from 'fs';
 import { readdir as readdirp, stat } from 'fs/promises';
@@ -291,7 +292,9 @@ export class LogsController implements BeforeApplicationShutdown {
   }
 
   @Post('settings')
-  async setLogSettings(@Body() payload: LogSettingDto) {
+  async setLogSettings(
+    @Body(new ZodValidationPipe(logSettingSchema)) payload: LogSetting,
+  ) {
     return await this.logSettingsService.update(payload);
   }
 }

@@ -1,16 +1,17 @@
 import {
   BasicResponseDto,
-  JellyfinSettingDto,
+  JellyfinSetting,
+  jellyfinSettingSchema,
   JellyseerrSetting,
-  JellyseerrSettingDto,
+  jellyseerrSettingSchema,
   MediaServerSwitchPreview,
   MediaServerType,
   OverseerrSetting,
-  OverseerrSettingDto,
+  overseerrSettingSchema,
   SwitchMediaServerRequest,
   SwitchMediaServerResponse,
   TautulliSetting,
-  TautulliSettingDto,
+  tautulliSettingSchema,
 } from '@maintainerr/contracts';
 import {
   Body,
@@ -31,6 +32,7 @@ import { UpdateSettingDto } from "./dto's/update-setting.dto";
 import { Settings } from './entities/settings.entities';
 import { MediaServerSwitchService } from './media-server-switch.service';
 import { SettingsService } from './settings.service';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 @Controller('/api/settings')
 export class SettingsController {
@@ -143,7 +145,10 @@ export class SettingsController {
   }
 
   @Post('/tautulli')
-  async updateTautlliSetting(@Body() payload: TautulliSettingDto) {
+  async updateTautlliSetting(
+    @Body(new ZodValidationPipe(tautulliSettingSchema))
+    payload: TautulliSetting,
+  ) {
     return await this.settingsService.updateTautulliSetting(payload);
   }
 
@@ -153,7 +158,10 @@ export class SettingsController {
   }
 
   @Post('/test/tautulli')
-  testTautulli(@Body() payload: TautulliSettingDto): Promise<BasicResponseDto> {
+  testTautulli(
+    @Body(new ZodValidationPipe(tautulliSettingSchema))
+    payload: TautulliSetting,
+  ): Promise<BasicResponseDto> {
     return this.settingsService.testTautulli(payload);
   }
 
@@ -186,7 +194,10 @@ export class SettingsController {
   }
 
   @Post('/jellyseerr')
-  async updateJellyseerrSetting(@Body() payload: JellyseerrSettingDto) {
+  async updateJellyseerrSetting(
+    @Body(new ZodValidationPipe(jellyseerrSettingSchema))
+    payload: JellyseerrSetting,
+  ) {
     return await this.settingsService.updateJellyseerrSetting(payload);
   }
 
@@ -197,13 +208,17 @@ export class SettingsController {
 
   @Post('/test/jellyseerr')
   testJellyseerr(
-    @Body() payload: JellyseerrSettingDto,
+    @Body(new ZodValidationPipe(jellyseerrSettingSchema))
+    payload: JellyseerrSetting,
   ): Promise<BasicResponseDto> {
     return this.settingsService.testJellyseerr(payload);
   }
 
   @Post('/overseerr')
-  async updateOverseerrSetting(@Body() payload: OverseerrSettingDto) {
+  async updateOverseerrSetting(
+    @Body(new ZodValidationPipe(overseerrSettingSchema))
+    payload: OverseerrSetting,
+  ) {
     return await this.settingsService.updateOverseerrSetting(payload);
   }
 
@@ -214,19 +229,24 @@ export class SettingsController {
 
   @Post('/test/overseerr')
   testOverseerr(
-    @Body() payload: OverseerrSettingDto,
+    @Body(new ZodValidationPipe(overseerrSettingSchema))
+    payload: OverseerrSetting,
   ): Promise<BasicResponseDto> {
     return this.settingsService.testOverseerr(payload);
   }
 
   @Post('/jellyfin/test')
-  testJellyfin(@Body() payload: JellyfinSettingDto): Promise<BasicResponseDto> {
+  testJellyfin(
+    @Body(new ZodValidationPipe(jellyfinSettingSchema))
+    payload: JellyfinSetting,
+  ): Promise<BasicResponseDto> {
     return this.settingsService.testJellyfin(payload);
   }
 
   @Post('/jellyfin')
   async saveJellyfinSettings(
-    @Body() payload: JellyfinSettingDto,
+    @Body(new ZodValidationPipe(jellyfinSettingSchema))
+    payload: JellyfinSetting,
   ): Promise<BasicResponseDto> {
     return await this.settingsService.saveJellyfinSettings(payload);
   }

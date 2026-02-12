@@ -2,7 +2,7 @@ import { SaveIcon } from '@heroicons/react/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   BasicResponseDto,
-  TautulliSettingDto,
+  TautulliSetting,
   tautulliSettingSchema,
 } from '@maintainerr/contracts'
 import { useState } from 'react'
@@ -38,7 +38,7 @@ const stripLeadingSlashes = (url: string) => url.replace(/\/+$/, '')
 
 const TautulliSettings = () => {
   const [testedSettings, setTestedSettings] = useState<
-    TautulliSettingDto | undefined
+    TautulliSetting | undefined
   >()
 
   const [testing, setTesting] = useState(false)
@@ -55,7 +55,7 @@ const TautulliSettings = () => {
   } = useForm<TautulliSettingFormResult, any, TautulliSettingFormResult>({
     resolver: zodResolver(TautulliSettingFormSchema),
     defaultValues: async () => {
-      const resp = await GetApiHandler<TautulliSettingDto>('/settings/tautulli')
+      const resp = await GetApiHandler<TautulliSetting>('/settings/tautulli')
       return {
         url: resp.url ?? '',
         api_key: resp.api_key ?? '',
@@ -80,7 +80,7 @@ const TautulliSettings = () => {
     !isSubmitting &&
     !isLoading
 
-  const onSubmit = async (data: TautulliSettingDto) => {
+  const onSubmit = async (data: TautulliSetting) => {
     setSubmitError(false)
     setIsSubmitSuccessful(false)
 
@@ -109,7 +109,7 @@ const TautulliSettings = () => {
     await PostApiHandler<BasicResponseDto>('/settings/test/tautulli', {
       api_key: api_key,
       url,
-    } satisfies TautulliSettingDto)
+    } satisfies TautulliSetting)
       .then((resp) => {
         setTestResult({
           status: resp.code == 1 ? true : false,
