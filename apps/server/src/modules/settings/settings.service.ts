@@ -1,9 +1,10 @@
 import {
-  JellyseerrSettingDto,
+  JellyfinSetting,
+  JellyseerrSetting,
   MaintainerrEvent,
   MediaServerType,
-  OverseerrSettingDto,
-  TautulliSettingDto,
+  OverseerrSetting,
+  TautulliSetting,
 } from '@maintainerr/contracts';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -335,7 +336,7 @@ export class SettingsService implements SettingDto {
   }
 
   public async updateTautulliSetting(
-    settings: TautulliSettingDto,
+    settings: TautulliSetting,
   ): Promise<BasicResponseDto> {
     try {
       const settingsDb = await this.settingsRepo.findOne({ where: {} });
@@ -379,7 +380,7 @@ export class SettingsService implements SettingDto {
   }
 
   public async updateOverseerrSetting(
-    settings: OverseerrSettingDto,
+    settings: OverseerrSetting,
   ): Promise<BasicResponseDto> {
     try {
       const settingsDb = await this.settingsRepo.findOne({ where: {} });
@@ -404,11 +405,9 @@ export class SettingsService implements SettingDto {
   /**
    * Test connection to a Jellyfin server
    */
-  public async testJellyfin(settings: {
-    jellyfin_url: string;
-    jellyfin_api_key: string;
-    jellyfin_user_id?: string;
-  }): Promise<
+  public async testJellyfin(
+    settings: JellyfinSetting,
+  ): Promise<
     BasicResponseDto & {
       serverName?: string;
       version?: string;
@@ -441,11 +440,9 @@ export class SettingsService implements SettingDto {
   /**
    * Save Jellyfin settings and initialize the service
    */
-  public async saveJellyfinSettings(settings: {
-    jellyfin_url: string;
-    jellyfin_api_key: string;
-    jellyfin_user_id?: string;
-  }): Promise<BasicResponseDto> {
+  public async saveJellyfinSettings(
+    settings: JellyfinSetting,
+  ): Promise<BasicResponseDto> {
     try {
       const settingsDb = await this.settingsRepo.findOne({ where: {} });
 
@@ -516,10 +513,9 @@ export class SettingsService implements SettingDto {
   /**
    * Auto-detect an admin user from Jellyfin
    */
-  private async autoDetectJellyfinAdminUser(settings: {
-    jellyfin_url: string;
-    jellyfin_api_key: string;
-  }): Promise<string | undefined> {
+  private async autoDetectJellyfinAdminUser(
+    settings: Pick<JellyfinSetting, 'jellyfin_url' | 'jellyfin_api_key'>,
+  ): Promise<string | undefined> {
     try {
       const { Jellyfin } = await import('@jellyfin/sdk');
       const { getUserApi } = await import('@jellyfin/sdk/lib/utils/api');
@@ -825,7 +821,7 @@ export class SettingsService implements SettingDto {
   }
 
   public async testOverseerr(
-    setting?: OverseerrSettingDto,
+    setting?: OverseerrSetting,
   ): Promise<BasicResponseDto> {
     return await this.overseerr.testConnection(
       setting
@@ -838,7 +834,7 @@ export class SettingsService implements SettingDto {
   }
 
   public async testJellyseerr(
-    setting?: JellyseerrSettingDto,
+    setting?: JellyseerrSetting,
   ): Promise<BasicResponseDto> {
     return await this.jellyseerr.testConnection(
       setting
@@ -872,7 +868,7 @@ export class SettingsService implements SettingDto {
   }
 
   public async updateJellyseerrSetting(
-    settings: JellyseerrSettingDto,
+    settings: JellyseerrSetting,
   ): Promise<BasicResponseDto> {
     try {
       const settingsDb = await this.settingsRepo.findOne({ where: {} });
@@ -895,7 +891,7 @@ export class SettingsService implements SettingDto {
   }
 
   public async testTautulli(
-    setting?: TautulliSettingDto,
+    setting?: TautulliSetting,
   ): Promise<BasicResponseDto> {
     if (setting) {
       return await this.tautulli.testConnection({

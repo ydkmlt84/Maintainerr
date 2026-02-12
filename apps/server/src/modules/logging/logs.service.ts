@@ -1,4 +1,4 @@
-import { LogSettingDto } from '@maintainerr/contracts';
+import { LogSetting, LogSettingDto } from '@maintainerr/contracts';
 import { Injectable, LoggerService, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,7 +24,7 @@ export class LogSettingsService {
     };
   }
 
-  public async update(settings: LogSettingDto): Promise<void> {
+  public async update(settings: LogSetting): Promise<void> {
     this.logger.level = settings.level;
 
     const rotateTransport = this.logger.transports.find(
