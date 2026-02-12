@@ -150,6 +150,7 @@ export class RuleExecutorService {
 
           // Run rules data chunks of 50
           while (!this.mediaData.finished) {
+            abortSignal.throwIfAborted();
             await this.getMediaData(ruleGroup.libraryId);
 
             const ruleResult = await comparator.executeRulesWithData(

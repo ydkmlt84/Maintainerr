@@ -163,12 +163,20 @@ export class MediaServerSwitchService {
         `Successfully switched media server to ${targetServerType}`,
       );
 
+      const ruleMigrationSummary = ruleMigrationResult
+        ? `${ruleMigrationResult.migratedRules} of ${ruleMigrationResult.totalRules} rules migrated` +
+          (ruleMigrationResult.skippedRules > 0
+            ? ` (${ruleMigrationResult.skippedRules} skipped due to incompatible properties)`
+            : '') +
+          '. Rule groups have been deactivated and need library re-assignment.'
+        : '';
+
       const response: SwitchMediaServerResponse = {
         status: 'OK',
         code: 1,
         message: currentServerType
           ? migrateRules
-            ? `Successfully switched from ${currentServerType} to ${targetServerType}. ${ruleMigrationResult?.migratedRules || 0} rules migrated. Rule groups need library re-assignment.`
+            ? `Successfully switched from ${currentServerType} to ${targetServerType}. ${ruleMigrationSummary}`
             : `Successfully switched from ${currentServerType} to ${targetServerType}`
           : `Successfully set ${targetServerType} as media server`,
         clearedData: {
@@ -239,12 +247,14 @@ export class MediaServerSwitchService {
       } else {
         // When migrating rules, preserve collections but reset media server references
         // 1. Reset libraryId on rule groups (will need to be re-assigned by user)
-        // 2. Keep collectionId linked so the collection metadata is preserved
+        // 2. Deactivate rule groups so they can't run without a valid library
+        // 3. Keep collectionId linked so the collection metadata is preserved
         await queryRunner.manager
           .createQueryBuilder()
           .update(RuleGroup)
           .set({
             libraryId: '', // Mark as needing library assignment
+            isActive: false, // Prevent execution until user re-assigns library
           })
           .execute();
 

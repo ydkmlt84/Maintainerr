@@ -87,6 +87,7 @@ const RuleGroup = (props: {
   const isQueued = queueStatus?.queue.includes(props.group.id)
   const ruleExecutingOrQueued =
     queueStatus?.executingRuleGroupId === props.group.id || isQueued
+  const hasNoLibrary = !props.group.libraryId || props.group.libraryId === ''
 
   return (
     <>
@@ -152,10 +153,17 @@ const RuleGroup = (props: {
               Library
             </div>
             <div className="flex justify-center text-amber-500">
-              {`${
-                libraries?.find((lib) => lib.id === props.group.libraryId)
-                  ?.title ?? ''
-              }`}
+              {hasNoLibrary ? (
+                <span
+                  className="flex justify-center text-red-500"
+                  title="Please edit this rule and select a library"
+                >
+                  Not set
+                </span>
+              ) : (
+                (libraries?.find((lib) => lib.id === props.group.libraryId)
+                  ?.title ?? '')
+              )}
             </div>
           </div>
           <div>

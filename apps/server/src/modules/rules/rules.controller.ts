@@ -125,6 +125,12 @@ export class RulesController {
       throw new ConflictException('Rule group is not active');
     }
 
+    if (!ruleGroup.libraryId || ruleGroup.libraryId === '') {
+      throw new ConflictException(
+        'Rule group has no library assigned. Please edit the rule and select a library before running.',
+      );
+    }
+
     if (this.ruleExecutorJobManagerService.isRuleGroupProcessingOrQueued(id)) {
       throw new ConflictException(
         'The rule is already being executed or is queued for execution',
