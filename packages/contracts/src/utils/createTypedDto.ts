@@ -1,5 +1,5 @@
-import z from 'zod'
 import { createZodDto, ZodDto } from 'nestjs-zod/dto'
+import z from 'zod'
 
 /**
  * A typed wrapper around nestjs-zod's `createZodDto` that properly exposes
