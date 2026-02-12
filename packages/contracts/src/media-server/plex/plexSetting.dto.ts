@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod/dto'
 import { plexSettingSchema, PlexSetting } from './plexSetting'
 
-export class PlexSettingDto
-  extends createZodDto(plexSettingSchema)
-  implements PlexSetting {}
+// Interface merging adds z.infer properties to the class declaration,
+// ensuring they're visible in compiled .d.ts output for downstream consumers.
+export interface PlexSettingDto extends PlexSetting {}
+export class PlexSettingDto extends createZodDto(plexSettingSchema) {}

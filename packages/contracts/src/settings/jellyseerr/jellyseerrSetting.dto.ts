@@ -1,6 +1,9 @@
 import { createZodDto } from 'nestjs-zod/dto'
 import { jellyseerrSettingSchema, JellyseerrSetting } from './jellyseerrSetting'
 
-export class JellyseerrSettingDto
-  extends createZodDto(jellyseerrSettingSchema)
-  implements JellyseerrSetting {}
+// Interface merging adds z.infer properties to the class declaration,
+// ensuring they're visible in compiled .d.ts output for downstream consumers.
+export interface JellyseerrSettingDto extends JellyseerrSetting {}
+export class JellyseerrSettingDto extends createZodDto(
+  jellyseerrSettingSchema,
+) {}
