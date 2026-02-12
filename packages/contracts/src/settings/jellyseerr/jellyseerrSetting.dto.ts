@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod/dto'
-import { jellyseerrSettingSchema, JellyseerrSetting } from './jellyseerrSetting'
+import { JellyseerrSetting, jellyseerrSettingSchema } from './jellyseerrSetting'
 
 // Interface merging adds z.infer properties to the class declaration,
 // ensuring they're visible in compiled .d.ts output for downstream consumers.

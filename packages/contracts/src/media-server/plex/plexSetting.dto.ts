@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod/dto'
-import { plexSettingSchema, PlexSetting } from './plexSetting'
+import { PlexSetting, plexSettingSchema } from './plexSetting'
 
 // Interface merging adds z.infer properties to the class declaration,
 // ensuring they're visible in compiled .d.ts output for downstream consumers.

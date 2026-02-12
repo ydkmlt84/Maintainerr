@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod/dto'
-import { tautulliSettingSchema, TautulliSetting } from './tautulliSetting'
+import { TautulliSetting, tautulliSettingSchema } from './tautulliSetting'
 
 // Interface merging adds z.infer properties to the class declaration,
 // ensuring they're visible in compiled .d.ts output for downstream consumers.
