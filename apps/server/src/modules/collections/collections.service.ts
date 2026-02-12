@@ -1,4 +1,5 @@
 import {
+  BasicResponseDto,
   CollectionLogMeta,
   ECollectionLogType,
   isMediaType,
@@ -17,7 +18,6 @@ import { Brackets, DataSource, LessThan, Repository } from 'typeorm';
 import { CollectionLog } from '../../modules/collections/entities/collection_log.entities';
 import { MediaServerFactory } from '../api/media-server/media-server.factory';
 import { IMediaServerService } from '../api/media-server/media-server.interface';
-import { BasicResponseDto } from '../api/plex-api/dto/basic-response.dto';
 import {
   TmdbMovieDetails,
   TmdbTvDetails,

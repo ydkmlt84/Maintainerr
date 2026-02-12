@@ -10,12 +10,11 @@ import {
   MaintainerrLogger,
   MaintainerrLoggerFactory,
 } from '../../logging/logs.service';
+import { BasicResponseDto, PlexSetting } from '@maintainerr/contracts';
 import { Settings } from '../../settings/entities/settings.entities';
-import { PlexSettings } from '../../settings/interfaces/plex-settings.interface';
 import { SettingsService } from '../../settings/settings.service';
 import PlexApi from '../lib/plexApi';
 import PlexTvApi, { PlexUser } from '../lib/plextvApi';
-import { BasicResponseDto } from './dto/basic-response.dto';
 import { CollectionHubSettingsDto } from './dto/collection-hub-settings.dto';
 import { EPlexDataType } from './enums/plex-data-type-enum';
 import {
@@ -60,7 +59,7 @@ export class PlexApiService {
     this.logger.setContext(PlexApiService.name);
   }
 
-  private getDbSettings(): PlexSettings {
+  private getDbSettings(): PlexSetting {
     return {
       name: this.settings.plex_name,
       machineId: this.machineId,
@@ -68,7 +67,6 @@ export class PlexApiService {
       port: this.settings.plex_port,
       auth_token: this.settings.plex_auth_token,
       useSsl: this.settings.plex_ssl === 1 ? true : false,
-      libraries: [],
       webAppUrl: this.settings.plex_hostname,
     };
   }

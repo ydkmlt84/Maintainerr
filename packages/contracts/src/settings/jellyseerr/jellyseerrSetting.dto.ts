@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod/dto'
-import { jellyseerrSettingSchema } from './jellyseerrSetting'
+import { jellyseerrSettingSchema, JellyseerrSetting } from './jellyseerrSetting'
 
-export class JellyseerrSettingDto extends createZodDto(
-  jellyseerrSettingSchema,
-) {}
+export class JellyseerrSettingDto
+  extends createZodDto(jellyseerrSettingSchema)
+  implements JellyseerrSetting {}

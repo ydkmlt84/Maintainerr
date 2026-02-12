@@ -1,4 +1,6 @@
 import { createZodDto } from 'nestjs-zod/dto'
-import { plexSettingSchema } from './plexSetting'
+import { plexSettingSchema, PlexSetting } from './plexSetting'
 
-export class PlexSettingDto extends createZodDto(plexSettingSchema) {}
+export class PlexSettingDto
+  extends createZodDto(plexSettingSchema)
+  implements PlexSetting {}

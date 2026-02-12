@@ -1,4 +1,5 @@
 import {
+  BasicResponseDto,
   JellyfinSetting,
   JellyseerrSetting,
   MaintainerrEvent,
@@ -12,7 +13,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { isValidCron } from 'cron-validator';
 import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
-import { BasicResponseDto } from '../api/external-api/dto/basic-response.dto';
 import { InternalApiService } from '../api/internal-api/internal-api.service';
 import { JellyseerrApiService } from '../api/jellyseerr-api/jellyseerr-api.service';
 import { MediaServerFactory } from '../api/media-server/media-server.factory';

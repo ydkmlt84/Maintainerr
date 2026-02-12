@@ -1,4 +1,6 @@
 import { createZodDto } from 'nestjs-zod/dto'
-import { jellyfinSettingSchema } from './jellyfinSetting'
+import { jellyfinSettingSchema, JellyfinSetting } from './jellyfinSetting'
 
-export class JellyfinSettingDto extends createZodDto(jellyfinSettingSchema) {}
+export class JellyfinSettingDto
+  extends createZodDto(jellyfinSettingSchema)
+  implements JellyfinSetting {}
