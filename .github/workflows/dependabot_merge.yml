@@ -24,16 +24,22 @@ jobs:
           github-token: "${{ steps.app-token.outputs.token }}"
           skip-commit-verification: true
 
-      - name: Approve PR + enable auto-merge
+      - name: Approve PR + merge after required checks pass
         if: ${{ steps.metadata.outputs.update-type != 'version-update:semver-major' }}
         run: |
+          set -euo pipefail
           review_decision=$(gh pr view "$PR_URL" --json reviewDecision -q .reviewDecision)
           if [ "$review_decision" != "APPROVED" ]; then
             gh pr review --approve "$PR_URL"
           else
             echo "PR already approved."
           fi
-          gh pr merge --auto --squash "$PR_URL"
+
+          echo "Waiting for required checks to complete successfully..."
+          gh pr checks "$PR_URL" --required --watch
+
+          echo "Required checks passed. Merging..."
+          gh pr merge --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
