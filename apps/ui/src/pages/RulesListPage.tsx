@@ -1,9 +1,11 @@
 import { AxiosError } from 'axios'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useStopAllRuleExecution } from '../api/rules'
 import AddButton from '../components/Common/AddButton'
+import Alert from '../components/Common/Alert'
 import ExecuteButton from '../components/Common/ExecuteButton'
 import LibrarySwitcher from '../components/Common/LibrarySwitcher'
 import LoadingSpinner from '../components/Common/LoadingSpinner'
@@ -13,10 +15,17 @@ import GetApiHandler, { PostApiHandler } from '../utils/ApiHandler'
 
 const RulesListPage = () => {
   const navigate = useNavigate()
-  const [data, setData] = useState<IRuleGroup[]>()
   const [selectedLibrary, setSelectedLibrary] = useState<string>('all')
-  const [isLoading, setIsLoading] = useState(true)
   const { ruleHandlerRunning } = useTaskStatusContext()
+  const {
+    data: allRulesData,
+    isLoading,
+    refetch: refetchRules,
+  } = useQuery({
+    queryKey: ['rules', 'list'],
+    queryFn: async () => await GetApiHandler<IRuleGroup[]>('/rules'),
+    staleTime: 0,
+  })
   const { mutate: stopAllExecution } = useStopAllRuleExecution({
     onSuccess() {
       toast.success('Requested to stop all rule executions.')
@@ -26,28 +35,36 @@ const RulesListPage = () => {
     },
   })
 
-  const fetchData = async () => {
-    if (selectedLibrary === 'all') return await GetApiHandler('/rules')
-    else return await GetApiHandler(`/rules?libraryId=${selectedLibrary}`)
+  const countRulesMissingLibraries = (ruleGroups: IRuleGroup[]) => {
+    return ruleGroups.filter((ruleGroup) => !ruleGroup.libraryId).length
   }
 
-  useEffect(() => {
-    fetchData().then((resp) => {
-      setData(resp)
-      setIsLoading(false)
-    })
-  }, [])
+  const allRules = allRulesData ?? []
 
-  useEffect(() => {
-    refreshData()
-  }, [selectedLibrary])
+  const availableLibraryIds = Array.from(
+    new Set(
+      allRules
+        .map((ruleGroup) => ruleGroup.libraryId)
+        .filter((libraryId): libraryId is string => Boolean(libraryId)),
+    ),
+  )
+
+  const rulesMissingLibraryCount = countRulesMissingLibraries(allRules)
+  const activeRulesCount = allRules.filter((rule) => rule.isActive).length
+  const effectiveSelectedLibrary =
+    selectedLibrary === 'all' || availableLibraryIds.includes(selectedLibrary)
+      ? selectedLibrary
+      : 'all'
+
+  const data =
+    effectiveSelectedLibrary === 'all'
+      ? allRules
+      : allRules.filter(
+          (ruleGroup) => ruleGroup.libraryId === effectiveSelectedLibrary,
+        )
 
   const onSwitchLibrary = (libraryId: string) => {
     setSelectedLibrary(libraryId)
-  }
-
-  const refreshData = (): void => {
-    fetchData().then((resp) => setData(resp))
   }
 
   const editHandler = (group: IRuleGroup): void => {
@@ -69,7 +86,11 @@ const RulesListPage = () => {
     }
   }
 
-  if (!data || isLoading) {
+  const onDeleteRuleGroup = () => {
+    void refetchRules()
+  }
+
+  if (isLoading || !allRulesData) {
     return (
       <>
         <title>Rules - Maintainerr</title>
@@ -84,7 +105,19 @@ const RulesListPage = () => {
     <>
       <title>Rules - Maintainerr</title>
       <div className="w-full">
-        <LibrarySwitcher onLibraryChange={onSwitchLibrary} />
+        <LibrarySwitcher
+          onLibraryChange={onSwitchLibrary}
+          allowedLibraryIds={availableLibraryIds}
+          selectedLibraryId={effectiveSelectedLibrary}
+        />
+        {effectiveSelectedLibrary === 'all' && rulesMissingLibraryCount > 0 && (
+          <Alert
+            type="warning"
+            title={`${rulesMissingLibraryCount} ${rulesMissingLibraryCount === 1 ? 'rule does' : 'rules do'} not have a library attached`}
+          >
+            Edit these rules and select a library before running.
+          </Alert>
+        )}
 
         <div className="m-auto mb-3 flex">
           <div className="ml-auto sm:ml-0">
@@ -96,6 +129,20 @@ const RulesListPage = () => {
                 if (ruleHandlerRunning) {
                   stopAllExecution()
                 } else {
+                  if (rulesMissingLibraryCount > 0) {
+                    toast.warn(
+                      `${rulesMissingLibraryCount} ${rulesMissingLibraryCount === 1 ? 'rule is' : 'rules are'} missing a library.`,
+                    )
+
+                    if (activeRulesCount === 0) {
+                      return
+                    }
+                  }
+
+                  if (activeRulesCount === 0) {
+                    toast.warn('No active rules to run.')
+                    return
+                  }
                   sync()
                 }
               }}
@@ -112,7 +159,7 @@ const RulesListPage = () => {
               className="collection relative mb-5 flex h-fit transform-gpu flex-col rounded-xl bg-zinc-800 bg-cover bg-center p-4 text-zinc-400 shadow ring-1 ring-zinc-700 xs:w-full sm:mb-0 sm:mr-5"
             >
               <RuleGroup
-                onDelete={refreshData}
+                onDelete={onDeleteRuleGroup}
                 onEdit={editHandler}
                 group={el}
               />

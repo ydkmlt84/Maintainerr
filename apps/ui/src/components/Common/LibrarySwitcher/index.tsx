@@ -4,28 +4,44 @@ import { useMediaServerLibraries } from '../../../api/media-server'
 interface ILibrarySwitcher {
   onLibraryChange: (libraryId: string) => void
   shouldShowAllOption?: boolean
+  allowedLibraryIds?: string[]
+  selectedLibraryId?: string
 }
 
 const LibrarySwitcher = (props: ILibrarySwitcher) => {
-  const { onLibraryChange, shouldShowAllOption } = props
+  const {
+    onLibraryChange,
+    shouldShowAllOption,
+    allowedLibraryIds,
+    selectedLibraryId,
+  } = props
   const {
     data: libraries,
     error: librariesError,
     isLoading: librariesLoading,
   } = useMediaServerLibraries()
   const lastAutoSelectedLibraryId = useRef<string | null>(null)
+  const filteredLibraries = (libraries ?? []).filter((lib) => {
+    if (!allowedLibraryIds) {
+      return true
+    }
+
+    return allowedLibraryIds.includes(lib.id)
+  })
+  const showAllOption =
+    shouldShowAllOption === undefined || shouldShowAllOption === true
 
   const onSwitchLibrary = (event: { target: { value: string } }) => {
     onLibraryChange(event.target.value)
   }
 
   useEffect(() => {
-    if (!libraries || libraries.length === 0) {
+    if (filteredLibraries.length === 0) {
       return
     }
 
     if (shouldShowAllOption === false) {
-      const firstId = libraries[0].id
+      const firstId = filteredLibraries[0].id
 
       if (firstId && lastAutoSelectedLibraryId.current !== firstId) {
         lastAutoSelectedLibraryId.current = firstId
@@ -34,7 +50,7 @@ const LibrarySwitcher = (props: ILibrarySwitcher) => {
     } else {
       lastAutoSelectedLibraryId.current = null
     }
-  }, [libraries, shouldShowAllOption, onLibraryChange])
+  }, [filteredLibraries, shouldShowAllOption, onLibraryChange])
 
   return (
     <>
@@ -43,6 +59,7 @@ const LibrarySwitcher = (props: ILibrarySwitcher) => {
           <select
             className="border-zinc-600 hover:border-zinc-500 focus:border-zinc-500 focus:bg-opacity-100 focus:placeholder-zinc-400 focus:outline-none focus:ring-0"
             onChange={onSwitchLibrary}
+            value={selectedLibraryId}
           >
             {librariesLoading ? (
               <option disabled={true} value="">
@@ -54,12 +71,9 @@ const LibrarySwitcher = (props: ILibrarySwitcher) => {
               </option>
             ) : (
               <>
-                {(props.shouldShowAllOption === undefined ||
-                  props.shouldShowAllOption) && (
-                  <option value="all">All</option>
-                )}
+                {showAllOption && <option value="all">All</option>}
 
-                {libraries?.map((lib) => {
+                {filteredLibraries.map((lib) => {
                   return (
                     <option key={lib.id} value={lib.id}>
                       {lib.title}
