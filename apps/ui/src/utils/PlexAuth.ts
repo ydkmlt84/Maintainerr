@@ -163,7 +163,9 @@ class PlexOAuth {
     }
 
     // Debug helper: set localStorage key to "1" to simulate popup blocking.
-    if (window.localStorage.getItem('maintainerr.debug.blockPlexPopup') === '1') {
+    if (
+      window.localStorage.getItem('maintainerr.debug.blockPlexPopup') === '1'
+    ) {
       return
     }
 
