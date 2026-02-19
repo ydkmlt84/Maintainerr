@@ -133,7 +133,9 @@ export const useUpdatePlexAuth = (options?: UseUpdatePlexAuthOptions) => {
 
 export type UseUpdatePlexAuthResult = ReturnType<typeof useUpdatePlexAuth>
 
-export const downloadDatabase = async (customFilename?: string): Promise<void> => {
+export const downloadDatabase = async (
+  customFilename?: string,
+): Promise<void> => {
   const response = await axios.get<Blob>(
     `${API_BASE_PATH}/api/settings/database/download`,
     {
