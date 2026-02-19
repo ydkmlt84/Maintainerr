@@ -133,7 +133,7 @@ const Maintainerr3UpdateModal = ({ onClose }: Maintainerr3UpdateModalProps) => {
           <Button
             as="a"
             buttonType="default"
-            href="https://docs.maintainerr.info/latest/downgrade"
+            href="https://docs.maintainerr.info/latest/Downgrade"
             target="_blank"
             rel="noopener noreferrer"
           >
