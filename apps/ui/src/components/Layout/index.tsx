@@ -12,6 +12,7 @@ import { ToastContainer } from 'react-toastify'
 import SearchContext from '../../contexts/search-context'
 import GetApiHandler from '../../utils/ApiHandler'
 import SearchBar from '../Common/SearchBar'
+import Maintainerr3UpdateBanner from './Maintainerr3UpdateBanner'
 import NavBar from './NavBar'
 
 type LayoutShellProps = {
@@ -91,6 +92,7 @@ const LayoutShell: React.FC<LayoutShellProps> = ({ children }) => {
                 theme="dark"
                 closeOnClick
               />
+              <Maintainerr3UpdateBanner />
               {children}
             </div>
           </div>
