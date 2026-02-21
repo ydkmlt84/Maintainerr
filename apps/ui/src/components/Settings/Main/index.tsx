@@ -1,11 +1,5 @@
-import {
-  ArrowNarrowDownIcon,
-  DownloadIcon,
-  RefreshIcon,
-  SaveIcon,
-} from '@heroicons/react/solid'
+import { DownloadIcon, RefreshIcon, SaveIcon } from '@heroicons/react/solid'
 import React, { useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import { useSettingsOutletContext } from '..'
 import { usePatchSettings } from '../../../api/settings'
 import GetApiHandler from '../../../utils/ApiHandler'
@@ -21,9 +15,6 @@ const MainSettings = () => {
   const [missingValuesError, setMissingValuesError] = useState<boolean>()
   const [showDownloadModal, setShowDownloadModal] = useState(false)
   const [showPrepModal, setShowPrepModal] = useState(false)
-  const location = useLocation()
-  const showPrepPointer =
-    new URLSearchParams(location.search).get('fromBanner') === '1'
   const { settings } = useSettingsOutletContext()
   const {
     mutateAsync: updateSettings,
@@ -104,6 +95,7 @@ const MainSettings = () => {
               <div className="form-input">
                 <div className="form-input-field">
                   <input
+                    className="!rounded-r-none"
                     name="api-key"
                     id="api-key"
                     type="text"
@@ -122,30 +114,6 @@ const MainSettings = () => {
                 </div>
               </div>
             </div>
-
-            <div className="form-row">
-              <label htmlFor="prepare-maintainerr-3" className="text-label">
-                Maintainerr 3.0
-              </label>
-              <div className="form-input">
-                <div className="form-input-field flex-col items-start gap-2 overflow-visible">
-                  <div className="relative flex flex-wrap items-center">
-                    {showPrepPointer && (
-                      <ArrowNarrowDownIcon className="pointer-events-none absolute -right-14 -top-12 z-50 h-16 w-16 rotate-45 text-amber-400 drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]" />
-                    )}
-                    <Button
-                      id="prepare-maintainerr-3"
-                      buttonType="danger"
-                      type="button"
-                      onClick={() => setShowPrepModal(true)}
-                    >
-                      <span>Maintainerr 3.0 Preparation</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="actions mt-5 w-full">
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
