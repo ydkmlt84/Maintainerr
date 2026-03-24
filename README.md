@@ -17,6 +17,8 @@
 <!-- License -->  <picture><img alt="GitHub License" src="https://img.shields.io/github/license/maintainerr/maintainerr?style=flat"></picture>
 </p>
 
+<p><b> ★ THIS FORK WAS CREATED MARCH 24TH, 2026 TO BENCHMARK THE CURRENT STATE OF THE PROJECT, BEFORE THE ADDITION OF ANY NEW AI GENERATED CODE ★</b></p>
+
 <b>Maintainerr</b> makes managing your media easy.
 
 - Do you hate being the janitor of your server?
