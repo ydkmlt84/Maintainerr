@@ -54,7 +54,7 @@ If you prefer to set up your development environment manually (specific to a Win
 2. Add the remote `upstream`:
 
    ```bash
-   git remote add upstream https://github.com/Maintainerr/Maintainerr.git
+   git remote add upstream https://github.com/ydkmlt84/Maintainerr.git
    ```
 
 3. Create a new branch:
@@ -115,9 +115,8 @@ If you prefer to set up your development environment manually (specific to a Win
 
 ### Contributing Code
 
-- If you are taking on an existing bug or feature ticket, please comment on the [issue](https://github.com/Maintainerr/Maintainerr/issues) to avoid multiple people working on the same thing.
-- If you have a major change or large feature to contribute, reach out via [Discussions](https://github.com/Maintainerr/Maintainerr/discussions) or our [Discord server](https://discord.gg/WP4ZW2QYwk) first to align on design and approach! It'll save us all time, as the review will be quicker, and we will have more context about your change, allowing us to guide you in the right direction.
-  - You can create a "draft" pull request early to get feedback on your work.
+- If you are taking on an existing bug or feature ticket, please comment on the [issue](https://github.com/ydkmlt84/Maintainerr/issues) to avoid multiple people working on the same thing.
+- You can create a "draft" pull request early to get feedback on your work.
 - Large PRs (>500 lines changed, excluding tests) should be split into smaller, manageable parts by stacking your PRs sequentially. This approach makes the review process significantly easier when done in order.
 - Each PR should target one major meaningful change, which allows us to review independent changes separately, rather than having everything blocked on a single review.
 - All commits **must** follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)

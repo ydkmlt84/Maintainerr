@@ -5,7 +5,7 @@
   "packageManager": "yarn@4.11.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/maintainerr/Maintainerr.git"
+    "url": "https://github.com/ydkmlt84/Maintainerr.git"
   },
   "license": "MIT",
   "scripts": {
