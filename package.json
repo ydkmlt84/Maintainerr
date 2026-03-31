@@ -71,7 +71,11 @@
       [
         "@semantic-release/github",
         {
-          "addReleases": "bottom"
+          "addReleases": "bottom",
+          "successComment": false,
+          "releasedLabels": false,
+          "failComment": false,
+          "failTitle": false
         }
       ]
     ],
