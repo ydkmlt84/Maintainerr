@@ -116,6 +116,21 @@ export class CollectionsController {
       return this.collectionService.getCollections(undefined, undefined);
     }
   }
+
+  @Get('/calendar-data')
+  getCalendarData(
+    @Query('libraryId') libraryId: string,
+    @Query('typeId') typeId: MediaItemType,
+  ) {
+    if (libraryId) {
+      return this.collectionService.getCalendarData(libraryId, undefined);
+    } else if (typeId) {
+      return this.collectionService.getCalendarData(undefined, typeId);
+    } else {
+      return this.collectionService.getCalendarData(undefined, undefined);
+    }
+  }
+
   @Get('/collection/:id')
   getCollection(@Param('id', ParseIntPipe) collectionId: number) {
     return this.collectionService.getCollection(collectionId);

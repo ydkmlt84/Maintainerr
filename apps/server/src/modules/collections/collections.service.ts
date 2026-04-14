@@ -37,7 +37,11 @@ import {
   AddRemoveCollectionMedia,
   IAlterableMediaDto,
 } from './interfaces/collection-media.interface';
-import { ICollection } from './interfaces/collection.interface';
+import {
+  ICalendarCollection,
+  ICollection,
+  ServarrAction,
+} from './interfaces/collection.interface';
 
 interface addCollectionDbResponse {
   id: number;
@@ -328,6 +332,65 @@ export class CollectionsService {
     } catch (err) {
       this.logger.warn(
         'An error occurred while performing collection actions.',
+      );
+      this.logger.debug(err);
+      return undefined;
+    }
+  }
+
+  async getCalendarData(
+    libraryId?: string,
+    typeId?: MediaItemType,
+  ): Promise<ICalendarCollection[] | undefined> {
+    try {
+      const collections = await this.collectionRepo.find(
+        libraryId
+          ? { where: { libraryId: libraryId } }
+          : typeId
+            ? { where: { type: typeId } }
+            : undefined,
+      );
+
+      const schedulableCollections = collections.filter(
+        (collection) =>
+          collection.id != null &&
+          collection.deleteAfterDays != null &&
+          collection.arrAction !== ServarrAction.DO_NOTHING,
+      );
+
+      return await Promise.all(
+        schedulableCollections.map(async (collection) => {
+          const media = await this.CollectionMediaRepo.find({
+            where: {
+              collectionId: +collection.id,
+            },
+            order: {
+              addDate: 'DESC',
+              id: 'DESC',
+            },
+          });
+
+          return {
+            id: collection.id,
+            title: collection.title,
+            type: collection.type,
+            arrAction: collection.arrAction,
+            deleteAfterDays: collection.deleteAfterDays!,
+            radarrSettingsId: collection.radarrSettingsId,
+            sonarrSettingsId: collection.sonarrSettingsId,
+            media: media
+              .filter((mediaItem) => mediaItem.addDate != null)
+              .map((mediaItem) => ({
+                id: mediaItem.id,
+                mediaServerId: mediaItem.mediaServerId,
+                addDate: mediaItem.addDate,
+              })),
+          };
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(
+        'An error occurred while fetching calendar collection data.',
       );
       this.logger.debug(err);
       return undefined;

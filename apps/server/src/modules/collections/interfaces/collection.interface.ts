@@ -26,6 +26,23 @@ export interface ICollection {
   sortTitle?: string;
 }
 
+export interface ICalendarCollectionMedia {
+  id: number;
+  mediaServerId: string;
+  addDate: Date;
+}
+
+export interface ICalendarCollection {
+  id: number;
+  title: string;
+  type: MediaItemType;
+  arrAction: number;
+  deleteAfterDays: number;
+  radarrSettingsId?: number;
+  sonarrSettingsId?: number;
+  media: ICalendarCollectionMedia[];
+}
+
 export enum ServarrAction {
   DELETE,
   UNMONITOR_DELETE_ALL,
