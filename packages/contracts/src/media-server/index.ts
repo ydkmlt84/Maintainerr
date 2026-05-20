@@ -1,5 +1,7 @@
 export * from './switch'
 export * from './enums'
 export * from './types'
+export * from './sorting'
+export * from './sort-utils'
 export * from './jellyfin'
 export * from './plex'

@@ -3,7 +3,7 @@ import {
   type MediaItemWithParent,
 } from '@maintainerr/contracts'
 import { debounce } from 'lodash-es'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { ICollectionMedia } from '../../Collection'
 import LoadingSpinner, {
   SmallLoadingSpinner,
@@ -52,19 +52,28 @@ function extractTmdbId(
 }
 
 const OverviewContent = (props: IOverviewContent) => {
-  const handleScroll = () => {
-    if (
-      window.innerHeight + document.documentElement.scrollTop >=
-      document.documentElement.scrollHeight * 0.8
-    ) {
-      if (!props.extrasLoading && !props.dataFinished) {
-        props.fetchData()
-      }
-    }
-  }
+  const latestPropsRef = useRef(props)
+
+  const isNearBottom = () =>
+    window.innerHeight + document.documentElement.scrollTop >=
+    document.documentElement.scrollHeight * 0.8
 
   useEffect(() => {
-    const debouncedScroll = debounce(handleScroll, 200)
+    latestPropsRef.current = props
+  }, [props])
+
+  useEffect(() => {
+    const debouncedScroll = debounce(() => {
+      const latestProps = latestPropsRef.current
+
+      if (
+        isNearBottom() &&
+        !latestProps.extrasLoading &&
+        !latestProps.dataFinished
+      ) {
+        latestProps.fetchData()
+      }
+    }, 200)
     window.addEventListener('scroll', debouncedScroll, { passive: true })
     return () => {
       window.removeEventListener('scroll', debouncedScroll)
@@ -74,8 +83,7 @@ const OverviewContent = (props: IOverviewContent) => {
 
   useEffect(() => {
     if (
-      window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.scrollHeight * 0.8 &&
+      isNearBottom() &&
       !props.loading &&
       !props.extrasLoading &&
       !props.dataFinished
@@ -123,6 +131,29 @@ const OverviewContent = (props: IOverviewContent) => {
     return item.ratings?.find((r) => r.type === 'audience')?.value ?? 0
   }
 
+  const getSeasonLabel = (item: MediaItem): string | undefined => {
+    if (item.type === 'season') {
+      return item.index != null ? `Season ${item.index}` : item.title
+    }
+
+    return undefined
+  }
+
+  const padEpisodeNumber = (value: number): string =>
+    value.toString().padStart(2, '0')
+
+  const getEpisodeLabel = (item: MediaItem): string | undefined => {
+    if (item.type !== 'episode' || item.index == null) {
+      return undefined
+    }
+
+    if (item.parentIndex != null) {
+      return `S${padEpisodeNumber(item.parentIndex)}E${padEpisodeNumber(item.index)}`
+    }
+
+    return `E${padEpisodeNumber(item.index)}`
+  }
+
   if (props.loading) {
     return <LoadingSpinner />
   }
@@ -143,12 +174,12 @@ const OverviewContent = (props: IOverviewContent) => {
                   : el.type === 'season'
                     ? el.title
                     : el.type === 'episode'
-                      ? 'Episode ' + el.index + ' - ' + el.title
+                      ? getEpisodeLabel(el)
                       : ''
               }
               year={
                 el.type === 'episode'
-                  ? el.parentTitle
+                  ? undefined
                   : getParentYear(el)
                     ? getParentYear(el)?.toString()
                     : el.year?.toString()
@@ -161,6 +192,7 @@ const OverviewContent = (props: IOverviewContent) => {
                     ? el.parentTitle
                     : el.title
               }
+              seasonLabel={getSeasonLabel(el)}
               userScore={getAudienceRating(el)}
               exclusionId={
                 el.maintainerrExclusionId

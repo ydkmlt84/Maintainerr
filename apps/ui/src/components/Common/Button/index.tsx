@@ -54,7 +54,7 @@ function Button<P extends ElementTypes = 'button'>(
   switch (buttonType) {
     case 'primary':
       buttonStyle.push(
-        'text-white bg-amber-600 border-amber-600 hover:bg-amber-500 hover:border-amber-500 rounded-md focus:border-amber-700 focus:ring-amber active:bg-amber-700 active:border-amber-700',
+        'text-white bg-sky-600 border-sky-500 hover:bg-sky-500 hover:border-sky-400 rounded-md shadow-lg shadow-sky-950/30 focus:border-sky-300 focus:ring-sky-500 active:bg-sky-700 active:border-sky-700',
       )
       break
     case 'danger':
@@ -64,42 +64,42 @@ function Button<P extends ElementTypes = 'button'>(
       break
     case 'warning':
       buttonStyle.push(
-        'text-white bg-zinc-800 border-zinc-800 hover:bg-zinc-600 hover:border-zinc-600 focus:border-zinc-700 rounded-md focus:ring-zinc active:bg-zinc-700 active:border-zinc-700',
+        'text-white bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-sky-500 focus:border-sky-500 rounded-md focus:ring-sky-500 active:bg-slate-700 active:border-sky-600',
       )
       break
     case 'success':
       buttonStyle.push(
-        'text-white bg-amber-900 border-amber-900 hover:bg-amber-700 hover:border-amber-700 focus:border-amber-700 rounded-md focus:ring-amber active:bg-amber-700 active:border-amber-700',
+        'text-white bg-cyan-800 border-cyan-700 hover:bg-cyan-700 hover:border-cyan-500 focus:border-cyan-500 rounded-md focus:ring-cyan-500 active:bg-cyan-700 active:border-cyan-600',
       )
       break
     case 'ghost':
       buttonStyle.push(
-        'text-white bg-transaprent border-zinc-600 hover:border-zinc-200 focus:border-zinc-100 rounded-md active:border-zinc-100',
+        'text-white bg-transparent border-sky-500/30 hover:border-sky-300 hover:bg-sky-500/10 focus:border-sky-200 rounded-md active:border-sky-100',
       )
       break
     case 'twin-primary-l':
       buttonStyle.push(
-        'text-white bg-amber-600 border-amber-600 hover:bg-amber-500 hover:border-amber-500 focus:border-amber-700 focus:ring-amber active:bg-amber-700 active:border-amber-700 rounded-l',
+        'text-white bg-sky-600 border-sky-500 hover:bg-sky-500 hover:border-sky-400 focus:border-sky-300 focus:ring-sky-500 active:bg-sky-700 active:border-sky-700 rounded-l',
       )
       break
     case 'twin-primary-r':
       buttonStyle.push(
-        'text-white bg-amber-600 border-amber-600 hover:bg-amber-500 hover:border-amber-500 focus:border-amber-700 focus:ring-amber active:bg-amber-700 active:border-amber-700 rounded-r',
+        'text-white bg-sky-600 border-sky-500 hover:bg-sky-500 hover:border-sky-400 focus:border-sky-300 focus:ring-sky-500 active:bg-sky-700 active:border-sky-700 rounded-r',
       )
       break
     case 'twin-secondary-l':
       buttonStyle.push(
-        'text-white bg-amber-900 border-amber-900 hover:bg-amber-700 hover:border-amber-700 focus:border-amber-700 focus:ring-amber active:bg-amber-700 active:border-amber-700 rounded-l',
+        'text-white bg-cyan-900 border-cyan-800 hover:bg-cyan-800 hover:border-cyan-600 focus:border-cyan-500 focus:ring-cyan-500 active:bg-cyan-700 active:border-cyan-700 rounded-l',
       )
       break
     case 'twin-secondary-r':
       buttonStyle.push(
-        'text-white bg-amber-900 border-amber-900 hover:bg-amber-700 hover:border-amber-700 focus:border-amber-700 focus:ring-amber active:bg-amber-700 active:border-amber-700 rounded-r',
+        'text-white bg-cyan-900 border-cyan-800 hover:bg-cyan-800 hover:border-cyan-600 focus:border-cyan-500 focus:ring-cyan-500 active:bg-cyan-700 active:border-cyan-700 rounded-r',
       )
       break
     default:
       buttonStyle.push(
-        'text-zinc-200 bg-zinc-600 border-zinc-600 hover:text-white hover:bg-zinc-500 hover:border-zinc-500 group-hover:text-white rounded-md group-hover:bg-zinc-500 group-hover:border-zinc-500 focus:border-amber-600 focus:ring-amber active:text-zinc-200 active:bg-zinc-500 active:border-zinc-500',
+        'text-slate-200 bg-slate-800 border-slate-700 hover:text-white hover:bg-slate-700 hover:border-sky-500 group-hover:text-white rounded-md group-hover:bg-slate-700 group-hover:border-sky-500 focus:border-sky-500 focus:ring-sky-500 active:text-slate-100 active:bg-slate-700 active:border-sky-500',
       )
   }
 

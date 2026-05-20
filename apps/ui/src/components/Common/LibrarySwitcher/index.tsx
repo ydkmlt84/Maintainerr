@@ -1,21 +1,37 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMediaServerLibraries } from '../../../api/media-server'
 
 interface ILibrarySwitcher {
   onLibraryChange: (libraryId: string) => void
   shouldShowAllOption?: boolean
+  selectedLibraryId?: string
+  containerClassName?: string
+  formClassName?: string
+  selectClassName?: string
 }
 
 const LibrarySwitcher = (props: ILibrarySwitcher) => {
-  const { onLibraryChange, shouldShowAllOption } = props
+  const {
+    containerClassName = 'mb-5 w-full',
+    formClassName,
+    onLibraryChange,
+    selectedLibraryId,
+    selectClassName,
+    shouldShowAllOption,
+  } = props
+  const [internalSelectedLibraryId, setInternalSelectedLibraryId] =
+    useState<string>(shouldShowAllOption === false ? '' : 'all')
   const {
     data: libraries,
     error: librariesError,
     isLoading: librariesLoading,
   } = useMediaServerLibraries()
   const lastAutoSelectedLibraryId = useRef<string | null>(null)
+  const resolvedSelectedLibraryId =
+    selectedLibraryId ?? internalSelectedLibraryId
 
   const onSwitchLibrary = (event: { target: { value: string } }) => {
+    setInternalSelectedLibraryId(event.target.value)
     onLibraryChange(event.target.value)
   }
 
@@ -25,24 +41,39 @@ const LibrarySwitcher = (props: ILibrarySwitcher) => {
     }
 
     if (shouldShowAllOption === false) {
-      const firstId = libraries[0].id
+      const selectedLibraryExists = libraries.some(
+        (library) => library.id === resolvedSelectedLibraryId,
+      )
+      const firstId = selectedLibraryExists
+        ? resolvedSelectedLibraryId
+        : libraries[0].id
 
       if (firstId && lastAutoSelectedLibraryId.current !== firstId) {
         lastAutoSelectedLibraryId.current = firstId
+        setTimeout(() => setInternalSelectedLibraryId(firstId), 0)
         onLibraryChange(firstId)
       }
     } else {
       lastAutoSelectedLibraryId.current = null
     }
-  }, [libraries, shouldShowAllOption, onLibraryChange])
+  }, [
+    libraries,
+    resolvedSelectedLibraryId,
+    shouldShowAllOption,
+    onLibraryChange,
+  ])
 
   return (
     <>
-      <div className="mb-5 w-full">
-        <form>
+      <div className={containerClassName}>
+        <form className={formClassName}>
           <select
-            className="border-zinc-600 hover:border-zinc-500 focus:border-zinc-500 focus:bg-opacity-100 focus:placeholder-zinc-400 focus:outline-none focus:ring-0"
+            className={
+              selectClassName ??
+              'border-zinc-600 hover:border-zinc-500 focus:border-zinc-500 focus:bg-opacity-100 focus:placeholder-zinc-400 focus:outline-none focus:ring-0'
+            }
             onChange={onSwitchLibrary}
+            value={resolvedSelectedLibraryId}
           >
             {librariesLoading ? (
               <option disabled={true} value="">

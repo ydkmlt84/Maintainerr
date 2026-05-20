@@ -252,15 +252,23 @@ export class PlexApiService {
 
   public async getLibraryContents(
     id: string,
-    { offset = 0, size = 50 }: { offset?: number; size?: number } = {},
+    {
+      offset = 0,
+      size = 50,
+      sort,
+    }: { offset?: number; size?: number; sort?: string } = {},
     datatype?: EPlexDataType,
     useCache: boolean = true,
   ): Promise<{ totalSize: number; items: PlexLibraryItem[] }> {
     try {
-      const type = datatype ? '&type=' + datatype : '';
+      const params = new URLSearchParams({
+        includeGuids: '1',
+        ...(datatype ? { type: datatype.toString() } : {}),
+        ...(sort ? { sort } : {}),
+      });
       const response = await this.plexClient.query<PlexLibraryResponse>(
         {
-          uri: `/library/sections/${id}/all?includeGuids=1${type}`,
+          uri: `/library/sections/${id}/all?${params.toString()}`,
           extraHeaders: {
             'X-Plex-Container-Start': `${offset}`,
             'X-Plex-Container-Size': `${size}`,

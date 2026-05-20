@@ -27,6 +27,7 @@ import {
   type MediaItem,
   type MediaItemType,
   type MediaLibrary,
+  type MediaLibrarySortField,
   type MediaPlaylist,
   type MediaServerStatus,
   type MediaUser,
@@ -48,6 +49,20 @@ import {
   JELLYFIN_DEVICE_INFO,
 } from './jellyfin.constants';
 import { JellyfinMapper } from './jellyfin.mapper';
+
+const toJellyfinSortBy = (sort?: MediaLibrarySortField): ItemSortBy => {
+  switch (sort) {
+    case 'airDate':
+      return 'PremiereDate' as ItemSortBy;
+    case 'rating':
+      return 'CommunityRating' as ItemSortBy;
+    case 'watchCount':
+      return 'PlayCount' as ItemSortBy;
+    case 'title':
+    default:
+      return ItemSortBy.SortName;
+  }
+};
 
 /**
  * Jellyfin media server service implementation.
@@ -418,7 +433,7 @@ export class JellyfinAdapterService implements IMediaServerService {
           ? JellyfinMapper.toBaseItemKinds([options.type])
           : [BaseItemKind.Movie, BaseItemKind.Series],
         enableUserData: true,
-        sortBy: [(options?.sort as ItemSortBy) || ItemSortBy.SortName],
+        sortBy: [toJellyfinSortBy(options?.sort)],
         sortOrder: [
           options?.sortOrder === 'desc'
             ? SortOrder.Descending

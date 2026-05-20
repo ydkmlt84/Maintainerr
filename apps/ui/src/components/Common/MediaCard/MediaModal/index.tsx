@@ -102,7 +102,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
         onClick={onClose} // Close modal when clicking outside
       >
         <div
-          className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl bg-zinc-800 shadow-lg"
+          className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl border border-sky-500/20 bg-slate-950/95 shadow-2xl shadow-slate-950/50"
           onClick={(e) => e.stopPropagation()} // Prevent modal close on content click
         >
           {/* Top Half with Background Image */}
@@ -129,10 +129,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                       mediaType === 'movie'
                         ? 'bg-black'
                         : mediaType === 'show'
-                          ? 'bg-amber-900'
+                          ? 'bg-sky-900'
                           : mediaType === 'season'
-                            ? 'bg-yellow-700'
-                            : 'bg-rose-900'
+                            ? 'bg-cyan-800'
+                            : 'bg-indigo-900'
                     }`}
                   >
                     {mediaType}
@@ -312,7 +312,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               <div className="ml-auto flex space-x-3">
                 <button
                   onClick={onClose}
-                  className="rounded bg-amber-600 px-4 py-2 hover:bg-amber-500 focus:outline-none"
+                  className="rounded bg-sky-600 px-4 py-2 text-white shadow-lg shadow-sky-950/30 hover:bg-sky-500 focus:outline-none"
                 >
                   Close
                 </button>

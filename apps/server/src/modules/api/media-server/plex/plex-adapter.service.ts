@@ -21,6 +21,7 @@ import { EPlexDataType } from '../../plex-api/enums/plex-data-type-enum';
 import { PlexApiService } from '../../plex-api/plex-api.service';
 import { supportsFeature } from '../media-server.constants';
 import { IMediaServerService } from '../media-server.interface';
+import { toPlexSort } from './plex.constants';
 import { PlexMapper } from './plex.mapper';
 
 /**
@@ -106,6 +107,7 @@ export class PlexAdapterService implements IMediaServerService {
       {
         offset: options?.offset ?? 0,
         size: options?.limit ?? 50,
+        sort: toPlexSort(options?.sort, options?.sortOrder),
       },
       plexType,
     );

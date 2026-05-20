@@ -9,7 +9,7 @@ interface IDeleteButton {
 const DeleteButton = (props: IDeleteButton) => {
   return (
     <button
-      className="right-5 m-auto flex h-8 w-full rounded-b bg-amber-900 text-white shadow-md hover:bg-amber-800 xl:rounded-l-none xl:rounded-r"
+      className="right-5 m-auto flex h-8 w-full rounded-b bg-slate-800 text-white shadow-md ring-1 ring-sky-500/20 hover:bg-slate-700 xl:rounded-l-none xl:rounded-r"
       onClick={props.onClick}
     >
       <div className="m-auto ml-auto flex">

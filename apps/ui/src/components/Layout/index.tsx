@@ -57,26 +57,23 @@ const LayoutShell: React.FC<LayoutShellProps> = ({ children }) => {
         sizes="180x180"
         href={`${basePath}/apple-touch-icon.png`}
       />
-      <div className="flex h-full min-h-full min-w-0 bg-zinc-900">
-        <div className="pwa-only fixed inset-0 z-20 h-1 w-full border-zinc-700 md:border-t" />
-        <div className="absolute top-0 h-64 w-full bg-gradient-to-bl from-zinc-800 to-zinc-900">
-          <div className="relative inset-0 h-full w-full bg-gradient-to-t from-zinc-900 to-transparent" />
-        </div>
+      <div className="flex h-full min-h-full min-w-0 bg-transparent">
+        <div className="pwa-only fixed inset-0 z-20 h-1 w-full border-sky-500/20 md:border-t" />
         <NavBar open={navBarOpen} setClosed={handleNavbar}></NavBar>
         <div className="relative mb-16 flex w-0 min-w-0 flex-1 flex-col lg:ml-64"></div>
         <div
           className={`searchbar fixed left-0 right-0 top-0 z-10 flex flex-shrink-0 bg-transparent bg-opacity-80 transition duration-300 lg:ml-64`}
         >
-          <div className="transparent-glass-bg flex flex-1 items-center justify-between pr-4 md:pl-4 md:pr-4">
+          <div className="flex flex-1 items-center justify-between bg-slate-950 pr-4 md:pl-4 md:pr-4">
             <button
-              className={`px-4 text-white opacity-70 transition duration-300 focus:outline-none lg:hidden`}
+              className={`px-4 text-sky-100 opacity-80 transition duration-300 hover:text-white focus:outline-none lg:hidden`}
               aria-label="Open sidebar"
               onClick={() => setNavBarOpen(true)}
             >
               <MenuAlt2Icon className="h-6 w-6" />
             </button>
             <button
-              className={`mr-2 text-white opacity-70 transition duration-300 hover:text-white focus:text-white focus:outline-none`}
+              className={`mr-2 text-sky-100 opacity-80 transition duration-300 hover:text-white focus:text-white focus:outline-none`}
               onClick={() => navigate(-1)}
             >
               <ArrowLeftIcon className="w-7" />
@@ -94,7 +91,7 @@ const LayoutShell: React.FC<LayoutShellProps> = ({ children }) => {
         </div>
 
         <main
-          className="relative top-16 mt-2 w-full focus:outline-none"
+          className="relative top-16 w-full focus:outline-none"
           tabIndex={0}
         >
           <div className="mb-6">
@@ -184,7 +181,7 @@ export const LayoutErrorBoundary: React.FC = () => {
             Go Back
           </button>
           <button
-            className="rounded bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500/60"
+            className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
             onClick={() => navigate('/overview')}
           >
             Go To Overview

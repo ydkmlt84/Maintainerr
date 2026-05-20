@@ -15,6 +15,7 @@ interface IMediaCard {
   year?: string
   mediaType: 'movie' | 'show' | 'season' | 'episode'
   title: string
+  seasonLabel?: string
   userScore: number
   inProgress?: boolean
   tmdbid?: string
@@ -35,6 +36,7 @@ const MediaCard: React.FC<IMediaCard> = ({
   year,
   mediaType,
   title,
+  seasonLabel,
   libraryId,
   type,
   collectionId = 0,
@@ -138,12 +140,12 @@ const MediaCard: React.FC<IMediaCard> = ({
             <div
               className={`pointer-events-none z-40 rounded-full shadow ${
                 mediaType === 'movie'
-                  ? 'bg-zinc-900'
+                  ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                   : mediaType === 'show'
-                    ? 'bg-amber-900'
+                    ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
                     : mediaType === 'season'
-                      ? 'bg-yellow-700'
-                      : 'bg-rose-900'
+                      ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                      : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
               }`}
             >
               <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
@@ -156,12 +158,12 @@ const MediaCard: React.FC<IMediaCard> = ({
               <div
                 className={`pointer-events-none z-40 rounded-full shadow ${
                   mediaType === 'movie'
-                    ? 'bg-zinc-900'
+                    ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                     : mediaType === 'show'
-                      ? 'bg-amber-900'
+                      ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
                       : mediaType === 'season'
-                        ? 'bg-yellow-700'
-                        : 'bg-rose-900'
+                        ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                        : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 }`}
               >
                 <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
@@ -177,12 +179,12 @@ const MediaCard: React.FC<IMediaCard> = ({
               <div
                 className={`pointer-events-none z-40 rounded-full shadow ${
                   mediaType === 'movie'
-                    ? 'bg-zinc-900'
+                    ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                     : mediaType === 'show'
-                      ? 'bg-amber-900'
+                      ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
                       : mediaType === 'season'
-                        ? 'bg-yellow-700'
-                        : 'bg-rose-900'
+                        ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                        : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 }`}
               >
                 <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
@@ -200,12 +202,12 @@ const MediaCard: React.FC<IMediaCard> = ({
                   daysLeft < 0
                     ? 'bg-red-700'
                     : mediaType === 'movie'
-                      ? 'bg-zinc-900'
+                      ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                       : mediaType === 'show'
-                        ? 'bg-amber-900'
+                        ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
                         : mediaType === 'season'
-                          ? 'bg-yellow-700'
-                          : 'bg-rose-900'
+                          ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                          : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 } `}
               >
                 <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
@@ -221,12 +223,12 @@ const MediaCard: React.FC<IMediaCard> = ({
               <div
                 className={`pointer-events-none z-40 rounded-full shadow ${
                   mediaType === 'movie'
-                    ? 'bg-zinc-900'
+                    ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                     : mediaType === 'show'
-                      ? 'bg-amber-900'
+                      ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
                       : mediaType === 'season'
-                        ? 'bg-yellow-700'
-                        : 'bg-rose-900'
+                        ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                        : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 }`}
               >
                 <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
@@ -251,7 +253,7 @@ const MediaCard: React.FC<IMediaCard> = ({
               className="absolute inset-0 h-full w-full overflow-hidden text-left"
               style={{
                 background:
-                  'linear-gradient(180deg, rgba(45, 55, 72, 0.4) 0%, rgba(45, 55, 72, 0.9) 100%)',
+                  'linear-gradient(180deg, rgba(15, 23, 42, 0.34) 0%, rgba(2, 6, 23, 0.94) 100%)',
               }}
             >
               <div className="flex h-full w-full items-end">
@@ -270,6 +272,11 @@ const MediaCard: React.FC<IMediaCard> = ({
                   >
                     {title}
                   </h1>
+                  {seasonLabel && ['season', 'episode'].includes(mediaType) && (
+                    <div className="mt-0.5 text-xs font-semibold text-zinc-200">
+                      {seasonLabel}
+                    </div>
+                  )}
                   {mediaType == 'episode' && (
                     <div
                       className="whitespace-normal text-xs"

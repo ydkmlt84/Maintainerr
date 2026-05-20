@@ -10,7 +10,21 @@
   }
 
   body {
-    @apply bg-zinc-900;
+    @apply bg-slate-950 text-slate-100;
+    background:
+      linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+      radial-gradient(
+        circle at 50% -20%,
+        rgba(14, 165, 233, 0.2),
+        transparent 34rem
+      ),
+      linear-gradient(180deg, #020617 0%, #0f172a 48%, #020617 100%);
+    background-size:
+      40px 40px,
+      40px 40px,
+      auto,
+      auto;
     font-family:
       Inter,
       ui-sans-serif,
@@ -30,7 +44,7 @@
   }
 
   code {
-    @apply rounded-md bg-zinc-800 px-2 py-1;
+    @apply rounded-md border border-sky-500/20 bg-slate-900/80 px-2 py-1 text-sky-100;
   }
 
   input[type='search']::-webkit-search-cancel-button {
@@ -45,11 +59,14 @@
   }
 
   .transparent-glass-bg {
-    --tw-bg-opacity: 0.22;
-    background-color: rgb(24 24 27 / var(--tw-bg-opacity));
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5.8px);
-    -webkit-backdrop-filter: blur(5.8px);
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.78),
+      rgba(2, 6, 23, 0.64)
+    );
+    box-shadow: 0 18px 50px rgba(2, 6, 23, 0.28);
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
   }
 
   .max-width-form {
@@ -68,10 +85,15 @@
   }
 
   .sidebar {
-    @apply border-r border-zinc-700;
+    @apply border-r border-sky-500/20;
     padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);
-    background: linear-gradient(180deg, rgb(43, 43, 49, 1) 0%, #18181b 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.98) 0%,
+      rgba(2, 6, 23, 0.98) 100%
+    );
+    box-shadow: inset -1px 0 rgba(125, 211, 252, 0.08);
   }
 
   .rules-button-text {
@@ -89,12 +111,24 @@
 
   /* Media card hover effects - only on devices that support hover */
   .media-card {
-    @apply scale-100 shadow ring-zinc-700;
+    @apply scale-100 shadow-2xl ring-sky-500/20;
+    background: linear-gradient(
+      145deg,
+      rgba(15, 23, 42, 0.96),
+      rgba(30, 41, 59, 0.88)
+    );
+    box-shadow:
+      0 22px 44px rgba(2, 6, 23, 0.35),
+      inset 0 1px 0 rgba(148, 163, 184, 0.12);
   }
 
   @media (hover: hover) {
     .media-card:hover {
-      @apply scale-105 shadow-lg ring-zinc-500;
+      @apply scale-105 ring-sky-300/70;
+      box-shadow:
+        0 28px 56px rgba(2, 6, 23, 0.48),
+        0 0 24px rgba(14, 165, 233, 0.22),
+        inset 0 1px 0 rgba(226, 232, 240, 0.16);
     }
   }
 
@@ -106,7 +140,7 @@
   }
 
   .collection {
-    @apply border-r border-zinc-700;
+    @apply border-r border-sky-500/20;
   }
   .collection-backdrop {
     display: block;
@@ -147,11 +181,11 @@
   }
 
   .edit-button {
-    @apply /* background-color: #3f3f46; */ bg-amber-900;
+    @apply /* background-color: #3f3f46; */ bg-sky-900;
   }
 
   .edit-button:hover {
-    @apply /* background: #3a3a42; */ bg-amber-800;
+    @apply /* background: #3a3a42; */ bg-sky-800;
   }
 
   .delete-button {
@@ -163,12 +197,12 @@
   }
 
   .plex-button {
-    @apply flex w-full justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2 text-center text-sm font-medium text-white transition duration-150 ease-in-out disabled:opacity-50;
-    background-color: #cc7b19;
+    @apply flex w-full justify-center rounded-md border border-sky-400/40 bg-sky-600 px-4 py-2 text-center text-sm font-medium text-white shadow-lg shadow-sky-950/30 transition duration-150 ease-in-out disabled:opacity-50;
+    background-color: #0284c7;
   }
 
   .plex-button:hover {
-    background: #f19a30;
+    background: #38bdf8;
   }
 
   ul.cards-vertical,
@@ -290,7 +324,7 @@
   }
 
   .media-facts {
-    @apply rounded-lg border border-zinc-700 bg-zinc-900 text-sm font-bold text-zinc-300 shadow;
+    @apply rounded-lg border border-sky-500/20 bg-slate-950/70 text-sm font-bold text-slate-200 shadow-2xl shadow-slate-950/30 backdrop-blur;
   }
 
   .media-fact {
@@ -362,7 +396,7 @@
   }
 
   .actions {
-    @apply mt-8 border-t border-zinc-700 pt-5 text-white;
+    @apply mt-8 border-t border-sky-500/20 pt-5 text-white;
   }
 
   label,
@@ -398,7 +432,7 @@
   }
 
   input[type='checkbox'] {
-    @apply h-6 w-6 rounded-md text-amber-600 transition duration-150 ease-in-out default:ring-amber-600 checked:ring-amber-800;
+    @apply h-6 w-6 rounded-md border-slate-600 bg-slate-900 text-sky-500 transition duration-150 ease-in-out checked:ring-sky-700;
   }
 
   input[type='text'],
@@ -407,7 +441,15 @@
   input[type='date'],
   select,
   textarea {
-    @apply block w-full min-w-0 flex-1 rounded-md border border-zinc-500 bg-zinc-700 text-white transition duration-150 ease-in-out sm:text-sm sm:leading-5;
+    @apply block w-full min-w-0 flex-1 rounded-md border border-sky-500/25 bg-slate-900/80 text-slate-100 shadow-sm shadow-slate-950/20 transition duration-150 ease-in-out placeholder:text-slate-500 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40 sm:text-sm sm:leading-5;
+  }
+
+  select option {
+    @apply bg-slate-900 text-slate-100;
+  }
+
+  select option:checked {
+    @apply bg-sky-900 text-white;
   }
 
   input.rounded-l-only,
@@ -435,7 +477,7 @@
   }
 
   button.input-action {
-    @apply relative -ml-px inline-flex items-center border border-zinc-500 bg-amber-600 px-3 py-2 text-sm font-medium leading-5 text-white transition duration-150 ease-in-out last:rounded-r-md hover:bg-amber-500 active:bg-zinc-100 active:text-zinc-700 sm:px-3.5;
+    @apply relative -ml-px inline-flex items-center border border-sky-500/40 bg-sky-600 px-3 py-2 text-sm font-medium leading-5 text-white transition duration-150 ease-in-out last:rounded-r-md hover:bg-sky-500 active:bg-sky-200 active:text-slate-900 sm:px-3.5;
   }
 
   .button-md svg,
@@ -449,7 +491,7 @@
   }
 
   .modal-icon {
-    @apply mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800 text-white ring-1 ring-zinc-500 sm:mx-0 sm:h-10 sm:w-10;
+    @apply mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-sky-100 ring-1 ring-sky-500/40 sm:mx-0 sm:h-10 sm:w-10;
   }
 
   .modal-icon svg {
@@ -465,7 +507,7 @@
   }
 
   .protocol {
-    @apply inline-flex cursor-default items-center rounded-l-md border border-r-0 border-zinc-500 bg-zinc-600 px-3 text-zinc-100 sm:text-sm;
+    @apply inline-flex cursor-default items-center rounded-l-md border border-r-0 border-sky-500/25 bg-slate-800 px-3 text-slate-100 sm:text-sm;
   }
 
   .error {
@@ -477,17 +519,17 @@
   }
 
   .prose a {
-    color: #ed7924;
+    color: #38bdf8;
   }
   .prose a:hover {
-    color: #8d4c1c;
+    color: #7dd3fc;
   }
   .react-select-container {
     @apply w-full;
   }
 
   .react-select-container .react-select__control {
-    @apply rounded-md border border-zinc-500 bg-zinc-700 text-white hover:border-zinc-500;
+    @apply rounded-md border border-sky-500/25 bg-slate-900/80 text-white hover:border-sky-400;
   }
 
   .react-select-container-dark .react-select__control {
@@ -495,7 +537,7 @@
   }
 
   .react-select-container .react-select__control--is-focused {
-    @apply rounded-md border border-zinc-500 bg-zinc-700 text-white shadow;
+    @apply rounded-md border border-sky-400 bg-slate-900 text-white shadow;
   }
 
   .react-select-container-dark .react-select__control--is-focused {
@@ -503,7 +545,7 @@
   }
 
   .react-select-container .react-select__menu {
-    @apply bg-zinc-700 text-zinc-300;
+    @apply bg-slate-900 text-slate-300;
   }
 
   .react-select-container-dark .react-select__menu {
@@ -511,7 +553,7 @@
   }
 
   .react-select-container .react-select__option--is-focused {
-    @apply bg-zinc-600 text-white;
+    @apply bg-sky-900/70 text-white;
   }
 
   .react-select-container-dark .react-select__option--is-focused {
