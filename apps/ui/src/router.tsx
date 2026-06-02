@@ -1,29 +1,49 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import Calendar from './components/Calendar'
 import Layout, { LayoutErrorBoundary } from './components/Layout'
-import Overview from './components/Overview'
-import Settings from './components/Settings'
-import SettingsAbout from './components/Settings/About'
-import SettingsJellyfin from './components/Settings/Jellyfin'
-import SettingsSeerr from './components/Settings/Seerr'
-import SettingsJobs from './components/Settings/Jobs'
-import SettingsLogs from './components/Settings/Logs'
-import SettingsMain from './components/Settings/Main'
-import SettingsNotifications from './components/Settings/Notifications'
-import SettingsPlex from './components/Settings/Plex'
-import SettingsRadarr from './components/Settings/Radarr'
-import SettingsSonarr from './components/Settings/Sonarr'
-import SettingsTautulli from './components/Settings/Tautulli'
-import CollectionDetailPage from './pages/CollectionDetailPage'
-import CollectionExclusionsPage from './pages/CollectionExclusionsPage'
-import CollectionInfoPage from './pages/CollectionInfoPage'
-import CollectionMediaPage from './pages/CollectionMediaPage'
-import CollectionsListPage from './pages/CollectionsListPage'
-import DocsPage from './pages/DocsPage'
-import RuleFormPage from './pages/RuleFormPage'
-import RulesListPage from './pages/RulesListPage'
+import LoadingSpinner from './components/Common/LoadingSpinner'
+
+const Calendar = lazy(() => import('./components/Calendar'))
+const Media = lazy(() => import('./components/Media'))
+const Overview = lazy(() => import('./components/Overview'))
+const Settings = lazy(() => import('./components/Settings'))
+const SettingsAbout = lazy(() => import('./components/Settings/About'))
+const SettingsJellyfin = lazy(() => import('./components/Settings/Jellyfin'))
+const SettingsSeerr = lazy(() => import('./components/Settings/Seerr'))
+const SettingsJobs = lazy(() => import('./components/Settings/Jobs'))
+const SettingsLogs = lazy(() => import('./components/Settings/Logs'))
+const SettingsMain = lazy(() => import('./components/Settings/Main'))
+const SettingsNotifications = lazy(
+  () => import('./components/Settings/Notifications'),
+)
+const SettingsPlex = lazy(() => import('./components/Settings/Plex'))
+const SettingsRadarr = lazy(() => import('./components/Settings/Radarr'))
+const SettingsSonarr = lazy(() => import('./components/Settings/Sonarr'))
+const SettingsTautulli = lazy(() => import('./components/Settings/Tautulli'))
+const CollectionDetailPage = lazy(() => import('./pages/CollectionDetailPage'))
+const CollectionExclusionsPage = lazy(
+  () => import('./pages/CollectionExclusionsPage'),
+)
+const CollectionInfoPage = lazy(() => import('./pages/CollectionInfoPage'))
+const CollectionMediaPage = lazy(() => import('./pages/CollectionMediaPage'))
+const CollectionsListPage = lazy(() => import('./pages/CollectionsListPage'))
+const DocsPage = lazy(() => import('./pages/DocsPage'))
+const RuleFormPage = lazy(() => import('./pages/RuleFormPage'))
+const RulesListPage = lazy(() => import('./pages/RulesListPage'))
 
 const basePath = import.meta.env.VITE_BASE_PATH || ''
+
+const page = (element: ReactNode) => (
+  <Suspense
+    fallback={
+      <div className="flex min-h-[16rem] items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    }
+  >
+    {element}
+  </Suspense>
+)
 
 export const router = createBrowserRouter(
   [
@@ -38,30 +58,34 @@ export const router = createBrowserRouter(
         },
         {
           path: 'overview',
-          element: <Overview />,
+          element: page(<Overview />),
+        },
+        {
+          path: 'media',
+          element: page(<Media />),
         },
         {
           path: 'collections',
           children: [
             {
               index: true,
-              element: <CollectionsListPage />,
+              element: page(<CollectionsListPage />),
             },
             {
               path: ':id',
-              element: <CollectionDetailPage />,
+              element: page(<CollectionDetailPage />),
               children: [
                 {
                   index: true,
-                  element: <CollectionMediaPage />,
+                  element: page(<CollectionMediaPage />),
                 },
                 {
                   path: 'exclusions',
-                  element: <CollectionExclusionsPage />,
+                  element: page(<CollectionExclusionsPage />),
                 },
                 {
                   path: 'info',
-                  element: <CollectionInfoPage />,
+                  element: page(<CollectionInfoPage />),
                 },
               ],
             },
@@ -72,33 +96,33 @@ export const router = createBrowserRouter(
           children: [
             {
               index: true,
-              element: <RulesListPage />,
+              element: page(<RulesListPage />),
             },
             {
               path: 'new',
-              element: <RuleFormPage />,
+              element: page(<RuleFormPage />),
             },
             {
               path: 'edit/:id',
-              element: <RuleFormPage />,
+              element: page(<RuleFormPage />),
             },
             {
               path: 'clone/:id',
-              element: <RuleFormPage />,
+              element: page(<RuleFormPage />),
             },
           ],
         },
         {
           path: 'docs',
-          element: <DocsPage />,
+          element: page(<DocsPage />),
         },
         {
           path: 'calendar',
-          element: <Calendar />,
+          element: page(<Calendar />),
         },
         {
           path: 'settings',
-          element: <Settings />,
+          element: page(<Settings />),
           children: [
             {
               index: true,
@@ -106,47 +130,47 @@ export const router = createBrowserRouter(
             },
             {
               path: 'main',
-              element: <SettingsMain />,
+              element: page(<SettingsMain />),
             },
             {
               path: 'plex',
-              element: <SettingsPlex />,
+              element: page(<SettingsPlex />),
             },
             {
               path: 'jellyfin',
-              element: <SettingsJellyfin />,
+              element: page(<SettingsJellyfin />),
             },
             {
               path: 'sonarr',
-              element: <SettingsSonarr />,
+              element: page(<SettingsSonarr />),
             },
             {
               path: 'radarr',
-              element: <SettingsRadarr />,
+              element: page(<SettingsRadarr />),
             },
             {
               path: 'seerr',
-              element: <SettingsSeerr />,
+              element: page(<SettingsSeerr />),
             },
             {
               path: 'tautulli',
-              element: <SettingsTautulli />,
+              element: page(<SettingsTautulli />),
             },
             {
               path: 'notifications',
-              element: <SettingsNotifications />,
+              element: page(<SettingsNotifications />),
             },
             {
               path: 'jobs',
-              element: <SettingsJobs />,
+              element: page(<SettingsJobs />),
             },
             {
               path: 'logs',
-              element: <SettingsLogs />,
+              element: page(<SettingsLogs />),
             },
             {
               path: 'about',
-              element: <SettingsAbout />,
+              element: page(<SettingsAbout />),
             },
           ],
         },

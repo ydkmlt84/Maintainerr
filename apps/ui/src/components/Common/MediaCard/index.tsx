@@ -142,9 +142,9 @@ const MediaCard: React.FC<IMediaCard> = ({
                 mediaType === 'movie'
                   ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                   : mediaType === 'show'
-                    ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
+                    ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
                     : mediaType === 'season'
-                      ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                      ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
                       : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
               }`}
             >
@@ -160,9 +160,9 @@ const MediaCard: React.FC<IMediaCard> = ({
                   mediaType === 'movie'
                     ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                     : mediaType === 'show'
-                      ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
+                      ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
                       : mediaType === 'season'
-                        ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                        ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
                         : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 }`}
               >
@@ -181,9 +181,9 @@ const MediaCard: React.FC<IMediaCard> = ({
                   mediaType === 'movie'
                     ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                     : mediaType === 'show'
-                      ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
+                      ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
                       : mediaType === 'season'
-                        ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                        ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
                         : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 }`}
               >
@@ -204,9 +204,9 @@ const MediaCard: React.FC<IMediaCard> = ({
                     : mediaType === 'movie'
                       ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                       : mediaType === 'show'
-                        ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
+                        ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
                         : mediaType === 'season'
-                          ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                          ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
                           : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 } `}
               >
@@ -225,9 +225,9 @@ const MediaCard: React.FC<IMediaCard> = ({
                   mediaType === 'movie'
                     ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
                     : mediaType === 'show'
-                      ? 'bg-sky-900/90 ring-1 ring-sky-400/30'
+                      ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
                       : mediaType === 'season'
-                        ? 'bg-cyan-800/90 ring-1 ring-cyan-400/30'
+                        ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
                         : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
                 }`}
               >

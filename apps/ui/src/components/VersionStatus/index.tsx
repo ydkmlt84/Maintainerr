@@ -58,7 +58,7 @@ const VersionStatus = ({ onClick }: VersionStatusProps) => {
           tabIndex={0}
           className={`mx-2 flex items-center rounded-lg p-2 text-xs ring-1 ring-zinc-700 transition duration-300 ${
             updateAvailable
-              ? 'bg-amber-800 text-white hover:bg-amber-600'
+              ? 'bg-maintainerrdark-800 text-white hover:bg-maintainerr-600'
               : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800'
           }`}
         >

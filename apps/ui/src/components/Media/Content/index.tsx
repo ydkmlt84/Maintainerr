@@ -9,8 +9,9 @@ import LoadingSpinner, {
   SmallLoadingSpinner,
 } from '../../Common/LoadingSpinner'
 import MediaCard from '../../Common/MediaCard'
+import { getMediaItemIdentity } from '../../../utils/mediaIdentity'
 
-interface IOverviewContent {
+interface IMediaContent {
   data: MediaItem[]
   dataFinished: boolean
   loading: boolean
@@ -51,7 +52,7 @@ function extractTmdbId(
   return undefined
 }
 
-const OverviewContent = (props: IOverviewContent) => {
+const MediaContent = (props: IMediaContent) => {
   const latestPropsRef = useRef(props)
 
   const isNearBottom = () =>
@@ -161,8 +162,8 @@ const OverviewContent = (props: IOverviewContent) => {
   if (props.data && props.data.length > 0) {
     return (
       <ul className="cards-vertical">
-        {props.data.map((el) => (
-          <li key={el.id}>
+        {props.data.map((el, index) => (
+          <li key={`${getMediaItemIdentity(el)}:${index}`}>
             <MediaCard
               id={el.id}
               libraryId={props.libraryId}
@@ -224,4 +225,4 @@ const OverviewContent = (props: IOverviewContent) => {
   }
   return <></>
 }
-export default OverviewContent
+export default MediaContent

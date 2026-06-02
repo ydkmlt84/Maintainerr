@@ -44,20 +44,36 @@ export type CollectionLogMeta =
   | CollectionLogMetaMediaAddedManually
   | CollectionLogMetaMediaRemovedManually
 
+export type CollectionLogMediaSnapshot = {
+  mediaServerId: string
+  mediaType: 'movie' | 'show' | 'season' | 'episode'
+  title: string
+  parentTitle?: string
+  grandparentTitle?: string
+  seasonNumber?: number
+  episodeNumber?: number
+  tmdbId?: string
+  posterType?: 'movie' | 'show'
+}
+
 export type CollectionLogMetaMediaAddedByRule = {
   type: 'media_added_by_rule'
   data: IComparisonStatistics
+  media?: CollectionLogMediaSnapshot
 }
 
 export type CollectionLogMetaMediaRemovedByRule = {
   type: 'media_removed_by_rule'
   data: IComparisonStatistics
+  media?: CollectionLogMediaSnapshot
 }
 
 export type CollectionLogMetaMediaAddedManually = {
   type: 'media_added_manually'
+  media?: CollectionLogMediaSnapshot
 }
 
 export type CollectionLogMetaMediaRemovedManually = {
   type: 'media_removed_manually'
+  media?: CollectionLogMediaSnapshot
 }

@@ -11,7 +11,11 @@ interface IExecuteButton {
 const ExecuteButton = (props: IExecuteButton) => {
   return (
     <button
-      className="edit-button m-auto flex h-9 rounded text-zinc-200 shadow-md"
+      className={`m-auto flex h-9 rounded text-white shadow-md transition disabled:opacity-60 ${
+        props.executing
+          ? 'bg-red-600 hover:bg-red-500'
+          : 'bg-emerald-700 hover:bg-emerald-600'
+      }`}
       onClick={props.onClick}
       disabled={props.disabled}
     >

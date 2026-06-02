@@ -12,10 +12,8 @@ const CollectionsListPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [collections, setCollections] = useState<ICollection[]>()
 
-  const getCollections = async (libraryId?: string) => {
-    const colls: ICollection[] = libraryId
-      ? await GetApiHandler(`/collections?libraryId=${libraryId}`)
-      : await GetApiHandler('/collections')
+  const getCollections = async () => {
+    const colls: ICollection[] = await GetApiHandler('/collections')
     setCollections(colls)
     setIsLoading(false)
   }
@@ -23,10 +21,6 @@ const CollectionsListPage = () => {
   useEffect(() => {
     getCollections()
   }, [])
-
-  const onSwitchLibrary = (id: string) => {
-    getCollections(id !== 'all' ? id : undefined)
-  }
 
   const doActions = async () => {
     try {
@@ -63,7 +57,6 @@ const CollectionsListPage = () => {
       <title>Collections - Maintainerr</title>
       <div className="w-full">
         <CollectionOverview
-          onSwitchLibrary={onSwitchLibrary}
           collections={collections}
           doActions={doActions}
           openDetail={openDetail}

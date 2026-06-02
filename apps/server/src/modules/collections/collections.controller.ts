@@ -184,6 +184,11 @@ export class CollectionsController {
     return this.collectionService.getCollectionMediaCount(collectionId);
   }
 
+  @Get('/storage-summary')
+  getStorageSummary() {
+    return this.collectionService.getCollectionStorageSummary();
+  }
+
   @Get('/media/:id/content/:page')
   getLibraryContent(
     @Param('id', ParseIntPipe) id: number,

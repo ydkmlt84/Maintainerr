@@ -1,6 +1,7 @@
 import {
   BasicResponseDto,
   CollectionLogMeta,
+  CollectionLogMediaSnapshot,
   ECollectionLogType,
   isMediaType,
   MaintainerrEvent,
@@ -42,6 +43,23 @@ import {
   ICollection,
   ServarrAction,
 } from './interfaces/collection.interface';
+
+export interface CollectionStorageSummary {
+  collectionCount: number;
+  sizedCollectionCount: number;
+  totalSizeBytes: number;
+  reclaimableCollectionCount: number;
+  reclaimableSizeBytes: number;
+  byLibrary: CollectionStorageLibrarySummary[];
+}
+
+export interface CollectionStorageLibrarySummary {
+  libraryId: string;
+  collectionCount: number;
+  collectedCount: number;
+  totalSizeBytes: number;
+  reclaimableSizeBytes: number;
+}
 
 interface addCollectionDbResponse {
   id: number;
@@ -127,6 +145,90 @@ export class CollectionsService {
     }
     // No id = count ALL media across all collections
     return await this.CollectionMediaRepo.count();
+  }
+
+  public async getCollectionStorageSummary(): Promise<CollectionStorageSummary> {
+    const collections = await this.collectionRepo.find({
+      select: {
+        id: true,
+        libraryId: true,
+        isActive: true,
+        deleteAfterDays: true,
+        totalSizeBytes: true,
+      },
+    });
+    const mediaCountRows = await this.CollectionMediaRepo.createQueryBuilder(
+      'media',
+    )
+      .select('media.collectionId', 'collectionId')
+      .addSelect('COUNT(media.id)', 'mediaCount')
+      .groupBy('media.collectionId')
+      .getRawMany<{ collectionId: number; mediaCount: string }>();
+    const mediaCountByCollection = new Map(
+      mediaCountRows.map((row) => [
+        Number(row.collectionId),
+        Number(row.mediaCount),
+      ]),
+    );
+    const librarySummaryById = new Map<
+      string,
+      CollectionStorageLibrarySummary
+    >();
+
+    const summary = collections.reduce<CollectionStorageSummary>(
+      (summary, collection) => {
+        const sizeBytes = Number(collection.totalSizeBytes ?? 0);
+        const hasSize = Number.isFinite(sizeBytes) && sizeBytes > 0;
+        const isReclaimable =
+          collection.isActive && (collection.deleteAfterDays ?? 0) > 0;
+        const librarySummary =
+          librarySummaryById.get(collection.libraryId) ??
+          ({
+            libraryId: collection.libraryId,
+            collectionCount: 0,
+            collectedCount: 0,
+            totalSizeBytes: 0,
+            reclaimableSizeBytes: 0,
+          } satisfies CollectionStorageLibrarySummary);
+
+        summary.collectionCount += 1;
+        librarySummary.collectionCount += 1;
+        librarySummary.collectedCount +=
+          mediaCountByCollection.get(collection.id) ?? 0;
+
+        if (hasSize) {
+          summary.sizedCollectionCount += 1;
+          summary.totalSizeBytes += sizeBytes;
+          librarySummary.totalSizeBytes += sizeBytes;
+        }
+
+        if (isReclaimable) {
+          summary.reclaimableCollectionCount += 1;
+
+          if (hasSize) {
+            summary.reclaimableSizeBytes += sizeBytes;
+            librarySummary.reclaimableSizeBytes += sizeBytes;
+          }
+        }
+
+        librarySummaryById.set(collection.libraryId, librarySummary);
+        return summary;
+      },
+      {
+        collectionCount: 0,
+        sizedCollectionCount: 0,
+        totalSizeBytes: 0,
+        reclaimableCollectionCount: 0,
+        reclaimableSizeBytes: 0,
+        byLibrary: [],
+      },
+    );
+
+    summary.byLibrary = [...librarySummaryById.values()].sort((a, b) =>
+      a.libraryId.localeCompare(b.libraryId),
+    );
+
+    return summary;
   }
 
   public async getCollectionMediaWithServerDataAndPaging(
@@ -1204,6 +1306,12 @@ export class CollectionsService {
     // if there's no data.. skip logging
 
     if (mediaData) {
+      const logMetaWithMedia = await this.addMediaSnapshotToLogMeta(
+        logMeta,
+        mediaData,
+        mediaServer,
+        type,
+      );
       const subject = isMediaType(mediaData.type, 'episode')
         ? `${mediaData.grandparentTitle} - season ${mediaData.parentIndex} - episode ${mediaData.index}`
         : isMediaType(mediaData.type, 'season')
@@ -1213,9 +1321,59 @@ export class CollectionsService {
         { id: collectionId } as Collection,
         `${type === 'add' ? 'Added' : type === 'handle' ? 'Successfully handled' : type === 'exclude' ? 'Added a specific exclusion for' : type === 'include' ? 'Removed specific exclusion of' : 'Removed'} "${subject}"`,
         ECollectionLogType.MEDIA,
-        logMeta,
+        logMetaWithMedia,
       );
     }
+  }
+
+  private async addMediaSnapshotToLogMeta(
+    logMeta: CollectionLogMeta | undefined,
+    mediaData: MediaItem,
+    mediaServer: IMediaServerService,
+    actionType: 'add' | 'remove' | 'handle' | 'exclude' | 'include',
+  ): Promise<CollectionLogMeta> {
+    const media = await this.getLogMediaSnapshot(mediaData, mediaServer);
+
+    if (logMeta) {
+      return { ...logMeta, media } as CollectionLogMeta;
+    }
+
+    return {
+      type:
+        actionType === 'remove'
+          ? 'media_removed_manually'
+          : 'media_added_manually',
+      media,
+    };
+  }
+
+  private async getLogMediaSnapshot(
+    mediaData: MediaItem,
+    mediaServer: IMediaServerService,
+  ): Promise<CollectionLogMediaSnapshot> {
+    const parentId =
+      mediaData.type === 'episode'
+        ? mediaData.grandparentId
+        : mediaData.type === 'season'
+          ? mediaData.parentId
+          : undefined;
+    const parentItem = parentId
+      ? await mediaServer.getMetadata(parentId)
+      : undefined;
+    const posterSource = mediaData.type === 'movie' ? mediaData : parentItem;
+
+    return {
+      mediaServerId: mediaData.id,
+      mediaType: mediaData.type,
+      title: mediaData.title,
+      parentTitle: mediaData.parentTitle,
+      grandparentTitle: mediaData.grandparentTitle,
+      seasonNumber:
+        mediaData.type === 'season' ? mediaData.index : mediaData.parentIndex,
+      episodeNumber: mediaData.type === 'episode' ? mediaData.index : undefined,
+      tmdbId: posterSource?.providerIds?.tmdb?.[0],
+      posterType: mediaData.type === 'movie' ? 'movie' : 'show',
+    };
   }
 
   private async removeChildFromCollection(

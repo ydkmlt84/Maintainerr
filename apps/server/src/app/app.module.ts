@@ -25,6 +25,7 @@ import { NotificationService } from '../modules/notifications/notifications.serv
 import { RulesModule } from '../modules/rules/rules.module';
 import { SettingsModule } from '../modules/settings/settings.module';
 import { SettingsService } from '../modules/settings/settings.service';
+import { StatsModule } from '../modules/stats/stats.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import ormConfig from './config/typeOrmConfig';
@@ -48,6 +49,7 @@ import ormConfig from './config/typeOrmConfig';
     TautulliApiModule,
     RulesModule,
     CollectionsModule,
+    StatsModule,
     NotificationsModule,
     EventsModule,
     ServeStaticModule.forRootAsync({
