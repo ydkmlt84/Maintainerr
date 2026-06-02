@@ -1,5 +1,5 @@
-import { MediaItem, MediaItemType } from '@maintainerr/contracts';
-import { Mocked, TestBed } from '@suites/unit';
+import { MediaItem, MediaItemType } from '@maintainerr/contracts'
+import { Mocked, TestBed } from '@suites/unit'
 import {
   createCollectionMedia,
   createMediaItem,
@@ -7,47 +7,47 @@ import {
   createSonarrEpisode,
   createSonarrEpisodeFile,
   createSonarrSeries,
-} from '../../../../test/utils/data';
-import { MediaServerFactory } from '../../api/media-server/media-server.factory';
-import { IMediaServerService } from '../../api/media-server/media-server.interface';
-import { SonarrApi } from '../../api/servarr-api/helpers/sonarr.helper';
-import { SonarrSeries } from '../../api/servarr-api/interfaces/sonarr.interface';
-import { ServarrService } from '../../api/servarr-api/servarr.service';
-import { CollectionMedia } from '../../collections/entities/collection_media.entities';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { SonarrGetterService } from './sonarr-getter.service';
+} from '../../../../test/utils/data'
+import { MediaServerFactory } from '../../api/media-server/media-server.factory'
+import { IMediaServerService } from '../../api/media-server/media-server.interface'
+import { SonarrApi } from '../../api/servarr-api/helpers/sonarr.helper'
+import { SonarrSeries } from '../../api/servarr-api/interfaces/sonarr.interface'
+import { ServarrService } from '../../api/servarr-api/servarr.service'
+import { CollectionMedia } from '../../collections/entities/collection_media.entities'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { SonarrGetterService } from './sonarr-getter.service'
 
 describe('SonarrGetterService', () => {
-  let sonarrGetterService: SonarrGetterService;
-  let servarrService: Mocked<ServarrService>;
-  let mediaServerFactory: Mocked<MediaServerFactory>;
+  let sonarrGetterService: SonarrGetterService
+  let servarrService: Mocked<ServarrService>
+  let mediaServerFactory: Mocked<MediaServerFactory>
   let mockMediaServer: {
-    getMetadata: jest.Mock<Promise<MediaItem>, [string]>;
-  };
-  let logger: Mocked<MaintainerrLogger>;
+    getMetadata: jest.Mock<Promise<MediaItem>, [string]>
+  }
+  let logger: Mocked<MaintainerrLogger>
 
   beforeEach(async () => {
     const { unit, unitRef } =
-      await TestBed.solitary(SonarrGetterService).compile();
+      await TestBed.solitary(SonarrGetterService).compile()
 
-    sonarrGetterService = unit;
+    sonarrGetterService = unit
 
-    servarrService = unitRef.get(ServarrService);
-    mediaServerFactory = unitRef.get(MediaServerFactory);
-    logger = unitRef.get(MaintainerrLogger);
+    servarrService = unitRef.get(ServarrService)
+    mediaServerFactory = unitRef.get(MediaServerFactory)
+    logger = unitRef.get(MaintainerrLogger)
 
     // Create mock media server
     mockMediaServer = {
       getMetadata: jest.fn(),
-    };
+    }
     mediaServerFactory.getService.mockResolvedValue(
       mockMediaServer as unknown as IMediaServerService,
-    );
-  });
+    )
+  })
 
   afterEach(() => {
-    jest.useRealTimers();
-  });
+    jest.useRealTimers()
+  })
 
   describe('part_of_latest_season', () => {
     it.each([
@@ -59,16 +59,16 @@ describe('SonarrGetterService', () => {
     ])(
       'should return true when next season has not started airing yet for $title',
       async ({ type }: { type: string }) => {
-        jest.useFakeTimers().setSystemTime(new Date('2025-01-01'));
+        jest.useFakeTimers().setSystemTime(new Date('2025-01-01'))
 
-        const collectionMedia = createCollectionMedia(type as MediaItemType);
-        collectionMedia.collection.sonarrSettingsId = 1;
+        const collectionMedia = createCollectionMedia(type as MediaItemType)
+        collectionMedia.collection.sonarrSettingsId = 1
 
         mockMediaServer.getMetadata.mockResolvedValue(
           createMediaItem({
             type: 'show',
           }),
-        );
+        )
         const series = createSonarrSeries({
           seasons: [
             {
@@ -84,9 +84,9 @@ describe('SonarrGetterService', () => {
               monitored: true,
             },
           ],
-        });
+        })
 
-        const mockedSonarrApi = mockSonarrApi(series);
+        const mockedSonarrApi = mockSonarrApi(series)
         jest
           .spyOn(mockedSonarrApi, 'getEpisodes')
           .mockImplementation((seriesId, seasonNumber) => {
@@ -98,7 +98,7 @@ describe('SonarrGetterService', () => {
                   episodeNumber: 1,
                   airDateUtc: '2024-06-26T00:00:00Z',
                 }),
-              ]);
+              ])
             } else if (seasonNumber === 1) {
               return Promise.resolve([
                 createSonarrEpisode({
@@ -107,7 +107,7 @@ describe('SonarrGetterService', () => {
                   episodeNumber: 1,
                   airDateUtc: '2024-06-25T00:00:00Z',
                 }),
-              ]);
+              ])
             } else if (seasonNumber === 2) {
               return Promise.resolve([
                 createSonarrEpisode({
@@ -116,17 +116,17 @@ describe('SonarrGetterService', () => {
                   episodeNumber: 1,
                   airDateUtc: '2025-04-01T00:00:00Z',
                 }),
-              ]);
+              ])
             }
 
-            return Promise.resolve([]);
-          });
+            return Promise.resolve([])
+          })
 
         const mediaItem = createMediaItem({
           type: type == 'episode' ? 'episode' : 'season',
           index: 1,
           parentIndex: type == 'episode' ? 1 : undefined, // For episode, target parent (season)
-        });
+        })
 
         const response = await sonarrGetterService.get(
           13,
@@ -136,11 +136,11 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: type as MediaItemType,
           }),
-        );
+        )
 
-        expect(response).toBe(true);
+        expect(response).toBe(true)
       },
-    );
+    )
 
     describe('part_of_latest_season', () => {
       it.each([
@@ -152,16 +152,16 @@ describe('SonarrGetterService', () => {
       ])(
         'should return false when a later season has aired for $title',
         async ({ type }: { type: string }) => {
-          jest.useFakeTimers().setSystemTime(new Date('2025-06-01'));
+          jest.useFakeTimers().setSystemTime(new Date('2025-06-01'))
 
-          const collectionMedia = createCollectionMedia(type as MediaItemType);
-          collectionMedia.collection.sonarrSettingsId = 1;
+          const collectionMedia = createCollectionMedia(type as MediaItemType)
+          collectionMedia.collection.sonarrSettingsId = 1
 
           mockMediaServer.getMetadata.mockResolvedValue(
             createMediaItem({
               type: 'show',
             }),
-          );
+          )
           const series = createSonarrSeries({
             seasons: [
               {
@@ -177,9 +177,9 @@ describe('SonarrGetterService', () => {
                 monitored: true,
               },
             ],
-          });
+          })
 
-          const mockedSonarrApi = mockSonarrApi(series);
+          const mockedSonarrApi = mockSonarrApi(series)
           jest
             .spyOn(mockedSonarrApi, 'getEpisodes')
             .mockImplementation((seriesId, seasonNumber) => {
@@ -191,7 +191,7 @@ describe('SonarrGetterService', () => {
                     episodeNumber: 1,
                     airDateUtc: '2024-06-26T00:00:00Z',
                   }),
-                ]);
+                ])
               } else if (seasonNumber === 1) {
                 return Promise.resolve([
                   createSonarrEpisode({
@@ -200,7 +200,7 @@ describe('SonarrGetterService', () => {
                     episodeNumber: 1,
                     airDateUtc: '2024-06-25T00:00:00Z',
                   }),
-                ]);
+                ])
               } else if (seasonNumber === 2) {
                 return Promise.resolve([
                   createSonarrEpisode({
@@ -209,17 +209,17 @@ describe('SonarrGetterService', () => {
                     episodeNumber: 1,
                     airDateUtc: '2025-04-01T00:00:00Z',
                   }),
-                ]);
+                ])
               }
 
-              return Promise.resolve([]);
-            });
+              return Promise.resolve([])
+            })
 
           const mediaItem = createMediaItem({
             type: type == 'episode' ? 'episode' : 'season',
             index: 1,
             parentIndex: type == 'episode' ? 1 : undefined, // For episode, target parent (season)
-          });
+          })
 
           const response = await sonarrGetterService.get(
             13,
@@ -229,45 +229,45 @@ describe('SonarrGetterService', () => {
               collection: collectionMedia.collection,
               dataType: type as MediaItemType,
             }),
-          );
+          )
 
-          expect(response).toBe(false);
+          expect(response).toBe(false)
         },
-      );
-    });
-  });
+      )
+    })
+  })
 
   describe('episode file properties', () => {
-    let collectionMedia: CollectionMedia;
-    let mockedSonarrApi: SonarrApi;
-    let series: SonarrSeries;
-    let mediaItem: MediaItem;
+    let collectionMedia: CollectionMedia
+    let mockedSonarrApi: SonarrApi
+    let series: SonarrSeries
+    let mediaItem: MediaItem
 
     beforeEach(() => {
-      collectionMedia = createCollectionMedia('episode');
-      collectionMedia.collection.sonarrSettingsId = 1;
+      collectionMedia = createCollectionMedia('episode')
+      collectionMedia.collection.sonarrSettingsId = 1
       mockMediaServer.getMetadata.mockResolvedValue(
         createMediaItem({
           type: 'show',
         }),
-      );
-      series = createSonarrSeries();
-      mockedSonarrApi = mockSonarrApi(series);
-      mediaItem = createMediaItem({ type: 'episode' });
-    });
+      )
+      series = createSonarrSeries()
+      mockedSonarrApi = mockSonarrApi(series)
+      mediaItem = createMediaItem({ type: 'episode' })
+    })
 
     describe('fileQualityCutoffMet', () => {
       it('should return true when the cut off is met', async () => {
         const episodeFile = createSonarrEpisodeFile({
           qualityCutoffNotMet: false,
-        });
+        })
         const episode = createSonarrEpisode({
           episodeFileId: episodeFile.id,
-        });
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode]);
+        })
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode])
         jest
           .spyOn(mockedSonarrApi, 'getEpisodeFile')
-          .mockResolvedValue(episodeFile);
+          .mockResolvedValue(episodeFile)
 
         const response = await sonarrGetterService.get(
           23,
@@ -277,22 +277,22 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe(true);
-      });
+        expect(response).toBe(true)
+      })
 
       it('should return false when the cut off is not met', async () => {
         const episodeFile = createSonarrEpisodeFile({
           qualityCutoffNotMet: true,
-        });
+        })
         const episode = createSonarrEpisode({
           episodeFileId: episodeFile.id,
-        });
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode]);
+        })
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode])
         jest
           .spyOn(mockedSonarrApi, 'getEpisodeFile')
-          .mockResolvedValue(episodeFile);
+          .mockResolvedValue(episodeFile)
 
         const response = await sonarrGetterService.get(
           23,
@@ -302,13 +302,13 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe(false);
-      });
+        expect(response).toBe(false)
+      })
 
       it('should return false when no episode file exists', async () => {
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([]);
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([])
 
         const response = await sonarrGetterService.get(
           23,
@@ -318,11 +318,11 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe(false);
-      });
-    });
+        expect(response).toBe(false)
+      })
+    })
 
     describe('fileQualityName', () => {
       it('should return quality name', async () => {
@@ -335,14 +335,14 @@ describe('SonarrGetterService', () => {
               resolution: 1080,
             },
           },
-        });
+        })
         const episode = createSonarrEpisode({
           episodeFileId: episodeFile.id,
-        });
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode]);
+        })
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode])
         jest
           .spyOn(mockedSonarrApi, 'getEpisodeFile')
-          .mockResolvedValue(episodeFile);
+          .mockResolvedValue(episodeFile)
 
         const response = await sonarrGetterService.get(
           24,
@@ -352,13 +352,13 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe('WEBDL-1080p');
-      });
+        expect(response).toBe('WEBDL-1080p')
+      })
 
       it('should return null when no episode file exists', async () => {
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([]);
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([])
 
         const response = await sonarrGetterService.get(
           24,
@@ -368,24 +368,24 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe(null);
-      });
-    });
+        expect(response).toBe(null)
+      })
+    })
 
     describe('fileAudioLanguages', () => {
       it('should return audio languages', async () => {
         const episodeFile = createSonarrEpisodeFile({
           mediaInfo: { audioLanguages: 'eng' } as any,
-        });
+        })
         const episode = createSonarrEpisode({
           episodeFileId: episodeFile.id,
-        });
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode]);
+        })
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode])
         jest
           .spyOn(mockedSonarrApi, 'getEpisodeFile')
-          .mockResolvedValue(episodeFile);
+          .mockResolvedValue(episodeFile)
 
         const response = await sonarrGetterService.get(
           26,
@@ -395,13 +395,13 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe('eng');
-      });
+        expect(response).toBe('eng')
+      })
 
       it('should return null when no episode file exists', async () => {
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([]);
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([])
 
         const response = await sonarrGetterService.get(
           26,
@@ -411,22 +411,22 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe(null);
-      });
+        expect(response).toBe(null)
+      })
 
       it('should return null when no media info exists', async () => {
         const episodeFile = createSonarrEpisodeFile({
           mediaInfo: undefined,
-        });
+        })
         const episode = createSonarrEpisode({
           episodeFileId: episodeFile.id,
-        });
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode]);
+        })
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode])
         jest
           .spyOn(mockedSonarrApi, 'getEpisodeFile')
-          .mockResolvedValue(episodeFile);
+          .mockResolvedValue(episodeFile)
 
         const response = await sonarrGetterService.get(
           26,
@@ -436,12 +436,12 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: 'episode',
           }),
-        );
+        )
 
-        expect(response).toBe(null);
-      });
-    });
-  });
+        expect(response).toBe(null)
+      })
+    })
+  })
 
   describe('qualityProfileName', () => {
     it.each([
@@ -457,18 +457,18 @@ describe('SonarrGetterService', () => {
     ])(
       'should return show quality name for $title',
       async ({ type }: { type: string }) => {
-        const collectionMedia = createCollectionMedia('episode');
-        collectionMedia.collection.sonarrSettingsId = 1;
+        const collectionMedia = createCollectionMedia('episode')
+        collectionMedia.collection.sonarrSettingsId = 1
         mockMediaServer.getMetadata.mockResolvedValue(
           createMediaItem({
             type: 'show',
           }),
-        );
-        const mediaItem = createMediaItem({ type: type as MediaItemType });
+        )
+        const mediaItem = createMediaItem({ type: type as MediaItemType })
         const series = createSonarrSeries({
           qualityProfileId: 2,
-        });
-        const mockedSonarrApi = mockSonarrApi(series);
+        })
+        const mockedSonarrApi = mockSonarrApi(series)
         jest.spyOn(mockedSonarrApi, 'getProfiles').mockResolvedValue([
           {
             id: 1,
@@ -478,9 +478,9 @@ describe('SonarrGetterService', () => {
             id: 2,
             name: 'WEBDL-720p',
           },
-        ]);
-        const episode = createSonarrEpisode();
-        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode]);
+        ])
+        const episode = createSonarrEpisode()
+        jest.spyOn(mockedSonarrApi, 'getEpisodes').mockResolvedValue([episode])
 
         const response = await sonarrGetterService.get(
           25,
@@ -490,35 +490,33 @@ describe('SonarrGetterService', () => {
             collection: collectionMedia.collection,
             dataType: type as MediaItemType,
           }),
-        );
+        )
 
-        expect(response).toBe('WEBDL-720p');
+        expect(response).toBe('WEBDL-720p')
       },
-    );
-  });
+    )
+  })
 
   const mockSonarrApi = (series?: SonarrSeries) => {
     const mockedSonarrApi = new SonarrApi(
       { url: 'http://localhost:8989', apiKey: 'test' },
       logger as any,
-    );
-    const mockedServarrService = new ServarrService({} as any, logger as any);
+    )
+    const mockedServarrService = new ServarrService({} as any, logger as any)
     jest
       .spyOn(mockedServarrService, 'getSonarrApiClient')
-      .mockResolvedValue(mockedSonarrApi);
+      .mockResolvedValue(mockedSonarrApi)
 
     if (series) {
-      jest
-        .spyOn(mockedSonarrApi, 'getSeriesByTvdbId')
-        .mockResolvedValue(series);
+      jest.spyOn(mockedSonarrApi, 'getSeriesByTvdbId').mockResolvedValue(series)
     } else {
       jest
         .spyOn(mockedSonarrApi, 'getSeriesByTvdbId')
-        .mockImplementation(jest.fn());
+        .mockImplementation(jest.fn())
     }
 
-    servarrService.getSonarrApiClient.mockResolvedValue(mockedSonarrApi);
+    servarrService.getSonarrApiClient.mockResolvedValue(mockedSonarrApi)
 
-    return mockedSonarrApi;
-  };
-});
+    return mockedSonarrApi
+  }
+})

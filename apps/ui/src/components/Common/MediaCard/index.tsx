@@ -1,7 +1,7 @@
 import { Transition } from '@headlessui/react'
 import { DocumentAddIcon, DocumentRemoveIcon } from '@heroicons/react/solid'
 import { MediaItemType } from '@maintainerr/contracts'
-import React, { memo, useEffect, useState } from 'react'
+import React, { memo, useCallback, useEffect, useState } from 'react'
 import GetApiHandler from '../../../utils/ApiHandler'
 import AddModal from '../../AddModal'
 import RemoveFromCollectionBtn from '../../Collection/CollectionDetail/RemoveFromCollectionBtn'
@@ -62,6 +62,14 @@ const MediaCard: React.FC<IMediaCard> = ({
 
   const closeMediaModal = () => setShowMediaModal(false)
 
+  const getExclusions = useCallback(() => {
+    if (!collectionPage) {
+      GetApiHandler(`/rules/exclusion?mediaServerId=${id}`).then((resp: []) =>
+        resp.length > 0 ? setHasExclusion(true) : setHasExclusion(false),
+      )
+    }
+  }, [collectionPage, id])
+
   useEffect(() => {
     if (tmdbid) {
       const imageType = ['season', 'episode'].includes(mediaType)
@@ -72,20 +80,10 @@ const MediaCard: React.FC<IMediaCard> = ({
       )
     }
     getExclusions()
-  }, [])
-
-  const getExclusions = () => {
-    if (!collectionPage) {
-      GetApiHandler(`/rules/exclusion?mediaServerId=${id}`).then((resp: []) =>
-        resp.length > 0 ? setHasExclusion(true) : setHasExclusion(false),
-      )
-    }
-  }
+  }, [getExclusions, mediaType, tmdbid])
 
   // Just to get the year from the date
-  if (year && mediaType !== 'episode') {
-    year = year.slice(0, 4)
-  }
+  const displayYear = year && mediaType !== 'episode' ? year.slice(0, 4) : year
 
   return (
     <div className={'w-full'}>
@@ -258,7 +256,9 @@ const MediaCard: React.FC<IMediaCard> = ({
             >
               <div className="flex h-full w-full items-end">
                 <div className={`w-full px-2 pb-1 text-zinc-200`}>
-                  {year && <div className="text-sm font-medium">{year}</div>}
+                  {displayYear && (
+                    <div className="text-sm font-medium">{displayYear}</div>
+                  )}
 
                   <h1
                     className="w-full whitespace-normal text-sm font-bold leading-tight"
@@ -344,7 +344,7 @@ const MediaCard: React.FC<IMediaCard> = ({
           summary={summary || 'No description available.'}
           mediaType={mediaType}
           tmdbid={tmdbid}
-          year={year}
+          year={displayYear}
           userScore={userScore}
         />
       )}

@@ -2,37 +2,37 @@ import {
   BasicResponseDto,
   MaintainerrEvent,
   MediaItem,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import _ from 'lodash';
-import { DataSource, Repository } from 'typeorm';
-import { MediaServerFactory } from '../api/media-server/media-server.factory';
-import { IMediaServerService } from '../api/media-server/media-server.interface';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
+import { InjectRepository } from '@nestjs/typeorm'
+import _ from 'lodash'
+import { DataSource, Repository } from 'typeorm'
+import { MediaServerFactory } from '../api/media-server/media-server.factory'
+import { IMediaServerService } from '../api/media-server/media-server.interface'
 import {
   CollectionMediaAddedDto,
   CollectionMediaHandledDto,
   CollectionMediaRemovedDto,
   RuleHandlerFailedDto,
-} from '../events/events.dto';
+} from '../events/events.dto'
 import {
   MaintainerrLogger,
   MaintainerrLoggerFactory,
-} from '../logging/logs.service';
-import { RuleGroup } from '../rules/entities/rule-group.entities';
-import { SettingsService } from '../settings/settings.service';
-import type { NotificationAgent, NotificationPayload } from './agents/agent';
-import DiscordAgent from './agents/discord';
-import EmailAgent from './agents/email';
-import GotifyAgent from './agents/gotify';
-import LunaSeaAgent from './agents/lunasea';
-import PushbulletAgent from './agents/pushbullet';
-import PushoverAgent from './agents/pushover';
-import SlackAgent from './agents/slack';
-import TelegramAgent from './agents/telegram';
-import WebhookAgent from './agents/webhook';
-import { Notification } from './entities/notification.entities';
+} from '../logging/logs.service'
+import { RuleGroup } from '../rules/entities/rule-group.entities'
+import { SettingsService } from '../settings/settings.service'
+import type { NotificationAgent, NotificationPayload } from './agents/agent'
+import DiscordAgent from './agents/discord'
+import EmailAgent from './agents/email'
+import GotifyAgent from './agents/gotify'
+import LunaSeaAgent from './agents/lunasea'
+import PushbulletAgent from './agents/pushbullet'
+import PushoverAgent from './agents/pushover'
+import SlackAgent from './agents/slack'
+import TelegramAgent from './agents/telegram'
+import WebhookAgent from './agents/webhook'
+import { Notification } from './entities/notification.entities'
 import {
   DiscordOptions,
   EmailOptions,
@@ -46,18 +46,18 @@ import {
   SlackOptions,
   TelegramOptions,
   WebhookOptions,
-} from './notifications-interfaces';
+} from './notifications-interfaces'
 
 export const hasNotificationType = (
   type: NotificationType,
   value: NotificationType[],
 ): boolean => {
-  return value.includes(type);
-};
+  return value.includes(type)
+}
 
 @Injectable()
 export class NotificationService {
-  private activeAgents: NotificationAgent[] = [];
+  private activeAgents: NotificationAgent[] = []
 
   constructor(
     @InjectRepository(Notification)
@@ -70,29 +70,29 @@ export class NotificationService {
     private readonly logger: MaintainerrLogger,
     private readonly loggerFactory: MaintainerrLoggerFactory,
   ) {
-    logger.setContext(NotificationService.name);
+    logger.setContext(NotificationService.name)
   }
 
   private async getMediaServer(): Promise<IMediaServerService> {
-    return this.mediaServerFactory.getService();
+    return this.mediaServerFactory.getService()
   }
 
   public registerAgents = (
     agents: NotificationAgent[],
     skiplog = false,
   ): void => {
-    this.activeAgents = [...this.activeAgents, ...agents];
+    this.activeAgents = [...this.activeAgents, ...agents]
 
     if (!skiplog) {
       this.logger.log(
         `Registered ${agents.length} notification agent${agents.length === 1 ? '' : 's'}`,
-      );
+      )
     }
-  };
+  }
 
   public getActiveAgents = () => {
-    return this.activeAgents;
-  };
+    return this.activeAgents
+  }
 
   public async sendNotification(
     type: NotificationType,
@@ -108,9 +108,9 @@ export class NotificationService {
             (n) => n.id === agent.getNotification().id,
           )
         )
-          await this.sendNotificationToAgent(type, payload, agent);
+          await this.sendNotificationToAgent(type, payload, agent)
       }),
-    );
+    )
   }
 
   public async sendNotificationToAgent(
@@ -120,19 +120,19 @@ export class NotificationService {
   ): Promise<string> {
     if (agent.shouldSend()) {
       if (agent.getSettings().types?.includes(type))
-        return await agent.send(type, payload);
+        return await agent.send(type, payload)
     }
-    return Promise.resolve('Agent is not allowed to send this message.');
+    return Promise.resolve('Agent is not allowed to send this message.')
   }
 
   async addNotificationConfiguration(payload: {
-    id?: number;
-    agent: NotificationAgentKey;
-    name: string;
-    enabled: boolean;
-    types: number[];
-    aboutScale: number;
-    options: NotificationAgentOptions;
+    id?: number
+    agent: NotificationAgentKey
+    name: string
+    enabled: boolean
+    types: number[]
+    aboutScale: number
+    options: NotificationAgentOptions
   }): Promise<BasicResponseDto> {
     try {
       if (payload.id !== undefined) {
@@ -149,7 +149,7 @@ export class NotificationService {
             options: payload.options,
           })
           .where('id = :id', { id: payload.id })
-          .execute();
+          .execute()
       } else {
         await this.connection
           .createQueryBuilder()
@@ -163,141 +163,138 @@ export class NotificationService {
             types: payload.types,
             options: payload.options,
           })
-          .execute();
+          .execute()
       }
 
       // reset & reload notification agents
-      await this.registerConfiguredAgents(true);
-      return { code: 1, status: 'OK', message: 'Success' };
+      await this.registerConfiguredAgents(true)
+      return { code: 1, status: 'OK', message: 'Success' }
     } catch (err) {
-      this.logger.error('Adding a new notification configuration failed', err);
-      return { code: 0, status: 'NOK', message: err };
+      this.logger.error('Adding a new notification configuration failed', err)
+      return { code: 0, status: 'NOK', message: err }
     }
   }
 
   async connectNotificationConfigurationToRule(payload: {
-    rulegroupId: number;
-    notificationId: number;
+    rulegroupId: number
+    notificationId: number
   }) {
     try {
       if (payload.rulegroupId && payload.notificationId) {
         const ruleGroup = await this.ruleGroupRepo.findOne({
           where: { id: payload.rulegroupId },
-        });
+        })
 
         const notificationConfig = await this.notificationRepo.findOne({
           where: { id: payload.notificationId },
-        });
+        })
 
         if (ruleGroup && notificationConfig) {
-          ruleGroup.notifications.push(notificationConfig);
-          await this.ruleGroupRepo.save(ruleGroup);
-          return { code: 1, result: 'success' };
+          ruleGroup.notifications.push(notificationConfig)
+          await this.ruleGroupRepo.save(ruleGroup)
+          return { code: 1, result: 'success' }
         }
       }
-      this.logger.warn('Connecting the notification configuration failed');
-      return { code: 0, result: 'failed' };
+      this.logger.warn('Connecting the notification configuration failed')
+      return { code: 0, result: 'failed' }
     } catch (err) {
-      this.logger.error(
-        'Connecting the notification configuration failed',
-        err,
-      );
-      return { code: 0, result: err };
+      this.logger.error('Connecting the notification configuration failed', err)
+      return { code: 0, result: err }
     }
   }
 
   async disconnectNotificationConfigurationFromRule(payload: {
-    rulegroupId: number;
-    notificationId: number;
+    rulegroupId: number
+    notificationId: number
   }) {
     try {
       const ruleGroup = await this.ruleGroupRepo.findOne({
         where: { id: payload.rulegroupId },
-      });
+      })
 
       const notificationConfig = await this.notificationRepo.findOne({
         where: { id: payload.notificationId },
-      });
+      })
 
       if (ruleGroup && notificationConfig) {
         ruleGroup.notifications = ruleGroup.notifications.filter(
           (c) => c.id !== payload.notificationId,
-        );
-        await this.ruleGroupRepo.save(ruleGroup);
-        return { code: 1, result: 'success' };
+        )
+        await this.ruleGroupRepo.save(ruleGroup)
+        return { code: 1, result: 'success' }
       }
 
-      return { code: 0, result: 'failed' };
+      return { code: 0, result: 'failed' }
     } catch (err) {
       this.logger.error(
         'Disconnecting the notification configuration failed',
         err,
-      );
-      return { code: 0, result: err };
+      )
+      return { code: 0, result: err }
     }
   }
 
   async getNotificationConfigurations(withRelation = false) {
     try {
       if (withRelation) {
-        const notifConfigs = await this.notificationRepo.find();
+        const notifConfigs = await this.notificationRepo.find()
         // hack to get the relationship working. I was tired of the typeORM headache
         return await Promise.all(
           notifConfigs.map(async (n) => {
             n.rulegroups = await this.ruleGroupRepo.find({
               where: { notifications: { id: n.id } },
-            });
-            return n;
+            })
+            return n
           }),
-        );
+        )
       }
 
-      return await this.notificationRepo.find();
+      return await this.notificationRepo.find()
     } catch (err) {
-      this.logger.error('Fetching Notification configurations failed', err);
+      this.logger.error('Fetching Notification configurations failed', err)
     }
   }
 
   public createDummyTestAgent(payload: {
-    id?: number;
-    agent: NotificationAgentKey;
-    name: string;
-    enabled: boolean;
-    types: number[];
-    aboutScale: number;
-    options: NotificationAgentOptions;
+    id?: number
+    agent: NotificationAgentKey
+    name: string
+    enabled: boolean
+    types: number[]
+    aboutScale: number
+    options: NotificationAgentOptions
   }) {
-    payload.types = [...payload.types, NotificationType.TEST_NOTIFICATION];
+    payload.types = [...payload.types, NotificationType.TEST_NOTIFICATION]
 
-    const notification = new Notification();
-    notification.id = -1;
-    notification.agent = payload.agent;
-    notification.enabled = payload.enabled;
-    notification.aboutScale = payload.aboutScale;
-    notification.name = payload.name;
-    notification.options = payload.options;
-    notification.types = payload.types;
+    const notification = new Notification()
+    notification.id = -1
+    notification.agent = payload.agent
+    notification.enabled = payload.enabled
+    notification.aboutScale = payload.aboutScale
+    notification.name = payload.name
+    notification.options = payload.options
+    notification.types = payload.types
 
-    return this.createAgent(notification);
+    return this.createAgent(notification)
   }
 
   public async registerConfiguredAgents(skiplog = false) {
-    const configuredAgents = await this.getNotificationConfigurations();
+    const configuredAgents = await this.getNotificationConfigurations()
 
     const isEqual = (a: Notification[], b: Notification[]) =>
-      _.isEqual(_.sortBy(a, 'id'), _.sortBy(b, 'id'));
+      _.isEqual(_.sortBy(a, 'id'), _.sortBy(b, 'id'))
 
-    const notifications = this.activeAgents.map((e) => e.getNotification());
+    const notifications = this.activeAgents.map((e) => e.getNotification())
 
     // Only (re-)register agents when required
     if (!isEqual(notifications, configuredAgents)) {
-      this.activeAgents = [];
+      this.activeAgents = []
 
       const agents: NotificationAgent[] = configuredAgents?.map(
         (notification) => this.createAgent(notification),
-      );
+      )
 
-      this.registerAgents(agents, skiplog);
+      this.registerAgents(agents, skiplog)
     }
   }
 
@@ -312,7 +309,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.PUSHOVER:
         return new PushoverAgent(
           this.settings,
@@ -323,7 +320,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.EMAIL:
         return new EmailAgent(
           this.settings,
@@ -334,7 +331,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.GOTIFY:
         return new GotifyAgent(
           this.settings,
@@ -345,7 +342,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.LUNASEA:
         return new LunaSeaAgent(
           this.settings,
@@ -356,7 +353,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.PUSHBULLET:
         return new PushbulletAgent(
           this.settings,
@@ -367,7 +364,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.SLACK:
         return new SlackAgent(
           this.settings,
@@ -378,7 +375,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.TELEGRAM:
         return new TelegramAgent(
           this.settings,
@@ -389,7 +386,7 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
       case NotificationAgentKey.WEBHOOK:
         return new WebhookAgent(
           this.settings,
@@ -400,21 +397,21 @@ export class NotificationService {
           },
           this.loggerFactory.createLogger(),
           notification,
-        );
+        )
     }
   }
 
   async deleteNotificationConfiguration(notificationId: number) {
     try {
-      await this.notificationRepo.delete(notificationId);
+      await this.notificationRepo.delete(notificationId)
 
       // reset & reload notification agents
-      await this.registerConfiguredAgents(true);
+      await this.registerConfiguredAgents(true)
 
-      return { code: 1, result: 'success' };
+      return { code: 1, result: 'success' }
     } catch (err) {
-      this.logger.error('Notification configuration removal failed', err);
-      return { code: 0, result: err };
+      this.logger.error('Notification configuration removal failed', err)
+      return { code: 0, result: err }
     }
   }
 
@@ -428,7 +425,7 @@ export class NotificationService {
       .map((key) => ({
         title: this.humanizeTitle(key),
         id: NotificationType[key],
-      }));
+      }))
   }
 
   // Helper function to convert enum keys to human-readable titles
@@ -436,7 +433,7 @@ export class NotificationService {
     return key
       .replace(/_/g, ' ')
       .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+      .replace(/\b\w/g, (char) => char.toUpperCase())
   }
 
   public getAgentSpec() {
@@ -600,7 +597,7 @@ export class NotificationService {
           { field: 'token', type: 'text', required: true, extraInfo: '' },
         ],
       },
-    ];
+    ]
   }
 
   public async handleNotification(
@@ -614,31 +611,31 @@ export class NotificationService {
     const { subject, message } = this.getContent(
       type,
       mediaItems && mediaItems.length > 1,
-    );
+    )
 
     const payload: NotificationPayload = {
       subject,
       message,
-    };
+    }
 
     payload.message = await this.transformMessageContent(
       message,
       mediaItems,
       collectionName,
       dayAmount,
-    );
+    )
 
     // add extra fields
-    payload.extra = [];
-    payload.extra.push({ name: 'collectionName', value: collectionName });
-    payload.extra.push({ name: 'dayAmount', value: dayAmount?.toString() });
+    payload.extra = []
+    payload.extra.push({ name: 'collectionName', value: collectionName })
+    payload.extra.push({ name: 'dayAmount', value: dayAmount?.toString() })
     payload.extra.push({
       name: 'mediaItems',
       value: JSON.stringify(mediaItems),
-    });
+    })
 
     // get the rulegroup when available
-    let rulegroup = undefined;
+    let rulegroup = undefined
     if (identifier) {
       switch (identifier.type) {
         case 'rulegroup':
@@ -646,24 +643,24 @@ export class NotificationService {
             where: {
               id: +identifier.value,
             },
-          });
-          break;
+          })
+          break
         case 'collection':
           rulegroup = await this.ruleGroupRepo.findOne({
             where: {
               collectionId: +identifier.value,
             },
-          });
-          break;
+          })
+          break
       }
     }
 
     // notify
     if (agent) {
-      return this.sendNotificationToAgent(type, payload, agent);
+      return this.sendNotificationToAgent(type, payload, agent)
     } else {
-      await this.sendNotification(type, payload, rulegroup);
-      return 'Success';
+      await this.sendNotification(type, payload, rulegroup)
+      return 'Success'
     }
   }
 
@@ -672,91 +669,90 @@ export class NotificationService {
     multiple: boolean,
     dayAmount?: number,
   ): { subject: string; message: string } {
-    let subject: string;
+    let subject: string
 
-    let message: string;
+    let message: string
 
     if (!multiple) {
       switch (type) {
         case NotificationType.TEST_NOTIFICATION:
-          subject = 'Test Notification';
+          subject = 'Test Notification'
           message =
-            "\uD83D\uDD0D Just checking if this thing works... if you're seeing this, success! If not, well... we have a problem!";
-          break;
+            "\uD83D\uDD0D Just checking if this thing works... if you're seeing this, success! If not, well... we have a problem!"
+          break
         case NotificationType.COLLECTION_HANDLING_FAILED:
-          subject = 'Collection Handling Failed';
+          subject = 'Collection Handling Failed'
           message =
-            '⚠️ Oops! Something went wrong while processing your collections.';
-          break;
+            '⚠️ Oops! Something went wrong while processing your collections.'
+          break
         case NotificationType.RULE_HANDLING_FAILED:
-          subject = 'Rule Handling Failed';
-          message =
-            '⚠️ Oops! Something went wrong while processing your rules.';
-          break;
+          subject = 'Rule Handling Failed'
+          message = '⚠️ Oops! Something went wrong while processing your rules.'
+          break
         case NotificationType.MEDIA_ABOUT_TO_BE_HANDLED:
-          subject = 'Media About to be Handled';
+          subject = 'Media About to be Handled'
           message =
-            "⏰ Reminder: '{media_title}' will be handled in {days} days. If you want to keep it, make sure to take action before it's gone. Don’t miss out!";
-          break;
+            "⏰ Reminder: '{media_title}' will be handled in {days} days. If you want to keep it, make sure to take action before it's gone. Don’t miss out!"
+          break
         case NotificationType.MEDIA_ADDED_TO_COLLECTION:
-          subject = 'Media Added to Collection';
-          message = `\uD83D\uDCC2 '{media_title}' has been added to '{collection_name}'.`;
+          subject = 'Media Added to Collection'
+          message = `\uD83D\uDCC2 '{media_title}' has been added to '{collection_name}'.`
           if (dayAmount != null) {
-            message += ' The item will be handled in {days} days.';
+            message += ' The item will be handled in {days} days.'
           }
-          break;
+          break
         case NotificationType.MEDIA_REMOVED_FROM_COLLECTION:
-          subject = 'Media Removed from Collection';
-          message = `\uD83D\uDCC2 '{media_title}' has been removed from '{collection_name}'.`;
+          subject = 'Media Removed from Collection'
+          message = `\uD83D\uDCC2 '{media_title}' has been removed from '{collection_name}'.`
           if (dayAmount != null) {
-            message += ` It won't be handled anymore.`;
+            message += ` It won't be handled anymore.`
           }
-          break;
+          break
         case NotificationType.MEDIA_HANDLED:
-          subject = 'Media Handled';
+          subject = 'Media Handled'
           message =
-            "✅ '{media_title}' has been handled by '{collection_name}'.";
-          break;
+            "✅ '{media_title}' has been handled by '{collection_name}'."
+          break
       }
     } else {
       switch (type) {
         case NotificationType.MEDIA_ABOUT_TO_BE_HANDLED:
-          subject = 'Media About to be Handled';
+          subject = 'Media About to be Handled'
           message =
-            "⏰ Reminder: These media items will be handled in {days} days. If you want to keep them, make sure to take action before they're gone. Don’t miss out!\n\n{media_items}";
-          break;
+            "⏰ Reminder: These media items will be handled in {days} days. If you want to keep them, make sure to take action before they're gone. Don’t miss out!\n\n{media_items}"
+          break
         case NotificationType.MEDIA_ADDED_TO_COLLECTION:
-          subject = 'Media Added to Collection';
-          message = `\uD83D\uDCC2 These media items have been added to '{collection_name}'.`;
+          subject = 'Media Added to Collection'
+          message = `\uD83D\uDCC2 These media items have been added to '{collection_name}'.`
           if (dayAmount != null) {
             message +=
-              ' The items will be handled in {days} days.\n\n{media_items}';
+              ' The items will be handled in {days} days.\n\n{media_items}'
           } else {
-            message += '\n\n{media_items}';
+            message += '\n\n{media_items}'
           }
-          break;
+          break
         case NotificationType.MEDIA_REMOVED_FROM_COLLECTION:
-          subject = 'Media Removed from Collection';
-          message = `\uD83D\uDCC2 These media items have been removed from '{collection_name}'.`;
+          subject = 'Media Removed from Collection'
+          message = `\uD83D\uDCC2 These media items have been removed from '{collection_name}'.`
           if (dayAmount != null) {
             message +=
-              ' The items will not be handled anymore.\n\n{media_items}';
+              ' The items will not be handled anymore.\n\n{media_items}'
           } else {
-            message += '\n\n{media_items}';
+            message += '\n\n{media_items}'
           }
-          break;
+          break
         case NotificationType.MEDIA_HANDLED:
-          subject = 'Media Handled';
+          subject = 'Media Handled'
           message =
-            "✅ These media items have been handled by '{collection_name}'.\n\n{media_items}";
-          break;
+            "✅ These media items have been handled by '{collection_name}'.\n\n{media_items}"
+          break
       }
     }
 
     return {
       subject,
       message,
-    };
+    }
   }
 
   private async transformMessageContent(
@@ -766,20 +762,20 @@ export class NotificationService {
     dayAmount?: number,
   ): Promise<string> {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       if (items) {
         if (items.length > 1) {
           // if multiple items
-          const titles = [];
-          let numUnknownItems = 0;
+          const titles = []
+          let numUnknownItems = 0
 
           for (const i of items) {
-            const item = await mediaServer.getMetadata(i.mediaServerId);
+            const item = await mediaServer.getMetadata(i.mediaServerId)
 
             if (item) {
-              titles.push(this.getTitle(item));
+              titles.push(this.getTitle(item))
             } else {
-              numUnknownItems++;
+              numUnknownItems++
             }
           }
 
@@ -788,38 +784,38 @@ export class NotificationService {
               `${numUnknownItems} item${
                 numUnknownItems > 1 ? 's' : ''
               } that no longer exist${numUnknownItems > 1 ? '' : 's'} in the media server`,
-            );
+            )
           }
 
           const result = titles
             .map((name) => `* ${name.charAt(0).toUpperCase() + name.slice(1)}`)
-            .join(' \n');
+            .join(' \n')
 
-          message = message.replace('{media_items}', result);
+          message = message.replace('{media_items}', result)
         } else {
           // if 1 item
-          const item = await mediaServer.getMetadata(items[0].mediaServerId);
+          const item = await mediaServer.getMetadata(items[0].mediaServerId)
           message = message.replace(
             '{media_title}',
             item
               ? this.getTitle(item)
               : '1 item that no longer exists in the media server',
-          );
+          )
         }
       }
 
       message = collectionName
         ? message.replace('{collection_name}', collectionName)
-        : message;
+        : message
 
       message =
         dayAmount && dayAmount > 0
           ? message.replace('{days}', dayAmount.toString())
-          : message;
+          : message
 
-      return message;
+      return message
     } catch (e) {
-      this.logger.error("Couldn't transform notification message", e);
+      this.logger.error("Couldn't transform notification message", e)
     }
   }
 
@@ -828,7 +824,7 @@ export class NotificationService {
       ? `${item.grandparentTitle} - season ${item.parentIndex} - episode ${item.index}`
       : item.parentId
         ? `${item.parentTitle} - season ${item.index}`
-        : item.title;
+        : item.title
   }
 
   // OnEvent handlers
@@ -842,12 +838,12 @@ export class NotificationService {
       undefined,
       undefined,
       data?.identifier,
-    );
+    )
   }
 
   @OnEvent(MaintainerrEvent.CollectionHandler_Failed)
   private async collectionHandlerFailed() {
-    await this.handleNotification(NotificationType.COLLECTION_HANDLING_FAILED);
+    await this.handleNotification(NotificationType.COLLECTION_HANDLING_FAILED)
   }
 
   @OnEvent(MaintainerrEvent.CollectionMedia_Added)
@@ -859,7 +855,7 @@ export class NotificationService {
       data.dayAmount,
       undefined,
       data.identifier,
-    );
+    )
   }
 
   @OnEvent(MaintainerrEvent.CollectionMedia_Removed)
@@ -871,7 +867,7 @@ export class NotificationService {
       data.dayAmount,
       undefined,
       data.identifier,
-    );
+    )
   }
 
   @OnEvent(MaintainerrEvent.CollectionMedia_Handled)
@@ -883,6 +879,6 @@ export class NotificationService {
       undefined,
       undefined,
       data.identifier,
-    );
+    )
   }
 }

@@ -1,5 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppStatsResponse, StatsService } from './stats.service';
+import { Controller, Get } from '@nestjs/common'
+import { AppStatsResponse, StatsService } from './stats.service'
 
 @Controller('api/stats')
 export class StatsController {
@@ -7,6 +7,6 @@ export class StatsController {
 
   @Get()
   getStats(): Promise<AppStatsResponse> {
-    return this.statsService.getStats();
+    return this.statsService.getStats()
   }
 }

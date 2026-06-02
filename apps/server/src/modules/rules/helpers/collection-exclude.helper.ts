@@ -1,4 +1,4 @@
-import { RulesDto } from '../dtos/rules.dto';
+import { RulesDto } from '../dtos/rules.dto'
 
 /**
  * Builds a list of collection names to exclude when counting collections for an item.
@@ -15,10 +15,10 @@ import { RulesDto } from '../dtos/rules.dto';
  * @returns Array of lowercase, trimmed collection names to exclude
  */
 export function buildCollectionExcludeNames(ruleGroup?: RulesDto): string[] {
-  const excludeNames: string[] = [];
+  const excludeNames: string[] = []
 
   if (ruleGroup?.name) {
-    excludeNames.push(ruleGroup.name.toLowerCase().trim());
+    excludeNames.push(ruleGroup.name.toLowerCase().trim())
   }
 
   if (
@@ -28,8 +28,8 @@ export function buildCollectionExcludeNames(ruleGroup?: RulesDto): string[] {
   ) {
     excludeNames.push(
       ruleGroup.collection.manualCollectionName.toLowerCase().trim(),
-    );
+    )
   }
 
-  return excludeNames;
+  return excludeNames
 }

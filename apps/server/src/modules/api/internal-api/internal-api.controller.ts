@@ -1,5 +1,5 @@
-import { Controller } from '@nestjs/common';
-import { InternalApiService } from './internal-api.service';
+import { Controller } from '@nestjs/common'
+import { InternalApiService } from './internal-api.service'
 
 @Controller('api/maintainerr')
 export class InternalApiController {

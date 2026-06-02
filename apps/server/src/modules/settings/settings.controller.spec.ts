@@ -1,14 +1,14 @@
-import { StreamableFile } from '@nestjs/common';
-import { Response } from 'express';
-import { createReadStream } from 'fs';
-import { DatabaseDownloadService } from './database-download.service';
-import { Settings } from './entities/settings.entities';
-import { MediaServerSwitchService } from './media-server-switch.service';
-import { SettingsController } from './settings.controller';
-import { SettingsService } from './settings.service';
+import { StreamableFile } from '@nestjs/common'
+import { Response } from 'express'
+import { createReadStream } from 'fs'
+import { DatabaseDownloadService } from './database-download.service'
+import { Settings } from './entities/settings.entities'
+import { MediaServerSwitchService } from './media-server-switch.service'
+import { SettingsController } from './settings.controller'
+import { SettingsService } from './settings.service'
 
 describe('SettingsController', () => {
-  let controller: SettingsController;
+  let controller: SettingsController
 
   const settingsService = {
     getSettings: jest.fn(),
@@ -19,16 +19,16 @@ describe('SettingsController', () => {
     saveJellyfinSettings: jest.fn(),
     testJellyfin: jest.fn(),
     removeJellyfinSettings: jest.fn(),
-  } as unknown as jest.Mocked<SettingsService>;
+  } as unknown as jest.Mocked<SettingsService>
 
   const mediaServerSwitchService = {
     previewSwitch: jest.fn(),
     executeSwitch: jest.fn(),
-  } as unknown as jest.Mocked<MediaServerSwitchService>;
+  } as unknown as jest.Mocked<MediaServerSwitchService>
 
   const databaseDownloadService = {
     getDatabaseDownload: jest.fn(),
-  } as unknown as jest.Mocked<DatabaseDownloadService>;
+  } as unknown as jest.Mocked<DatabaseDownloadService>
 
   const createSettings = (overrides: Partial<Settings> = {}): Settings =>
     Object.assign(new Settings(), {
@@ -40,16 +40,16 @@ describe('SettingsController', () => {
       jellyfin_api_key: null,
       jellyfin_user_id: null,
       ...overrides,
-    });
+    })
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.clearAllMocks()
     controller = new SettingsController(
       settingsService,
       mediaServerSwitchService,
       databaseDownloadService,
-    );
-  });
+    )
+  })
 
   describe('settings endpoint field mapping', () => {
     it.each([
@@ -96,11 +96,11 @@ describe('SettingsController', () => {
       async ({ method, entityOverrides, expected }) => {
         settingsService.getSettings.mockResolvedValue(
           createSettings(entityOverrides),
-        );
+        )
 
-        await expect(controller[method]()).resolves.toEqual(expected);
+        await expect(controller[method]()).resolves.toEqual(expected)
       },
-    );
+    )
 
     it.each([
       { name: 'Tautulli', method: 'getTautulliSetting' as const },
@@ -113,42 +113,37 @@ describe('SettingsController', () => {
           status: 'NOK' as const,
           code: 0 as const,
           message: 'settings not found',
-        };
-        settingsService.getSettings.mockResolvedValue(response);
+        }
+        settingsService.getSettings.mockResolvedValue(response)
 
-        await expect(controller[method]()).resolves.toEqual(response);
+        await expect(controller[method]()).resolves.toEqual(response)
       },
-    );
-  });
+    )
+  })
 
   it('sets database download headers and returns streamable file', async () => {
-    const fileStream = createReadStream(__filename);
+    const fileStream = createReadStream(__filename)
     databaseDownloadService.getDatabaseDownload.mockResolvedValue({
       fileStream,
       fileName: 'maintainerr.db',
       fileSize: 1234,
-    });
+    })
 
     const response = {
       setHeader: jest.fn(),
-    } as unknown as Response;
+    } as unknown as Response
 
-    const result = await controller.downloadDatabase(response);
+    const result = await controller.downloadDatabase(response)
 
-    expect(databaseDownloadService.getDatabaseDownload).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(databaseDownloadService.getDatabaseDownload).toHaveBeenCalledTimes(1)
     expect(response.setHeader).toHaveBeenCalledWith(
       'Content-Disposition',
       'attachment; filename="maintainerr.db"',
-    );
-    expect(response.setHeader).toHaveBeenCalledWith('Content-Length', '1234');
-    expect(response.setHeader).toHaveBeenCalledWith(
-      'Cache-Control',
-      'no-store',
-    );
-    expect(result).toBeInstanceOf(StreamableFile);
-  });
+    )
+    expect(response.setHeader).toHaveBeenCalledWith('Content-Length', '1234')
+    expect(response.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store')
+    expect(result).toBeInstanceOf(StreamableFile)
+  })
 
   it.each([
     {
@@ -176,12 +171,12 @@ describe('SettingsController', () => {
   ])(
     'merges route id into $name update payload',
     async ({ method, serviceMethod, id, payload }) => {
-      await controller[method](id, payload);
+      await controller[method](id, payload)
 
       expect(settingsService[serviceMethod]).toHaveBeenCalledWith({
         id,
         ...payload,
-      });
+      })
     },
-  );
-});
+  )
+})

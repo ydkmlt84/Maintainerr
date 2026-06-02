@@ -4,10 +4,10 @@ export const delay = (ms: number, fn?: () => Promise<void> | void) => {
       if (fn) {
         Promise.resolve(fn())
           .then(() => resolve())
-          .catch((error) => reject(error));
+          .catch((error) => reject(error))
       } else {
-        resolve();
+        resolve()
       }
-    }, ms);
-  });
-};
+    }, ms)
+  })
+}

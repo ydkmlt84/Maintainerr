@@ -3,7 +3,7 @@ import {
   BaseItemKind,
   type MediaSourceInfo,
   type UserDto,
-} from '@jellyfin/sdk/lib/generated-client/models';
+} from '@jellyfin/sdk/lib/generated-client/models'
 import {
   type MediaActor,
   type MediaCollection,
@@ -18,8 +18,8 @@ import {
   type MediaSource,
   type MediaUser,
   type WatchRecord,
-} from '@maintainerr/contracts';
-import { JELLYFIN_TICKS_PER_MS } from './jellyfin.constants';
+} from '@maintainerr/contracts'
+import { JELLYFIN_TICKS_PER_MS } from './jellyfin.constants'
 
 /**
  * Extended BaseItemDto that includes fields returned by the Jellyfin API
@@ -29,7 +29,7 @@ import { JELLYFIN_TICKS_PER_MS } from './jellyfin.constants';
  * in API responses, but is missing from the SDK's BaseItemDto definition.
  */
 interface JellyfinItemDto extends BaseItemDto {
-  DateLastSaved?: string;
+  DateLastSaved?: string
 }
 
 export class JellyfinMapper {
@@ -37,18 +37,18 @@ export class JellyfinMapper {
     switch (kind) {
       case BaseItemKind.Movie:
       case 'Movie':
-        return 'movie';
+        return 'movie'
       case BaseItemKind.Series:
       case 'Series':
-        return 'show';
+        return 'show'
       case BaseItemKind.Season:
       case 'Season':
-        return 'season';
+        return 'season'
       case BaseItemKind.Episode:
       case 'Episode':
-        return 'episode';
+        return 'episode'
       default:
-        return 'movie';
+        return 'movie'
     }
   }
 
@@ -58,15 +58,15 @@ export class JellyfinMapper {
   static toBaseItemKind(type: MediaItemType): BaseItemKind {
     switch (type) {
       case 'movie':
-        return BaseItemKind.Movie;
+        return BaseItemKind.Movie
       case 'show':
-        return BaseItemKind.Series;
+        return BaseItemKind.Series
       case 'season':
-        return BaseItemKind.Season;
+        return BaseItemKind.Season
       case 'episode':
-        return BaseItemKind.Episode;
+        return BaseItemKind.Episode
       default:
-        return BaseItemKind.Movie;
+        return BaseItemKind.Movie
     }
   }
 
@@ -75,9 +75,9 @@ export class JellyfinMapper {
    */
   static toBaseItemKinds(types?: MediaItemType[]): BaseItemKind[] {
     if (!types?.length) {
-      return [BaseItemKind.Movie, BaseItemKind.Series];
+      return [BaseItemKind.Movie, BaseItemKind.Series]
     }
-    return types.map((type) => JellyfinMapper.toBaseItemKind(type));
+    return types.map((type) => JellyfinMapper.toBaseItemKind(type))
   }
 
   /**
@@ -95,24 +95,24 @@ export class JellyfinMapper {
       imdb: [],
       tmdb: [],
       tvdb: [],
-    };
+    }
 
     if (!providerIds) {
-      return result;
+      return result
     }
 
     // Jellyfin uses capitalized keys
     if (providerIds.Imdb) {
-      result.imdb.push(providerIds.Imdb);
+      result.imdb.push(providerIds.Imdb)
     }
     if (providerIds.Tmdb) {
-      result.tmdb.push(providerIds.Tmdb);
+      result.tmdb.push(providerIds.Tmdb)
     }
     if (providerIds.Tvdb) {
-      result.tvdb.push(providerIds.Tvdb);
+      result.tvdb.push(providerIds.Tvdb)
     }
 
-    return result;
+    return result
   }
 
   /**
@@ -127,21 +127,21 @@ export class JellyfinMapper {
    * is the show), we use SeriesId as parentId for seasons.
    */
   private static getParentId(item: BaseItemDto): string | undefined {
-    const itemType = JellyfinMapper.toMediaItemType(item.Type);
+    const itemType = JellyfinMapper.toMediaItemType(item.Type)
 
     // For seasons, the "parent" should be the show (SeriesId), not the library (ParentId)
     if (itemType === 'season') {
-      return item.SeriesId || item.ParentId || undefined;
+      return item.SeriesId || item.ParentId || undefined
     }
 
     // For episodes, Jellyfin provides SeasonId for the parent season.
     // ParentId may refer to the series or library depending on context.
     if (itemType === 'episode') {
-      return item.SeasonId || item.ParentId || undefined;
+      return item.SeasonId || item.ParentId || undefined
     }
 
     // For all other types, use the standard ParentId
-    return item.ParentId || undefined;
+    return item.ParentId || undefined
   }
 
   /**
@@ -153,23 +153,23 @@ export class JellyfinMapper {
    * - Movies/Shows: no grandparent
    */
   private static getGrandparentId(item: BaseItemDto): string | undefined {
-    const itemType = JellyfinMapper.toMediaItemType(item.Type);
+    const itemType = JellyfinMapper.toMediaItemType(item.Type)
 
     // Only episodes have a meaningful grandparent (the show)
     if (itemType === 'episode') {
-      return item.SeriesId || undefined;
+      return item.SeriesId || undefined
     }
 
     // Seasons, movies, and shows don't have a useful grandparent
-    return undefined;
+    return undefined
   }
 
   /**
    * Convert a Jellyfin BaseItemDto to a MediaItem.
    */
   static toMediaItem(item: BaseItemDto): MediaItem {
-    const parentId = JellyfinMapper.getParentId(item);
-    const grandparentId = JellyfinMapper.getGrandparentId(item);
+    const parentId = JellyfinMapper.getParentId(item)
+    const grandparentId = JellyfinMapper.getGrandparentId(item)
 
     return {
       id: item.Id || '',
@@ -220,7 +220,7 @@ export class JellyfinMapper {
       parentIndex: item.ParentIndexNumber || undefined,
       collections: undefined, // Need to query separately
       labels: item.Tags || undefined,
-    };
+    }
   }
 
   /**
@@ -232,7 +232,7 @@ export class JellyfinMapper {
       title: item.Name || '',
       type: JellyfinMapper.toLibraryType(item.CollectionType),
       agent: undefined, // Jellyfin doesn't expose agent info
-    };
+    }
   }
 
   /**
@@ -241,11 +241,11 @@ export class JellyfinMapper {
   static toLibraryType(collectionType?: string | null): 'movie' | 'show' {
     switch (collectionType?.toLowerCase()) {
       case 'movies':
-        return 'movie';
+        return 'movie'
       case 'tvshows':
-        return 'show';
+        return 'show'
       default:
-        return 'movie';
+        return 'movie'
     }
   }
 
@@ -259,7 +259,7 @@ export class JellyfinMapper {
       thumb: user.PrimaryImageTag
         ? `/Users/${user.Id}/Images/Primary`
         : undefined,
-    };
+    }
   }
 
   /**
@@ -277,7 +277,7 @@ export class JellyfinMapper {
       itemId,
       watchedAt: lastPlayedDate,
       progress: progress ?? 100,
-    };
+    }
   }
 
   /**
@@ -298,7 +298,7 @@ export class JellyfinMapper {
         : undefined,
       smart: false, // Jellyfin doesn't have smart collections
       libraryId: item.ParentId || undefined,
-    };
+    }
   }
 
   /**
@@ -318,7 +318,7 @@ export class JellyfinMapper {
       updatedAt: (item as JellyfinItemDto).DateLastSaved
         ? new Date((item as JellyfinItemDto).DateLastSaved!)
         : undefined,
-    };
+    }
   }
 
   /**
@@ -337,19 +337,19 @@ export class JellyfinMapper {
       name: serverName || undefined,
       platform: platform || undefined,
       url: url || undefined,
-    };
+    }
   }
 
   private static toMediaSources(
     sources?: MediaSourceInfo[] | null,
   ): MediaSource[] {
     if (!sources || !Array.isArray(sources)) {
-      return [];
+      return []
     }
 
     return sources.map((source) => {
-      const videoStream = source.MediaStreams?.find((s) => s.Type === 'Video');
-      const audioStream = source.MediaStreams?.find((s) => s.Type === 'Audio');
+      const videoStream = source.MediaStreams?.find((s) => s.Type === 'Video')
+      const audioStream = source.MediaStreams?.find((s) => s.Type === 'Audio')
 
       return {
         id: source.Id || '',
@@ -373,19 +373,19 @@ export class JellyfinMapper {
           : undefined,
         container: source.Container || undefined,
         sizeBytes: source.Size || undefined,
-      };
-    });
+      }
+    })
   }
 
   private static toMediaGenres(genres?: string[] | null): MediaGenre[] {
     if (!genres || !Array.isArray(genres)) {
-      return [];
+      return []
     }
 
     return genres.map((genre) => ({
       id: JellyfinMapper.hashString(genre),
       name: genre,
-    }));
+    }))
   }
 
   /**
@@ -393,16 +393,16 @@ export class JellyfinMapper {
    * Uses djb2 algorithm for fast, reasonable distribution.
    */
   private static hashString(str: string): number {
-    let hash = 5381;
+    let hash = 5381
     for (let i = 0; i < str.length; i++) {
-      hash = (hash * 33) ^ str.charCodeAt(i);
+      hash = (hash * 33) ^ str.charCodeAt(i)
     }
-    return hash >>> 0; // Convert to unsigned 32-bit integer
+    return hash >>> 0 // Convert to unsigned 32-bit integer
   }
 
   private static toMediaActors(people?: BaseItemDto['People']): MediaActor[] {
     if (!people || !Array.isArray(people)) {
-      return [];
+      return []
     }
 
     return people
@@ -414,18 +414,18 @@ export class JellyfinMapper {
         thumb: actor.PrimaryImageTag
           ? `/Items/${actor.Id}/Images/Primary`
           : undefined,
-      }));
+      }))
   }
 
   private static toMediaRatings(item: BaseItemDto): MediaRating[] {
-    const ratings: MediaRating[] = [];
+    const ratings: MediaRating[] = []
 
     if (item.CommunityRating !== undefined && item.CommunityRating !== null) {
       ratings.push({
         source: 'community',
         value: item.CommunityRating,
         type: 'audience',
-      });
+      })
     }
 
     if (item.CriticRating !== undefined && item.CriticRating !== null) {
@@ -433,9 +433,9 @@ export class JellyfinMapper {
         source: 'critic',
         value: item.CriticRating / 10, // Jellyfin uses 0-100, normalize to 0-10
         type: 'critic',
-      });
+      })
     }
 
-    return ratings;
+    return ratings
   }
 }

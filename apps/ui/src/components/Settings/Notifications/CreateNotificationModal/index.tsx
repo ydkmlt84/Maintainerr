@@ -121,9 +121,9 @@ const CreateNotificationModal = (props: CreateNotificationModal) => {
     if (props.selected) {
       nameRef.current = props.selected.name
       enabledRef.current = props.selected.enabled
-      setFormValues(props.selected.options)
+      queueMicrotask(() => setFormValues(props.selected!.options))
     }
-  }, [])
+  }, [props.selected])
 
   const postNotificationConfig = (payload: AgentConfiguration) => {
     PostApiHandler('/notifications/configuration/add', payload).then(
@@ -349,10 +349,7 @@ const CreateNotificationModal = (props: CreateNotificationModal) => {
                               <input
                                 type="number"
                                 name="about-scale"
-                                defaultValue={
-                                  props.selected?.aboutScale ||
-                                  aboutScaleRef.current
-                                }
+                                defaultValue={props.selected?.aboutScale || 3}
                                 onChange={(
                                   event: React.ChangeEvent<HTMLInputElement>,
                                 ) =>

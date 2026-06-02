@@ -11,64 +11,64 @@ import {
   MediaItemWithParent,
   MediaServerFeature,
   MediaServerType,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, LessThan, Repository } from 'typeorm';
-import { CollectionLog } from '../../modules/collections/entities/collection_log.entities';
-import { MediaServerFactory } from '../api/media-server/media-server.factory';
-import { IMediaServerService } from '../api/media-server/media-server.interface';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Brackets, DataSource, LessThan, Repository } from 'typeorm'
+import { CollectionLog } from '../../modules/collections/entities/collection_log.entities'
+import { MediaServerFactory } from '../api/media-server/media-server.factory'
+import { IMediaServerService } from '../api/media-server/media-server.interface'
 import {
   TmdbMovieDetails,
   TmdbTvDetails,
-} from '../api/tmdb-api/interfaces/tmdb.interface';
-import { TmdbIdService } from '../api/tmdb-api/tmdb-id.service';
-import { TmdbApiService } from '../api/tmdb-api/tmdb.service';
-import { MaintainerrLogger } from '../logging/logs.service';
-import { Exclusion } from '../rules/entities/exclusion.entities';
-import { RuleGroup } from '../rules/entities/rule-group.entities';
-import { SettingsService } from '../settings/settings.service';
-import { Collection } from './entities/collection.entities';
+} from '../api/tmdb-api/interfaces/tmdb.interface'
+import { TmdbIdService } from '../api/tmdb-api/tmdb-id.service'
+import { TmdbApiService } from '../api/tmdb-api/tmdb.service'
+import { MaintainerrLogger } from '../logging/logs.service'
+import { Exclusion } from '../rules/entities/exclusion.entities'
+import { RuleGroup } from '../rules/entities/rule-group.entities'
+import { SettingsService } from '../settings/settings.service'
+import { Collection } from './entities/collection.entities'
 import {
   CollectionMedia,
   CollectionMediaWithMetadata,
-} from './entities/collection_media.entities';
+} from './entities/collection_media.entities'
 import {
   AddRemoveCollectionMedia,
   IAlterableMediaDto,
-} from './interfaces/collection-media.interface';
+} from './interfaces/collection-media.interface'
 import {
   ICalendarCollection,
   ICollection,
   ServarrAction,
-} from './interfaces/collection.interface';
+} from './interfaces/collection.interface'
 
 export interface CollectionStorageSummary {
-  collectionCount: number;
-  sizedCollectionCount: number;
-  totalSizeBytes: number;
-  reclaimableCollectionCount: number;
-  reclaimableSizeBytes: number;
-  byLibrary: CollectionStorageLibrarySummary[];
+  collectionCount: number
+  sizedCollectionCount: number
+  totalSizeBytes: number
+  reclaimableCollectionCount: number
+  reclaimableSizeBytes: number
+  byLibrary: CollectionStorageLibrarySummary[]
 }
 
 export interface CollectionStorageLibrarySummary {
-  libraryId: string;
-  collectionCount: number;
-  collectedCount: number;
-  totalSizeBytes: number;
-  reclaimableSizeBytes: number;
+  libraryId: string
+  collectionCount: number
+  collectedCount: number
+  totalSizeBytes: number
+  reclaimableSizeBytes: number
 }
 
 interface addCollectionDbResponse {
-  id: number;
-  mediaServerId?: string;
-  isActive: boolean;
-  visibleOnRecommended: boolean;
-  visibleOnHome: boolean;
-  deleteAfterDays: number;
-  manualCollection: boolean;
+  id: number
+  mediaServerId?: string
+  isActive: boolean
+  visibleOnRecommended: boolean
+  visibleOnHome: boolean
+  deleteAfterDays: number
+  manualCollection: boolean
 }
 
 @Injectable()
@@ -92,35 +92,33 @@ export class CollectionsService {
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(CollectionsService.name);
+    logger.setContext(CollectionsService.name)
   }
 
   /**
    * Get the appropriate media server service based on current settings
    */
   private async getMediaServer(): Promise<IMediaServerService> {
-    return this.mediaServerFactory.getService();
+    return this.mediaServerFactory.getService()
   }
 
   /**
    * Get the currently configured media server type
    */
   private async getMediaServerType(): Promise<MediaServerType | null> {
-    return this.mediaServerFactory.getConfiguredServerType();
+    return this.mediaServerFactory.getConfiguredServerType()
   }
 
   async getCollection(id?: number, title?: string) {
     try {
       if (title) {
-        return await this.collectionRepo.findOne({ where: { title: title } });
+        return await this.collectionRepo.findOne({ where: { title: title } })
       } else {
-        return await this.collectionRepo.findOne({ where: { id: id } });
+        return await this.collectionRepo.findOne({ where: { id: id } })
       }
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      return undefined
     }
   }
 
@@ -128,12 +126,12 @@ export class CollectionsService {
     try {
       return await this.CollectionMediaRepo.find({
         where: { collectionId: id },
-      });
+      })
     } catch (err) {
       this.logger.warn(
         'An error occurred while performing collection actions: ' + err,
-      );
-      return undefined;
+      )
+      return undefined
     }
   }
 
@@ -141,10 +139,10 @@ export class CollectionsService {
     if (id !== undefined) {
       return await this.CollectionMediaRepo.count({
         where: { collectionId: id },
-      });
+      })
     }
     // No id = count ALL media across all collections
-    return await this.CollectionMediaRepo.count();
+    return await this.CollectionMediaRepo.count()
   }
 
   public async getCollectionStorageSummary(): Promise<CollectionStorageSummary> {
@@ -156,31 +154,31 @@ export class CollectionsService {
         deleteAfterDays: true,
         totalSizeBytes: true,
       },
-    });
+    })
     const mediaCountRows = await this.CollectionMediaRepo.createQueryBuilder(
       'media',
     )
       .select('media.collectionId', 'collectionId')
       .addSelect('COUNT(media.id)', 'mediaCount')
       .groupBy('media.collectionId')
-      .getRawMany<{ collectionId: number; mediaCount: string }>();
+      .getRawMany<{ collectionId: number; mediaCount: string }>()
     const mediaCountByCollection = new Map(
       mediaCountRows.map((row) => [
         Number(row.collectionId),
         Number(row.mediaCount),
       ]),
-    );
+    )
     const librarySummaryById = new Map<
       string,
       CollectionStorageLibrarySummary
-    >();
+    >()
 
     const summary = collections.reduce<CollectionStorageSummary>(
       (summary, collection) => {
-        const sizeBytes = Number(collection.totalSizeBytes ?? 0);
-        const hasSize = Number.isFinite(sizeBytes) && sizeBytes > 0;
+        const sizeBytes = Number(collection.totalSizeBytes ?? 0)
+        const hasSize = Number.isFinite(sizeBytes) && sizeBytes > 0
         const isReclaimable =
-          collection.isActive && (collection.deleteAfterDays ?? 0) > 0;
+          collection.isActive && (collection.deleteAfterDays ?? 0) > 0
         const librarySummary =
           librarySummaryById.get(collection.libraryId) ??
           ({
@@ -189,30 +187,30 @@ export class CollectionsService {
             collectedCount: 0,
             totalSizeBytes: 0,
             reclaimableSizeBytes: 0,
-          } satisfies CollectionStorageLibrarySummary);
+          } satisfies CollectionStorageLibrarySummary)
 
-        summary.collectionCount += 1;
-        librarySummary.collectionCount += 1;
+        summary.collectionCount += 1
+        librarySummary.collectionCount += 1
         librarySummary.collectedCount +=
-          mediaCountByCollection.get(collection.id) ?? 0;
+          mediaCountByCollection.get(collection.id) ?? 0
 
         if (hasSize) {
-          summary.sizedCollectionCount += 1;
-          summary.totalSizeBytes += sizeBytes;
-          librarySummary.totalSizeBytes += sizeBytes;
+          summary.sizedCollectionCount += 1
+          summary.totalSizeBytes += sizeBytes
+          librarySummary.totalSizeBytes += sizeBytes
         }
 
         if (isReclaimable) {
-          summary.reclaimableCollectionCount += 1;
+          summary.reclaimableCollectionCount += 1
 
           if (hasSize) {
-            summary.reclaimableSizeBytes += sizeBytes;
-            librarySummary.reclaimableSizeBytes += sizeBytes;
+            summary.reclaimableSizeBytes += sizeBytes
+            librarySummary.reclaimableSizeBytes += sizeBytes
           }
         }
 
-        librarySummaryById.set(collection.libraryId, librarySummary);
-        return summary;
+        librarySummaryById.set(collection.libraryId, librarySummary)
+        return summary
       },
       {
         collectionCount: 0,
@@ -222,13 +220,13 @@ export class CollectionsService {
         reclaimableSizeBytes: 0,
         byLibrary: [],
       },
-    );
+    )
 
     summary.byLibrary = [...librarySummaryById.values()].sort((a, b) =>
       a.libraryId.localeCompare(b.libraryId),
-    );
+    )
 
-    return summary;
+    return summary
   }
 
   public async getCollectionMediaWithServerDataAndPaging(
@@ -236,63 +234,63 @@ export class CollectionsService {
     { offset = 0, size = 25 }: { offset?: number; size?: number } = {},
   ): Promise<{ totalSize: number; items: CollectionMediaWithMetadata[] }> {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       const queryBuilder =
-        this.CollectionMediaRepo.createQueryBuilder('collection_media');
+        this.CollectionMediaRepo.createQueryBuilder('collection_media')
 
       queryBuilder
         .where('collection_media.collectionId = :id', { id })
         .orderBy('collection_media.addDate', 'DESC')
         .skip(offset)
-        .take(size);
+        .take(size)
 
-      const itemCount = await queryBuilder.getCount();
-      const { entities } = await queryBuilder.getRawAndEntities();
+      const itemCount = await queryBuilder.getCount()
+      const { entities } = await queryBuilder.getRawAndEntities()
 
       const entitiesWithMediaData: CollectionMediaWithMetadata[] = (
         await Promise.all(
           entities.map(async (el) => {
-            const mediaItem = await mediaServer.getMetadata(el.mediaServerId);
+            const mediaItem = await mediaServer.getMetadata(el.mediaServerId)
 
             if (!mediaItem) {
               this.logger.debug(
                 `Missing metadata for collection media ${el.id} (mediaServerId=${el.mediaServerId}); skipping item without deleting`,
-              );
-              return { ...el, mediaData: undefined };
+              )
+              return { ...el, mediaData: undefined }
             }
 
             // Get parent metadata if needed (for episodes/seasons)
-            let parentItem: MediaItem | undefined;
+            let parentItem: MediaItem | undefined
             if (mediaItem.grandparentId) {
               parentItem = await mediaServer.getMetadata(
                 mediaItem.grandparentId,
-              );
+              )
             } else if (mediaItem.parentId) {
-              parentItem = await mediaServer.getMetadata(mediaItem.parentId);
+              parentItem = await mediaServer.getMetadata(mediaItem.parentId)
             }
 
             const mediaData: MediaItemWithParent = {
               ...mediaItem,
               parentItem,
-            };
+            }
 
             return {
               ...el,
               mediaData,
-            };
+            }
           }),
         )
-      ).filter((el) => el.mediaData !== undefined);
+      ).filter((el) => el.mediaData !== undefined)
 
       return {
         totalSize: itemCount,
         items: entitiesWithMediaData ?? [],
-      };
+      }
     } catch (err) {
       this.logger.warn(
         'An error occurred while performing collection actions: ' + err,
-      );
-      return undefined;
+      )
+      return undefined
     }
   }
 
@@ -302,22 +300,22 @@ export class CollectionsService {
    * (e.g., after testConnections() in the maintenance task).
    */
   async removeStaleCollectionMedia(): Promise<void> {
-    const allMedia = await this.CollectionMediaRepo.find();
-    const mediaServer = await this.getMediaServer();
-    let removedCount = 0;
+    const allMedia = await this.CollectionMediaRepo.find()
+    const mediaServer = await this.getMediaServer()
+    let removedCount = 0
 
     for (const entry of allMedia) {
-      const metadata = await mediaServer.getMetadata(entry.mediaServerId);
+      const metadata = await mediaServer.getMetadata(entry.mediaServerId)
       if (!metadata?.id) {
-        await this.CollectionMediaRepo.delete(entry.id);
-        removedCount++;
+        await this.CollectionMediaRepo.delete(entry.id)
+        removedCount++
       }
     }
 
     if (removedCount > 0) {
       this.logger.log(
         `Removed ${removedCount} stale collection media entries (items no longer on media server)`,
-      );
+      )
     }
   }
 
@@ -326,85 +324,85 @@ export class CollectionsService {
     { offset = 0, size = 25 }: { offset?: number; size?: number } = {},
   ): Promise<{ totalSize: number; items: Exclusion[] }> {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       const rulegroup = await this.ruleGroupRepo.findOne({
         where: {
           collectionId: id,
         },
-      });
+      })
 
       if (!rulegroup) {
-        return { totalSize: 0, items: [] };
+        return { totalSize: 0, items: [] }
       }
 
-      const groupId = rulegroup.id;
+      const groupId = rulegroup.id
 
       // Determine which exclusion types to show based on collection dataType
       // Parent type exclusions should be shown (show exclusion appears in season collection)
-      const validTypes: string[] = [rulegroup.dataType];
+      const validTypes: string[] = [rulegroup.dataType]
       if (rulegroup.dataType === 'season') {
-        validTypes.push('show');
+        validTypes.push('show')
       } else if (rulegroup.dataType === 'episode') {
-        validTypes.push('show', 'season');
+        validTypes.push('show', 'season')
       }
 
-      const queryBuilder = this.exclusionRepo.createQueryBuilder('exclusion');
+      const queryBuilder = this.exclusionRepo.createQueryBuilder('exclusion')
 
       queryBuilder
         .where(
           new Brackets((qb) => {
             qb.where('exclusion.ruleGroupId = :groupId', { groupId }).orWhere(
               'exclusion.ruleGroupId is null',
-            );
+            )
           }),
         )
         .andWhere('exclusion.type IN (:...validTypes)', { validTypes })
         .orderBy('id', 'DESC')
         .skip(offset)
-        .take(size);
+        .take(size)
 
-      const itemCount = await queryBuilder.getCount();
-      let { entities } = await queryBuilder.getRawAndEntities();
+      const itemCount = await queryBuilder.getCount()
+      let { entities } = await queryBuilder.getRawAndEntities()
 
       entities = (
         await Promise.all(
           entities.map(async (el) => {
             const mediaItem = await mediaServer.getMetadata(
               el.mediaServerId.toString(),
-            );
+            )
 
             if (!mediaItem) {
-              return { ...el, mediaData: undefined };
+              return { ...el, mediaData: undefined }
             }
 
             // Get parent metadata if needed (for episodes/seasons)
-            let parentItem: MediaItem | undefined;
+            let parentItem: MediaItem | undefined
             if (mediaItem.grandparentId) {
               parentItem = await mediaServer.getMetadata(
                 mediaItem.grandparentId,
-              );
+              )
             } else if (mediaItem.parentId) {
-              parentItem = await mediaServer.getMetadata(mediaItem.parentId);
+              parentItem = await mediaServer.getMetadata(mediaItem.parentId)
             }
 
             el.mediaData = {
               ...mediaItem,
               parentItem,
-            };
-            return el;
+            }
+            return el
           }),
         )
-      ).filter((el) => el.mediaData !== undefined);
+      ).filter((el) => el.mediaData !== undefined)
 
       return {
         totalSize: itemCount,
         items: entities ?? [],
-      };
+      }
     } catch (err) {
       this.logger.warn(
         'An error occurred while performing collection actions: ' + err,
-      );
-      return undefined;
+      )
+      return undefined
     }
   }
 
@@ -416,7 +414,7 @@ export class CollectionsService {
           : typeId
             ? { where: { type: typeId } }
             : undefined,
-      );
+      )
 
       return await Promise.all(
         collections.map(async (col) => {
@@ -424,19 +422,17 @@ export class CollectionsService {
             where: {
               collectionId: +col.id,
             },
-          });
+          })
           return {
             ...col,
             media: colls,
-          };
+          }
         }),
-      );
+      )
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      this.logger.debug(err);
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      this.logger.debug(err)
+      return undefined
     }
   }
 
@@ -451,14 +447,14 @@ export class CollectionsService {
           : typeId
             ? { where: { type: typeId } }
             : undefined,
-      );
+      )
 
       const schedulableCollections = collections.filter(
         (collection) =>
           collection.id != null &&
           collection.deleteAfterDays != null &&
           collection.arrAction !== ServarrAction.DO_NOTHING,
-      );
+      )
 
       return await Promise.all(
         schedulableCollections.map(async (collection) => {
@@ -470,7 +466,7 @@ export class CollectionsService {
               addDate: 'DESC',
               id: 'DESC',
             },
-          });
+          })
 
           return {
             id: collection.id,
@@ -487,25 +483,25 @@ export class CollectionsService {
                 mediaServerId: mediaItem.mediaServerId,
                 addDate: mediaItem.addDate,
               })),
-          };
+          }
         }),
-      );
+      )
     } catch (err) {
       this.logger.warn(
         'An error occurred while fetching calendar collection data.',
-      );
-      this.logger.debug(err);
-      return undefined;
+      )
+      this.logger.debug(err)
+      return undefined
     }
   }
 
   async getAllCollections() {
     try {
-      return await this.collectionRepo.find();
+      return await this.collectionRepo.find()
     } catch (err) {
-      this.logger.warn('An error occurred while fetching collections.');
-      this.logger.debug(err);
-      return [];
+      this.logger.warn('An error occurred while fetching collections.')
+      this.logger.debug(err)
+      return []
     }
   }
 
@@ -513,11 +509,11 @@ export class CollectionsService {
     collection: ICollection,
     empty = true,
   ): Promise<{
-    dbCollection: addCollectionDbResponse;
+    dbCollection: addCollectionDbResponse
   }> {
     try {
-      const mediaServer = await this.getMediaServer();
-      let mediaCollection: MediaCollection;
+      const mediaServer = await this.getMediaServer()
+      let mediaCollection: MediaCollection
 
       if (
         !empty &&
@@ -531,10 +527,10 @@ export class CollectionsService {
           summary: collection?.description,
           sortTitle: collection?.sortTitle,
           type: collection.type,
-        });
+        })
 
         // Store the media server ID from the created collection
-        collection.mediaServerId = mediaCollection.id;
+        collection.mediaServerId = mediaCollection.id
 
         // Handle visibility settings (Plex-only feature)
         if (
@@ -546,7 +542,7 @@ export class CollectionsService {
             recommended: collection.visibleOnRecommended,
             ownHome: collection.visibleOnHome,
             sharedHome: collection.visibleOnHome,
-          });
+          })
         }
       }
       // in case of manual, just fetch the collection media server ID
@@ -554,7 +550,7 @@ export class CollectionsService {
         const foundCollection = await this.findMediaServerCollection(
           collection.manualCollectionName,
           collection.libraryId,
-        );
+        )
         if (foundCollection) {
           // Handle visibility settings (Plex-only feature)
           if (
@@ -568,15 +564,15 @@ export class CollectionsService {
               recommended: collection.visibleOnRecommended,
               ownHome: collection.visibleOnHome,
               sharedHome: collection.visibleOnHome,
-            });
+            })
           }
 
-          collection.mediaServerId = foundCollection.id;
+          collection.mediaServerId = foundCollection.id
         } else {
           this.logger.error(
             `Manual collection not found.. Is the spelling correct? `,
-          );
-          return undefined;
+          )
+          return undefined
         }
       }
       // create collection in db
@@ -584,14 +580,14 @@ export class CollectionsService {
         await this.addCollectionToDB(
           collection,
           collection.mediaServerId ? collection.mediaServerId : undefined,
-        );
-      return { dbCollection: collectionDb };
+        )
+      return { dbCollection: collectionDb }
     } catch (err) {
       this.logger.error(
         `An error occurred while creating or fetching a collection: ${err}`,
-      );
-      this.logger.debug(err);
-      return undefined;
+      )
+      this.logger.debug(err)
+      return undefined
     }
   }
 
@@ -599,10 +595,10 @@ export class CollectionsService {
     collection: ICollection,
     media?: AddRemoveCollectionMedia[],
   ): Promise<{
-    dbCollection: addCollectionDbResponse;
+    dbCollection: addCollectionDbResponse
   }> {
     try {
-      const createdCollection = await this.createCollection(collection, false);
+      const createdCollection = await this.createCollection(collection, false)
 
       for (const childMedia of media) {
         await this.addChildToCollection(
@@ -613,43 +609,41 @@ export class CollectionsService {
             dbId: createdCollection.dbCollection.id,
           },
           childMedia.mediaServerId,
-        );
+        )
       }
-      return createdCollection;
+      return createdCollection
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      return undefined
     }
   }
 
   async updateCollection(collection: ICollection): Promise<{
-    dbCollection?: ICollection;
+    dbCollection?: ICollection
   }> {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       const dbCollection = await this.collectionRepo.findOne({
         where: { id: +collection.id },
-      });
+      })
 
       const sanitizedSortTitle =
         collection?.sortTitle && collection.sortTitle.trim() !== ''
           ? collection.sortTitle
-          : null;
+          : null
 
       if (dbCollection?.mediaServerId) {
         // Verify the media server collection still exists before updating
         const serverColl = await mediaServer.getCollection(
           dbCollection.mediaServerId,
-        );
+        )
 
         if (!serverColl) {
           // Collection was deleted from media server - clear the stale link
           this.logger.log(
             `Linked media server collection ${dbCollection.mediaServerId} no longer exists, clearing link`,
-          );
-          collection.mediaServerId = null;
+          )
+          collection.mediaServerId = null
         } else if (
           // is the type the same & is it an automatic collection, then update
           collection.type === dbCollection.type &&
@@ -665,11 +659,11 @@ export class CollectionsService {
               title: collection.title,
               summary: collection?.description,
               sortTitle: sanitizedSortTitle ?? undefined,
-            });
+            })
           } catch (error) {
             this.logger.warn(
               `Failed to update collection metadata on media server: ${error instanceof Error ? error.message : String(error)}`,
-            );
+            )
           }
           // Handle visibility settings (Plex-only feature)
           if (
@@ -683,7 +677,7 @@ export class CollectionsService {
               recommended: collection.visibleOnRecommended,
               ownHome: collection.visibleOnHome,
               sharedHome: collection.visibleOnHome,
-            });
+            })
           }
         } else {
           // if the type, manual collection, or library changed - reset the media server collection
@@ -696,9 +690,9 @@ export class CollectionsService {
           ) {
             if (!dbCollection.manualCollection) {
               // Don't remove the collections if it was a manual one
-              await mediaServer.deleteCollection(dbCollection.mediaServerId);
+              await mediaServer.deleteCollection(dbCollection.mediaServerId)
             }
-            collection.mediaServerId = null;
+            collection.mediaServerId = null
           }
         }
       }
@@ -707,25 +701,25 @@ export class CollectionsService {
         ...dbCollection,
         ...collection,
         sortTitle: sanitizedSortTitle,
-      });
+      })
 
       await this.addLogRecord(
         { id: dbResp.id } as Collection,
         "Successfully updated the collection's settings",
         ECollectionLogType.COLLECTION,
-      );
+      )
 
-      return { dbCollection: dbResp };
+      return { dbCollection: dbResp }
     } catch (err) {
       this.logger.warn(
         `An error occurred while performing collection actions: ${err.message || err}`,
-      );
+      )
       await this.addLogRecord(
         { id: collection.id } as Collection,
         "Failed to update the collection's settings",
         ECollectionLogType.COLLECTION,
-      );
-      return undefined;
+      )
+      return undefined
     }
   }
 
@@ -733,24 +727,24 @@ export class CollectionsService {
     if (collection.id) {
       const oldCollection = await this.collectionRepo.findOne({
         where: { id: collection.id },
-      });
+      })
 
-      const response = await this.collectionRepo.save(collection);
+      const response = await this.collectionRepo.save(collection)
 
       this.eventEmitter.emit(MaintainerrEvent.Collection_Updated, {
         collection: response,
         oldCollection: oldCollection,
-      });
+      })
 
-      return response;
+      return response
     } else {
-      const response = await this.collectionRepo.save(collection);
+      const response = await this.collectionRepo.save(collection)
 
       this.eventEmitter.emit(MaintainerrEvent.Collection_Created, {
         collection: response,
-      });
+      })
 
-      return response;
+      return response
     }
   }
 
@@ -762,67 +756,67 @@ export class CollectionsService {
       const foundColl = await this.findMediaServerCollection(
         collection.manualCollectionName,
         collection.libraryId,
-      );
+      )
       if (foundColl) {
-        collection.mediaServerId = foundColl.id;
-        collection = await this.saveCollection(collection);
+        collection.mediaServerId = foundColl.id
+        collection = await this.saveCollection(collection)
 
         await this.addLogRecord(
           { id: collection.id } as Collection,
           'Successfully relinked the manual collection',
           ECollectionLogType.COLLECTION,
-        );
+        )
       } else {
         this.logger.error(
           'Manual collection not found.. Is it still available in the media server?',
-        );
+        )
         await this.addLogRecord(
           { id: collection.id } as Collection,
           'Failed to relink the manual collection',
           ECollectionLogType.COLLECTION,
-        );
+        )
       }
     }
-    return collection;
+    return collection
   }
 
   public async checkAutomaticMediaServerLink(
     collection: Collection,
   ): Promise<Collection> {
-    const mediaServer = await this.getMediaServer();
+    const mediaServer = await this.getMediaServer()
     // checks and fixes automatic collection link
     if (!collection.manualCollection) {
-      let serverColl: MediaCollection | undefined = undefined;
-      const originalMediaServerId = collection.mediaServerId; // Track if we already had a link
+      let serverColl: MediaCollection | undefined = undefined
+      const originalMediaServerId = collection.mediaServerId // Track if we already had a link
 
       this.logger.debug(
         `[checkAutomaticMediaServerLink] Collection "${collection.title}" (DB id: ${collection.id}, mediaServerId: ${collection.mediaServerId})`,
-      );
+      )
 
       if (collection.mediaServerId) {
-        serverColl = await mediaServer.getCollection(collection.mediaServerId);
+        serverColl = await mediaServer.getCollection(collection.mediaServerId)
         this.logger.debug(
           `[checkAutomaticMediaServerLink] getCollection(${collection.mediaServerId}) returned: ${serverColl ? `id=${serverColl.id}, childCount=${serverColl.childCount}` : 'undefined'}`,
-        );
+        )
       }
 
       if (!serverColl) {
         const foundColl = await this.findMediaServerCollection(
           collection.title,
           collection.libraryId,
-        );
+        )
 
         // Only log if we expected to find it (had a previous link) or if we actually found one
         if (foundColl || collection.mediaServerId) {
           this.logger.debug(
             `[checkAutomaticMediaServerLink] findMediaServerCollection("${collection.title}") returned: ${foundColl ? `id=${foundColl.id}, childCount=${foundColl.childCount}` : 'undefined'}`,
-          );
+          )
         }
 
         if (foundColl) {
-          collection.mediaServerId = foundColl.id;
-          collection = await this.saveCollection(collection);
-          serverColl = foundColl;
+          collection.mediaServerId = foundColl.id
+          collection = await this.saveCollection(collection)
+          serverColl = foundColl
         }
       }
 
@@ -839,31 +833,31 @@ export class CollectionsService {
         collection.mediaServerId !== null &&
         originalMediaServerId !== null
       ) {
-        const children = await mediaServer.getCollectionChildren(serverColl.id);
-        const actualChildCount = children?.length ?? 0;
+        const children = await mediaServer.getCollectionChildren(serverColl.id)
+        const actualChildCount = children?.length ?? 0
 
         if (actualChildCount <= 0) {
           this.logger.debug(
             `[checkAutomaticMediaServerLink] Deleting empty collection ${serverColl.id} (actualChildCount=${actualChildCount})`,
-          );
-          await mediaServer.deleteCollection(serverColl.id);
-          serverColl = undefined;
+          )
+          await mediaServer.deleteCollection(serverColl.id)
+          serverColl = undefined
         } else {
           this.logger.debug(
             `[checkAutomaticMediaServerLink] Collection ${serverColl.id} has ${actualChildCount} children, keeping it`,
-          );
+          )
         }
       }
 
       if (!serverColl) {
         this.logger.debug(
           `[checkAutomaticMediaServerLink] Setting mediaServerId to null — collection was empty or not found on media server`,
-        );
-        collection.mediaServerId = null;
-        collection = await this.saveCollection(collection);
+        )
+        collection.mediaServerId = null
+        collection = await this.saveCollection(collection)
       }
     }
-    return collection;
+    return collection
   }
 
   async MediaCollectionActionWithContext(
@@ -872,32 +866,32 @@ export class CollectionsService {
     media: AddRemoveCollectionMedia,
     action: 'add' | 'remove',
   ): Promise<Collection> {
-    const mediaServer = await this.getMediaServer();
+    const mediaServer = await this.getMediaServer()
     const collection =
       collectionDbId !== -1 && collectionDbId !== undefined
         ? await this.collectionRepo.findOne({
             where: { id: collectionDbId },
           })
-        : undefined;
+        : undefined
 
     // get media - traverse show -> seasons -> episodes if needed
     const ids = await mediaServer.getAllIdsForContextAction(
       collection?.type,
       { type: context.type, id: String(context.id) },
       media.mediaServerId,
-    );
+    )
     const handleMedia: AddRemoveCollectionMedia[] = ids.map((id) => ({
       mediaServerId: id,
-    }));
+    }))
 
     if (handleMedia) {
       if (action === 'add') {
-        return this.addToCollection(collectionDbId, handleMedia, true);
+        return this.addToCollection(collectionDbId, handleMedia, true)
       } else if (action === 'remove') {
         if (collectionDbId) {
-          return this.removeFromCollection(collectionDbId, handleMedia);
+          return this.removeFromCollection(collectionDbId, handleMedia)
         } else {
-          await this.removeFromAllCollections(handleMedia);
+          await this.removeFromAllCollections(handleMedia)
         }
       }
     }
@@ -909,41 +903,41 @@ export class CollectionsService {
     manual = false,
   ): Promise<Collection> {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       let collection = await this.collectionRepo.findOne({
         where: { id: collectionDbId },
-      });
+      })
       const collectionMedia = await this.CollectionMediaRepo.find({
         where: { collectionId: collectionDbId },
-      });
+      })
 
       // filter already existing out
       const newMedia = media.filter(
         (m) =>
           !collectionMedia.find((el) => el.mediaServerId === m.mediaServerId),
-      );
+      )
 
       if (collection) {
-        collection = await this.checkAutomaticMediaServerLink(collection);
+        collection = await this.checkAutomaticMediaServerLink(collection)
 
         // Check if we need to create a new media server collection
         // This happens when: 1) we have new items to add, OR 2) we have existing items but no media server collection
         const needsMediaServerCollection =
           !collection.mediaServerId &&
-          (newMedia.length > 0 || collectionMedia.length > 0);
+          (newMedia.length > 0 || collectionMedia.length > 0)
 
         // Check if we need to sync existing items to a newly created collection
         const needsResync =
-          !collection.mediaServerId && collectionMedia.length > 0;
+          !collection.mediaServerId && collectionMedia.length > 0
 
         // Create media server collection if needed
         if (needsMediaServerCollection) {
-          let newColl: MediaCollection | undefined = undefined;
+          let newColl: MediaCollection | undefined = undefined
           if (collection.manualCollection) {
             newColl = await this.findMediaServerCollection(
               collection.manualCollectionName,
               collection.libraryId,
-            );
+            )
           } else {
             newColl = await mediaServer.createCollection({
               libraryId: collection.libraryId,
@@ -951,13 +945,13 @@ export class CollectionsService {
               summary: collection.description,
               sortTitle: collection.sortTitle,
               type: collection.type,
-            });
+            })
           }
           if (newColl?.id) {
             collection = await this.collectionRepo.save({
               ...collection,
               mediaServerId: newColl.id,
-            });
+            })
             // Handle visibility settings (Plex-only feature)
             if (
               mediaServer.supportsFeature(
@@ -970,24 +964,24 @@ export class CollectionsService {
                 recommended: collection.visibleOnRecommended,
                 ownHome: collection.visibleOnHome,
                 sharedHome: collection.visibleOnHome,
-              });
+              })
             }
 
             // If we had existing collection_media items, sync them to the new media server collection
             if (needsResync) {
               this.logger.log(
                 `Syncing ${collectionMedia.length} existing items to newly created media server collection`,
-              );
+              )
               for (const existingMedia of collectionMedia) {
                 try {
                   await mediaServer.addToCollection(
                     collection.mediaServerId,
                     existingMedia.mediaServerId,
-                  );
+                  )
                 } catch (err) {
                   this.logger.warn(
                     `Failed to sync item ${existingMedia.mediaServerId} to collection: ${err.message}`,
-                  );
+                  )
                 }
               }
             }
@@ -995,7 +989,7 @@ export class CollectionsService {
             if (collection.manualCollection) {
               this.logger.warn(
                 `Manual Collection '${collection.manualCollectionName}' doesn't exist in media server..`,
-              );
+              )
             }
           }
         }
@@ -1008,22 +1002,20 @@ export class CollectionsService {
               childMedia.mediaServerId,
               manual,
               childMedia.reason,
-            );
+            )
           }
         }
 
         // Update cached total size (non-blocking)
-        this.updateCollectionTotalSize(collectionDbId).catch(() => {});
+        this.updateCollectionTotalSize(collectionDbId).catch(() => {})
 
-        return collection;
+        return collection
       } else {
-        this.logger.warn("Collection doesn't exist.");
+        this.logger.warn("Collection doesn't exist.")
       }
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      return undefined
     }
   }
 
@@ -1032,24 +1024,24 @@ export class CollectionsService {
     media: AddRemoveCollectionMedia[],
   ) {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       let collection = await this.collectionRepo.findOne({
         where: { id: collectionDbId },
-      });
+      })
 
       if (!collection) {
         this.logger.warn(
           `Collection with id ${collectionDbId} not found, skipping removal`,
-        );
-        return undefined;
+        )
+        return undefined
       }
 
-      collection = await this.checkAutomaticMediaServerLink(collection);
+      collection = await this.checkAutomaticMediaServerLink(collection)
       let collectionMedia = await this.CollectionMediaRepo.find({
         where: {
           collectionId: collectionDbId,
         },
-      });
+      })
       if (collectionMedia.length > 0) {
         for (const childMedia of media) {
           if (
@@ -1061,11 +1053,11 @@ export class CollectionsService {
               { mediaServerId: collection.mediaServerId, dbId: collection.id },
               childMedia.mediaServerId,
               childMedia.reason,
-            );
+            )
 
             collectionMedia = collectionMedia.filter(
               (el) => el.mediaServerId !== childMedia.mediaServerId,
-            );
+            )
           }
         }
 
@@ -1075,127 +1067,123 @@ export class CollectionsService {
           collection.mediaServerId
         ) {
           try {
-            await mediaServer.deleteCollection(collection.mediaServerId);
+            await mediaServer.deleteCollection(collection.mediaServerId)
             collection = await this.collectionRepo.save({
               ...collection,
               mediaServerId: null,
-            });
+            })
           } catch (err) {
             this.logger.warn(
               `Failed to delete collection from media server: ${err.message}`,
-            );
+            )
           }
         }
       }
 
       // Update cached total size (non-blocking)
-      this.updateCollectionTotalSize(collectionDbId).catch(() => {});
+      this.updateCollectionTotalSize(collectionDbId).catch(() => {})
 
-      return collection;
+      return collection
     } catch (err) {
       this.logger.warn(
         `An error occurred while removing media from collection with internal id ${collectionDbId}`,
-      );
-      this.logger.debug(err);
-      return undefined;
+      )
+      this.logger.debug(err)
+      return undefined
     }
   }
 
   async removeFromAllCollections(media: AddRemoveCollectionMedia[]) {
     try {
-      const collections = await this.collectionRepo.find();
+      const collections = await this.collectionRepo.find()
       for (const collection of collections) {
-        await this.removeFromCollection(collection.id, media);
+        await this.removeFromCollection(collection.id, media)
       }
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
       this.logger.warn(
         `An error occurred while removing media from all collections : ${e}`,
-      );
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      )
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
   async deleteCollection(collectionDbId: number) {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       let collection = await this.collectionRepo.findOne({
         where: { id: collectionDbId },
-      });
+      })
 
       if (!collection) {
         this.logger.warn(
           `Collection with id ${collectionDbId} not found in database`,
-        );
-        return undefined;
+        )
+        return undefined
       }
 
-      collection = await this.checkAutomaticMediaServerLink(collection);
+      collection = await this.checkAutomaticMediaServerLink(collection)
 
       if (collection.mediaServerId && !collection.manualCollection) {
         try {
-          await mediaServer.deleteCollection(collection.mediaServerId);
+          await mediaServer.deleteCollection(collection.mediaServerId)
         } catch (err) {
           this.logger.warn(
             `Failed to delete collection from media server: ${err.message}`,
-          );
+          )
         }
       }
-      return await this.RemoveCollectionFromDB(collection);
+      return await this.RemoveCollectionFromDB(collection)
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      return undefined
     }
   }
 
   public async deactivateCollection(collectionDbId: number) {
     try {
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       const collection = await this.collectionRepo.findOne({
         where: { id: collectionDbId },
-      });
+      })
 
       if (!collection.manualCollection && collection.mediaServerId) {
         try {
-          await mediaServer.deleteCollection(collection.mediaServerId);
+          await mediaServer.deleteCollection(collection.mediaServerId)
         } catch (err) {
           this.logger.warn(
             `Failed to delete collection from media server: ${err.message}`,
-          );
+          )
         }
       }
 
-      await this.CollectionMediaRepo.delete({ collectionId: collection.id });
+      await this.CollectionMediaRepo.delete({ collectionId: collection.id })
       await this.saveCollection({
         ...collection,
         isActive: false,
         mediaServerId: null,
-      });
+      })
 
       await this.addLogRecord(
         { id: collectionDbId } as Collection,
         'Collection deactivated',
         ECollectionLogType.COLLECTION,
-      );
+      )
 
       const rulegroup = await this.ruleGroupRepo.findOne({
         where: {
           collectionId: collection.id,
         },
-      });
+      })
       if (rulegroup) {
         await this.ruleGroupRepo.save({
           ...rulegroup,
           isActive: false,
-        });
+        })
       }
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      return undefined
     }
   }
 
@@ -1203,35 +1191,33 @@ export class CollectionsService {
     try {
       const collection = await this.collectionRepo.findOne({
         where: { id: collectionDbId },
-      });
+      })
 
       await this.saveCollection({
         ...collection,
         isActive: true,
-      });
+      })
 
       await this.addLogRecord(
         { id: collectionDbId } as Collection,
         'Collection activated',
         ECollectionLogType.COLLECTION,
-      );
+      )
 
       const rulegroup = await this.ruleGroupRepo.findOne({
         where: {
           collectionId: collection.id,
         },
-      });
+      })
       if (rulegroup) {
         await this.ruleGroupRepo.save({
           ...rulegroup,
           isActive: true,
-        });
+        })
       }
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      return undefined
     }
   }
 
@@ -1242,23 +1228,23 @@ export class CollectionsService {
     logMeta?: CollectionLogMeta,
   ) {
     try {
-      const mediaServer = await this.getMediaServer();
-      this.infoLogger(`Adding media with id ${childId} to collection..`);
+      const mediaServer = await this.getMediaServer()
+      this.infoLogger(`Adding media with id ${childId} to collection..`)
 
-      const tmdb = await this.tmdbIdHelper.getTmdbIdFromMediaServerId(childId);
+      const tmdb = await this.tmdbIdHelper.getTmdbIdFromMediaServerId(childId)
 
-      let tmdbMedia: TmdbTvDetails | TmdbMovieDetails;
+      let tmdbMedia: TmdbTvDetails | TmdbMovieDetails
       switch (tmdb.type) {
         case 'movie':
-          tmdbMedia = await this.tmdbApi.getMovie({ movieId: tmdb.id });
-          break;
+          tmdbMedia = await this.tmdbApi.getMovie({ movieId: tmdb.id })
+          break
         case 'tv':
-          tmdbMedia = await this.tmdbApi.getTvShow({ tvId: tmdb.id });
-          break;
+          tmdbMedia = await this.tmdbApi.getTvShow({ tvId: tmdb.id })
+          break
       }
 
       try {
-        await mediaServer.addToCollection(collectionIds.mediaServerId, childId);
+        await mediaServer.addToCollection(collectionIds.mediaServerId, childId)
 
         await this.connection
           .createQueryBuilder()
@@ -1274,7 +1260,7 @@ export class CollectionsService {
               isManual: manual,
             },
           ])
-          .execute();
+          .execute()
 
         // log record
         await this.CollectionLogRecordForChild(
@@ -1282,15 +1268,15 @@ export class CollectionsService {
           collectionIds.dbId,
           'add',
           logMeta,
-        );
+        )
       } catch (err) {
-        this.logger.warn(`Couldn't add media to collection: ${err.message}`);
+        this.logger.warn(`Couldn't add media to collection: ${err.message}`)
       }
     } catch (err) {
       this.logger.warn(
         `An error occurred while performing collection actions: ${err}`,
-      );
-      return undefined;
+      )
+      return undefined
     }
   }
 
@@ -1301,8 +1287,8 @@ export class CollectionsService {
     logMeta?: CollectionLogMeta,
   ) {
     // log record
-    const mediaServer = await this.getMediaServer();
-    const mediaData = await mediaServer.getMetadata(mediaServerId); // fetch data from cache
+    const mediaServer = await this.getMediaServer()
+    const mediaData = await mediaServer.getMetadata(mediaServerId) // fetch data from cache
     // if there's no data.. skip logging
 
     if (mediaData) {
@@ -1311,18 +1297,18 @@ export class CollectionsService {
         mediaData,
         mediaServer,
         type,
-      );
+      )
       const subject = isMediaType(mediaData.type, 'episode')
         ? `${mediaData.grandparentTitle} - season ${mediaData.parentIndex} - episode ${mediaData.index}`
         : isMediaType(mediaData.type, 'season')
           ? `${mediaData.parentTitle} - season ${mediaData.index}`
-          : mediaData.title;
+          : mediaData.title
       await this.addLogRecord(
         { id: collectionId } as Collection,
         `${type === 'add' ? 'Added' : type === 'handle' ? 'Successfully handled' : type === 'exclude' ? 'Added a specific exclusion for' : type === 'include' ? 'Removed specific exclusion of' : 'Removed'} "${subject}"`,
         ECollectionLogType.MEDIA,
         logMetaWithMedia,
-      );
+      )
     }
   }
 
@@ -1332,10 +1318,10 @@ export class CollectionsService {
     mediaServer: IMediaServerService,
     actionType: 'add' | 'remove' | 'handle' | 'exclude' | 'include',
   ): Promise<CollectionLogMeta> {
-    const media = await this.getLogMediaSnapshot(mediaData, mediaServer);
+    const media = await this.getLogMediaSnapshot(mediaData, mediaServer)
 
     if (logMeta) {
-      return { ...logMeta, media } as CollectionLogMeta;
+      return { ...logMeta, media } as CollectionLogMeta
     }
 
     return {
@@ -1344,7 +1330,7 @@ export class CollectionsService {
           ? 'media_removed_manually'
           : 'media_added_manually',
       media,
-    };
+    }
   }
 
   private async getLogMediaSnapshot(
@@ -1356,11 +1342,11 @@ export class CollectionsService {
         ? mediaData.grandparentId
         : mediaData.type === 'season'
           ? mediaData.parentId
-          : undefined;
+          : undefined
     const parentItem = parentId
       ? await mediaServer.getMetadata(parentId)
-      : undefined;
-    const posterSource = mediaData.type === 'movie' ? mediaData : parentItem;
+      : undefined
+    const posterSource = mediaData.type === 'movie' ? mediaData : parentItem
 
     return {
       mediaServerId: mediaData.id,
@@ -1373,7 +1359,7 @@ export class CollectionsService {
       episodeNumber: mediaData.type === 'episode' ? mediaData.index : undefined,
       tmdbId: posterSource?.providerIds?.tmdb?.[0],
       posterType: mediaData.type === 'movie' ? 'movie' : 'show',
-    };
+    }
   }
 
   private async removeChildFromCollection(
@@ -1382,14 +1368,14 @@ export class CollectionsService {
     logMeta?: CollectionLogMeta,
   ) {
     try {
-      const mediaServer = await this.getMediaServer();
-      this.infoLogger(`Removing media with id ${childId} from collection..`);
+      const mediaServer = await this.getMediaServer()
+      this.infoLogger(`Removing media with id ${childId} from collection..`)
 
       try {
         await mediaServer.removeFromCollection(
           collectionIds.mediaServerId,
           childId,
-        );
+        )
 
         await this.connection
           .createQueryBuilder()
@@ -1401,28 +1387,26 @@ export class CollectionsService {
               mediaServerId: childId,
             },
           ])
-          .execute();
+          .execute()
 
         await this.CollectionLogRecordForChild(
           childId,
           collectionIds.dbId,
           'remove',
           logMeta,
-        );
+        )
       } catch (err) {
         // 404 means media is not in collection, which is fine
         if (!err.message?.includes('404')) {
           this.infoLogger(
             `Couldn't remove media from collection: ${err.message}`,
-          );
+          )
         }
       }
     } catch (err) {
-      this.logger.warn(
-        'An error occurred while performing collection actions.',
-      );
-      this.logger.debug(err);
-      return undefined;
+      this.logger.warn('An error occurred while performing collection actions.')
+      this.logger.debug(err)
+      return undefined
     }
   }
 
@@ -1430,9 +1414,9 @@ export class CollectionsService {
     collection: ICollection,
     mediaServerId?: string,
   ): Promise<addCollectionDbResponse> {
-    this.infoLogger(`Adding collection to the database..`);
+    this.infoLogger(`Adding collection to the database..`)
     try {
-      const mediaServerType = await this.getMediaServerType();
+      const mediaServerType = await this.getMediaServerType()
       const insertResult = await this.connection
         .createQueryBuilder()
         .insert()
@@ -1468,11 +1452,11 @@ export class CollectionsService {
             sortTitle: collection.sortTitle,
           },
         ])
-        .execute();
+        .execute()
 
       // generatedMaps only returns auto-generated columns (like id), not the full row
       // We need to include mediaServerId since it was passed as a parameter
-      const generatedId = insertResult.generatedMaps[0] as { id: number };
+      const generatedId = insertResult.generatedMaps[0] as { id: number }
       const dbCol: addCollectionDbResponse = {
         id: generatedId.id,
         mediaServerId: mediaServerId,
@@ -1481,45 +1465,45 @@ export class CollectionsService {
         visibleOnHome: collection.visibleOnHome,
         deleteAfterDays: collection.deleteAfterDays,
         manualCollection: collection.manualCollection ?? false,
-      };
+      }
 
       await this.addLogRecord(
         dbCol as Collection,
         'Collection Created',
         ECollectionLogType.COLLECTION,
-      );
-      return dbCol;
+      )
+      return dbCol
     } catch (err) {
       this.logger.error(
         `Something went wrong creating the collection in the database..`,
         err,
-      );
-      return undefined;
+      )
+      return undefined
     }
   }
 
   private async RemoveCollectionFromDB(
     collection: ICollection,
   ): Promise<BasicResponseDto> {
-    this.infoLogger(`Removing collection from database..`);
+    this.infoLogger(`Removing collection from database..`)
     try {
-      await this.collectionRepo.delete(collection.id);
+      await this.collectionRepo.delete(collection.id)
 
       this.eventEmitter.emit(MaintainerrEvent.Collection_Deleted, {
         collection,
-      });
+      })
 
       this.infoLogger(
         `Collection with id ${collection.id} has been removed from the database.`,
-      );
+      )
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (err) {
       this.logger.error(
         `Something went wrong deleting the collection from the database..`,
         err,
-      );
-      return { status: 'NOK', code: 0, message: 'Removing from DB failed' };
+      )
+      return { status: 'NOK', code: 0, message: 'Removing from DB failed' }
     }
   }
 
@@ -1534,25 +1518,25 @@ export class CollectionsService {
     if (!libraryId || libraryId === '') {
       this.logger.debug(
         `[findMediaServerCollection] Skipping search - libraryId is empty`,
-      );
-      return undefined;
+      )
+      return undefined
     }
 
     try {
-      const mediaServer = await this.getMediaServer();
-      const collections = await mediaServer.getCollections(libraryId);
+      const mediaServer = await this.getMediaServer()
+      const collections = await mediaServer.getCollections(libraryId)
       if (collections) {
         const found = collections.find((coll) => {
-          return coll.title.trim() === name.trim() && !coll.smart;
-        });
-        return found;
+          return coll.title.trim() === name.trim() && !coll.smart
+        })
+        return found
       }
     } catch (err) {
       this.logger.warn(
         'An error occurred while searching for a specific collection.',
-      );
-      this.logger.debug(err);
-      return undefined;
+      )
+      this.logger.debug(err)
+      return undefined
     }
   }
 
@@ -1564,32 +1548,32 @@ export class CollectionsService {
     filter: ECollectionLogType = undefined,
   ) {
     const queryBuilder =
-      this.CollectionLogRepo.createQueryBuilder('collection_log');
+      this.CollectionLogRepo.createQueryBuilder('collection_log')
 
     queryBuilder
       .where('collection_log.collectionId = :id', { id })
       .orderBy('id', sort)
       .skip(offset)
-      .take(size);
+      .take(size)
 
     if (search !== undefined) {
       queryBuilder.andWhere('collection_log.message like :search', {
         search: `%${search}%`,
-      });
+      })
     }
     if (filter !== undefined) {
       queryBuilder.andWhere('collection_log.type like :filter', {
         filter: `%${filter}%`,
-      });
+      })
     }
 
-    const itemCount = await queryBuilder.getCount();
-    const { entities } = await queryBuilder.getRawAndEntities();
+    const itemCount = await queryBuilder.getCount()
+    const { entities } = await queryBuilder.getRawAndEntities()
 
     return {
       totalSize: itemCount,
       items: entities ?? [],
-    };
+    }
   }
 
   public async addLogRecord(
@@ -1611,14 +1595,14 @@ export class CollectionsService {
           meta,
         },
       ])
-      .execute();
+      .execute()
   }
 
   public async removeAllCollectionLogs(collectionId: number) {
     const collection = await this.collectionRepo.findOne({
       where: { id: collectionId },
-    });
-    await this.CollectionLogRepo.delete({ collection: collection });
+    })
+    await this.CollectionLogRepo.delete({ collection: collection })
   }
 
   /**
@@ -1631,28 +1615,28 @@ export class CollectionsService {
     try {
       // If keepLogsForMonths is 0, no need to remove logs. User explicitly configured it to keep logs forever
       if (collection.keepLogsForMonths !== 0) {
-        const currentDate = new Date();
-        const configuredMonths = new Date(currentDate);
+        const currentDate = new Date()
+        const configuredMonths = new Date(currentDate)
 
         // Calculate the target month and year
-        let targetMonth = currentDate.getMonth() - collection.keepLogsForMonths;
-        let targetYear = currentDate.getFullYear();
+        let targetMonth = currentDate.getMonth() - collection.keepLogsForMonths
+        let targetYear = currentDate.getFullYear()
 
         // Adjust for negative months
         while (targetMonth < 0) {
-          targetMonth += 12;
-          targetYear -= 1;
+          targetMonth += 12
+          targetYear -= 1
         }
 
         // Ensure the day is within bounds for the target month
         const targetDay = Math.min(
           currentDate.getDate(),
           new Date(targetYear, targetMonth + 1, 0).getDate(),
-        );
+        )
 
-        configuredMonths.setMonth(targetMonth);
-        configuredMonths.setFullYear(targetYear);
-        configuredMonths.setDate(targetDay);
+        configuredMonths.setMonth(targetMonth)
+        configuredMonths.setFullYear(targetYear)
+        configuredMonths.setDate(targetDay)
 
         // get all logs older than param
         const logs = await this.CollectionLogRepo.find({
@@ -1660,26 +1644,26 @@ export class CollectionsService {
             collection: collection,
             timestamp: LessThan(configuredMonths),
           },
-        });
+        })
 
         if (logs.length > 0) {
           // delete all old logs
-          await this.CollectionLogRepo.remove(logs);
+          await this.CollectionLogRepo.remove(logs)
           this.infoLogger(
             `Removed ${logs.length} old collection log ${logs.length === 1 ? 'record' : 'records'} from collection '${collection.title}'`,
-          );
+          )
           await this.addLogRecord(
             collection,
             `Removed ${logs.length} log ${logs.length === 1 ? 'record' : 'records'} older than ${collection.keepLogsForMonths} months`,
             ECollectionLogType.COLLECTION,
-          );
+          )
         }
       }
     } catch (e) {
       this.logger.warn(
         `An error occurred while removing old collection logs for collection '${collection?.title}'`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
@@ -1692,60 +1676,60 @@ export class CollectionsService {
     try {
       const collection = await this.collectionRepo.findOne({
         where: { id: collectionId },
-      });
-      if (!collection) return;
+      })
+      if (!collection) return
 
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       const collectionMedia = await this.CollectionMediaRepo.find({
         where: { collectionId },
-      });
+      })
 
       if (collectionMedia.length === 0) {
         await this.collectionRepo.update(collectionId, {
           totalSizeBytes: null,
-        });
-        return;
+        })
+        return
       }
 
-      let totalBytes = 0;
-      let hasAnySize = false;
+      let totalBytes = 0
+      let hasAnySize = false
 
       for (const media of collectionMedia) {
         try {
-          const metadata = await mediaServer.getMetadata(media.mediaServerId);
-          if (!metadata) continue;
+          const metadata = await mediaServer.getMetadata(media.mediaServerId)
+          if (!metadata) continue
 
-          const itemSize = this.sumMediaSourceSizes(metadata);
+          const itemSize = this.sumMediaSourceSizes(metadata)
 
           if (itemSize > 0) {
-            totalBytes += itemSize;
-            hasAnySize = true;
+            totalBytes += itemSize
+            hasAnySize = true
           } else if (metadata.type === 'show' || metadata.type === 'season') {
             // Show/season items may not have file sizes at the top level.
             // Traverse children to sum episode-level sizes.
             const childSize = await this.getChildrenTotalSize(
               mediaServer,
               metadata,
-            );
+            )
             if (childSize > 0) {
-              totalBytes += childSize;
-              hasAnySize = true;
+              totalBytes += childSize
+              hasAnySize = true
             }
           }
         } catch (e) {
           this.logger.debug(
             `Failed to get size for media ${media.mediaServerId}: ${e.message}`,
-          );
+          )
         }
       }
 
       await this.collectionRepo.update(collectionId, {
         totalSizeBytes: hasAnySize ? totalBytes : null,
-      });
+      })
     } catch (e) {
       this.logger.debug(
         `Failed to update total size for collection ${collectionId}: ${e.message}`,
-      );
+      )
     }
   }
 
@@ -1753,11 +1737,11 @@ export class CollectionsService {
    * Sum sizeBytes across all mediaSources on a MediaItem.
    */
   private sumMediaSourceSizes(item: MediaItem): number {
-    if (!item.mediaSources?.length) return 0;
+    if (!item.mediaSources?.length) return 0
     return item.mediaSources.reduce(
       (sum, source) => sum + (source.sizeBytes || 0),
       0,
-    );
+    )
   }
 
   /**
@@ -1767,22 +1751,22 @@ export class CollectionsService {
     mediaServer: IMediaServerService,
     parent: MediaItem,
   ): Promise<number> {
-    let total = 0;
+    let total = 0
 
-    const children = await mediaServer.getChildrenMetadata(parent.id);
+    const children = await mediaServer.getChildrenMetadata(parent.id)
     for (const child of children) {
-      const childSize = this.sumMediaSourceSizes(child);
+      const childSize = this.sumMediaSourceSizes(child)
       if (childSize > 0) {
-        total += childSize;
+        total += childSize
       } else if (child.type === 'show' || child.type === 'season') {
-        total += await this.getChildrenTotalSize(mediaServer, child);
+        total += await this.getChildrenTotalSize(mediaServer, child)
       }
     }
 
-    return total;
+    return total
   }
 
   private infoLogger(message: string) {
-    this.logger.log(message);
+    this.logger.log(message)
   }
 }

@@ -1,15 +1,15 @@
-import type { EmailOptions } from 'email-templates';
-import path from 'path';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { SettingsService } from '../../settings/settings.service';
-import PreparedEmail from '../email/preparedEmail';
-import { Notification } from '../entities/notification.entities';
+import type { EmailOptions } from 'email-templates'
+import path from 'path'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { SettingsService } from '../../settings/settings.service'
+import PreparedEmail from '../email/preparedEmail'
+import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentEmail,
   NotificationAgentKey,
   NotificationType,
-} from '../notifications-interfaces';
-import type { NotificationAgent, NotificationPayload } from './agent';
+} from '../notifications-interfaces'
+import type { NotificationAgent, NotificationPayload } from './agent'
 
 class EmailAgent implements NotificationAgent {
   public constructor(
@@ -18,17 +18,17 @@ class EmailAgent implements NotificationAgent {
     private readonly logger: MaintainerrLogger,
     readonly notification: Notification,
   ) {
-    logger.setContext(EmailAgent.name);
-    this.notification = notification;
+    logger.setContext(EmailAgent.name)
+    this.notification = notification
   }
 
-  getNotification = () => this.notification;
+  getNotification = () => this.notification
 
-  getSettings = () => this.settings;
-  getIdentifier = () => NotificationAgentKey.EMAIL;
+  getSettings = () => this.settings
+  getIdentifier = () => NotificationAgentKey.EMAIL
 
   public shouldSend(): boolean {
-    const settings = this.getSettings();
+    const settings = this.getSettings()
 
     if (
       settings.enabled &&
@@ -37,10 +37,10 @@ class EmailAgent implements NotificationAgent {
       settings.options.smtpHost &&
       settings.options.smtpPort
     ) {
-      return true;
+      return true
     }
 
-    return false;
+    return false
   }
 
   private buildMessage(
@@ -58,7 +58,7 @@ class EmailAgent implements NotificationAgent {
           body: payload.message.replaceAll('\n', '<br>'),
           recipientEmail,
         },
-      };
+      }
     }
 
     return {
@@ -74,20 +74,20 @@ class EmailAgent implements NotificationAgent {
         timestamp: new Date().toTimeString(),
         recipientEmail,
       },
-    };
+    }
   }
 
   public async send(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<string> {
-    this.logger.log('Sending email notification');
+    this.logger.log('Sending email notification')
 
     try {
-      const email = new PreparedEmail(this.getSettings());
+      const email = new PreparedEmail(this.getSettings())
       await email.send(
         this.buildMessage(type, payload, this.getSettings().options.emailTo),
-      );
+      )
     } catch (e) {
       this.logger.error(
         `Error sending Email notification. Details: ${JSON.stringify({
@@ -96,13 +96,13 @@ class EmailAgent implements NotificationAgent {
           response: e.response?.data,
         })}`,
         e,
-      );
+      )
 
-      return `Failure: ${e.message}`;
+      return `Failure: ${e.message}`
     }
 
-    return 'Success';
+    return 'Success'
   }
 }
 
-export default EmailAgent;
+export default EmailAgent

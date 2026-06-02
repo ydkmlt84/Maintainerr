@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class JellyfinSupport1767576516009 implements MigrationInterface {
-  name = 'JellyfinSupport1767576516009';
+  name = 'JellyfinSupport1767576516009'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -10,23 +10,23 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "rulegroupId" integer NOT NULL,
                 PRIMARY KEY ("notificationId", "rulegroupId")
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_notification_rulegroup"("notificationId", "rulegroupId")
             SELECT "notificationId",
                 "rulegroupId"
             FROM "notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_notification_rulegroup"
                 RENAME TO "notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "idx_collection_media_collection_id"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_collection_media" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -38,7 +38,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "isManual" boolean DEFAULT (0),
                 CONSTRAINT "FK_604b0cd0f85150923289b7f2c19" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection_media"(
                     "id",
@@ -57,17 +57,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "image_path",
                 "isManual"
             FROM "collection_media"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection_media"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection_media"
                 RENAME TO "collection_media"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "idx_collection_media_collection_id" ON "collection_media" ("collectionId")
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -96,7 +96,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection"(
                     "id",
@@ -147,14 +147,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "sortTitle",
                 CAST("plexId" AS TEXT)
             FROM "collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection"
                 RENAME TO "collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -163,7 +163,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type" integer DEFAULT (NULL),
                 "mediaServerId" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_exclusion"("id", "ruleGroupId", "parent", "type", "mediaServerId")
             SELECT "id",
@@ -172,14 +172,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type",
                 CAST("plexId" AS TEXT)
             FROM "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_exclusion"
                 RENAME TO "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -209,7 +209,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection"(
                     "id",
@@ -260,14 +260,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "sortTitle",
                 "mediaServerId"
             FROM "collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection"
                 RENAME TO "collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_settings" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -295,7 +295,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyfin_user_id" varchar,
                 "jellyfin_server_name" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_settings"(
                     "id",
@@ -338,14 +338,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyseerr_url",
                 "jellyseerr_api_key"
             FROM "settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_settings"
                 RENAME TO "settings"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -354,7 +354,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type" integer DEFAULT (NULL),
                 "mediaServerId" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_exclusion"("id", "ruleGroupId", "parent", "type", "mediaServerId")
             SELECT "id",
@@ -363,14 +363,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type",
                 "mediaServerId"
             FROM "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_exclusion"
                 RENAME TO "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_rule_group" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -385,7 +385,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "REL_9c757efe456ec36319ef10e964" UNIQUE ("collectionId"),
                 CONSTRAINT "FK_9c757efe456ec36319ef10e9648" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_rule_group"(
                     "id",
@@ -408,17 +408,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CAST("dataType" AS TEXT),
                 "ruleHandlerCronSchedule"
             FROM "rule_group"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "rule_group"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_rule_group"
                 RENAME TO "rule_group"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "idx_collection_media_collection_id"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_collection_media" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -430,7 +430,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "isManual" boolean DEFAULT (0),
                 CONSTRAINT "FK_604b0cd0f85150923289b7f2c19" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection_media"(
                     "id",
@@ -449,17 +449,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "image_path",
                 "isManual"
             FROM "collection_media"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection_media"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection_media"
                 RENAME TO "collection_media"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "idx_collection_media_collection_id" ON "collection_media" ("collectionId")
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -489,7 +489,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection"(
                     "id",
@@ -542,14 +542,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "mediaServerId",
                 "mediaServerType"
             FROM "collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection"
                 RENAME TO "collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_settings" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -577,7 +577,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyfin_user_id" varchar,
                 "jellyfin_server_name" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_settings"(
                     "id",
@@ -630,14 +630,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyfin_user_id",
                 "jellyfin_server_name"
             FROM "settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_settings"
                 RENAME TO "settings"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -646,7 +646,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type" varchar,
                 "mediaServerId" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_exclusion"(
                     "id",
@@ -661,23 +661,23 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CAST("type" AS TEXT),
                 "mediaServerId"
             FROM "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_exclusion"
                 RENAME TO "exclusion"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "IDX_2c70d3feb9b789062bfa14c6b9" ON "notification_rulegroup" ("rulegroupId")
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "IDX_dcc3ba7f814ebd3d47facad716" ON "notification_rulegroup" ("notificationId")
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "idx_collection_log_collection_id"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_collection_log" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -688,7 +688,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "meta" text,
                 CONSTRAINT "FK_c70b4409f8834d108a5e845365a" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection_log"(
                     "id",
@@ -705,23 +705,23 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type",
                 "meta"
             FROM "collection_log"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection_log"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection_log"
                 RENAME TO "collection_log"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "idx_collection_log_collection_id" ON "collection_log" ("collectionId")
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "IDX_2c70d3feb9b789062bfa14c6b9"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "IDX_dcc3ba7f814ebd3d47facad716"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_notification_rulegroup" (
                 "notificationId" integer NOT NULL,
@@ -730,68 +730,68 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_dcc3ba7f814ebd3d47facad7168" FOREIGN KEY ("notificationId") REFERENCES "notification" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
                 PRIMARY KEY ("notificationId", "rulegroupId")
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_notification_rulegroup"("notificationId", "rulegroupId")
             SELECT "notificationId",
                 "rulegroupId"
             FROM "notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_notification_rulegroup"
                 RENAME TO "notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "IDX_2c70d3feb9b789062bfa14c6b9" ON "notification_rulegroup" ("rulegroupId")
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "IDX_dcc3ba7f814ebd3d47facad716" ON "notification_rulegroup" ("notificationId")
-        `);
+        `)
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
             DROP INDEX "IDX_dcc3ba7f814ebd3d47facad716"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "IDX_2c70d3feb9b789062bfa14c6b9"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "notification_rulegroup"
                 RENAME TO "temporary_notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "notification_rulegroup" (
                 "notificationId" integer NOT NULL,
                 "rulegroupId" integer NOT NULL,
                 PRIMARY KEY ("notificationId", "rulegroupId")
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "notification_rulegroup"("notificationId", "rulegroupId")
             SELECT "notificationId",
                 "rulegroupId"
             FROM "temporary_notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "IDX_dcc3ba7f814ebd3d47facad716" ON "notification_rulegroup" ("notificationId")
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "IDX_2c70d3feb9b789062bfa14c6b9" ON "notification_rulegroup" ("rulegroupId")
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "idx_collection_log_collection_id"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection_log"
                 RENAME TO "temporary_collection_log"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection_log" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -801,7 +801,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type" integer NOT NULL,
                 "meta" text
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection_log"(
                     "id",
@@ -818,23 +818,23 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type",
                 "meta"
             FROM "temporary_collection_log"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection_log"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "idx_collection_log_collection_id" ON "collection_log" ("collectionId")
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "IDX_dcc3ba7f814ebd3d47facad716"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "IDX_2c70d3feb9b789062bfa14c6b9"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "exclusion"
                 RENAME TO "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -843,7 +843,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type" integer DEFAULT (NULL),
                 "mediaServerId" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "exclusion"(
                     "id",
@@ -858,14 +858,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "type",
                 "mediaServerId"
             FROM "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "settings"
                 RENAME TO "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "settings" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -893,7 +893,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyfin_user_id" varchar,
                 "jellyfin_server_name" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "settings"(
                     "id",
@@ -946,14 +946,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyfin_user_id",
                 "jellyfin_server_name"
             FROM "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection"
                 RENAME TO "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -983,7 +983,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection"(
                     "id",
@@ -1036,17 +1036,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "mediaServerId",
                 "mediaServerType"
             FROM "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "idx_collection_media_collection_id"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection_media"
                 RENAME TO "temporary_collection_media"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection_media" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1058,7 +1058,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "isManual" boolean DEFAULT (0),
                 CONSTRAINT "FK_604b0cd0f85150923289b7f2c19" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection_media"(
                     "id",
@@ -1077,17 +1077,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "image_path",
                 "isManual"
             FROM "temporary_collection_media"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection_media"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "idx_collection_media_collection_id" ON "collection_media" ("collectionId")
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "rule_group"
                 RENAME TO "temporary_rule_group"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "rule_group" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1102,7 +1102,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "REL_9c757efe456ec36319ef10e964" UNIQUE ("collectionId"),
                 CONSTRAINT "FK_9c757efe456ec36319ef10e9648" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "rule_group"(
                     "id",
@@ -1125,14 +1125,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "dataType",
                 "ruleHandlerCronSchedule"
             FROM "temporary_rule_group"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_rule_group"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "exclusion"
                 RENAME TO "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1140,7 +1140,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "parent" integer,
                 "type" integer DEFAULT (NULL)
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "exclusion"("id", "ruleGroupId", "parent", "type")
             SELECT "id",
@@ -1148,14 +1148,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "parent",
                 "type"
             FROM "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "settings"
                 RENAME TO "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "settings" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1178,7 +1178,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyseerr_url" varchar,
                 "jellyseerr_api_key" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "settings"(
                     "id",
@@ -1221,14 +1221,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "jellyseerr_url",
                 "jellyseerr_api_key"
             FROM "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection"
                 RENAME TO "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1256,7 +1256,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection"(
                     "id",
@@ -1305,14 +1305,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "visibleOnRecommended",
                 "sortTitle"
             FROM "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "exclusion"
                 RENAME TO "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "exclusion" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1321,7 +1321,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "parent" integer,
                 "type" integer DEFAULT (NULL)
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "exclusion"("id", "ruleGroupId", "parent", "type")
             SELECT "id",
@@ -1329,14 +1329,14 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "parent",
                 "type"
             FROM "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_exclusion"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection"
                 RENAME TO "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1365,7 +1365,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection"(
                     "id",
@@ -1414,17 +1414,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "visibleOnRecommended",
                 "sortTitle"
             FROM "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP INDEX "idx_collection_media_collection_id"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection_media"
                 RENAME TO "temporary_collection_media"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection_media" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -1436,7 +1436,7 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "isManual" boolean DEFAULT (0),
                 CONSTRAINT "FK_604b0cd0f85150923289b7f2c19" FOREIGN KEY ("collectionId") REFERENCES "collection" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection_media"(
                     "id",
@@ -1455,17 +1455,17 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 "image_path",
                 "isManual"
             FROM "temporary_collection_media"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection_media"
-        `);
+        `)
     await queryRunner.query(`
             CREATE INDEX "idx_collection_media_collection_id" ON "collection_media" ("collectionId")
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "notification_rulegroup"
                 RENAME TO "temporary_notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "notification_rulegroup" (
                 "notificationId" integer NOT NULL,
@@ -1474,15 +1474,15 @@ export class JellyfinSupport1767576516009 implements MigrationInterface {
                 CONSTRAINT "FK_dcc3ba7f814ebd3d47facad7168" FOREIGN KEY ("notificationId") REFERENCES "notification" ("id") ON DELETE CASCADE ON UPDATE NO ACTION,
                 PRIMARY KEY ("notificationId", "rulegroupId")
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "notification_rulegroup"("notificationId", "rulegroupId")
             SELECT "notificationId",
                 "rulegroupId"
             FROM "temporary_notification_rulegroup"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_notification_rulegroup"
-        `);
+        `)
   }
 }

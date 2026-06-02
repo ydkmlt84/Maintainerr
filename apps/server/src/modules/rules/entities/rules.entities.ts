@@ -1,25 +1,25 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { RuleGroup } from './rule-group.entities';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm'
+import { RuleGroup } from './rule-group.entities'
 
 @Entity()
 export class Rules {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  ruleJson: string;
+  ruleJson: string
 
   @Column()
-  ruleGroupId: number;
+  ruleGroupId: number
 
   @Column({ default: 0 })
-  section: number;
+  section: number
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive: boolean
 
   @ManyToOne(() => RuleGroup, (ruleGroup) => ruleGroup.rules, {
     onDelete: 'CASCADE',
   })
-  ruleGroup: RuleGroup;
+  ruleGroup: RuleGroup
 }

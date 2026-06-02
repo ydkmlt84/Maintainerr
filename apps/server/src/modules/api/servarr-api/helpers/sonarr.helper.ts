@@ -1,16 +1,16 @@
-import { MaintainerrLogger } from '../../../logging/logs.service';
-import { ServarrApi } from '../common/servarr-api.service';
+import { MaintainerrLogger } from '../../../logging/logs.service'
+import { ServarrApi } from '../common/servarr-api.service'
 import {
   SonarrEpisode,
   SonarrEpisodeFile,
   SonarrInfo,
   SonarrSeason,
   SonarrSeries,
-} from '../interfaces/sonarr.interface';
+} from '../interfaces/sonarr.interface'
 
 export class SonarrApi extends ServarrApi<{
-  seriesId: number;
-  episodeId: number;
+  seriesId: number
+  episodeId: number
 }> {
   constructor(
     {
@@ -18,24 +18,24 @@ export class SonarrApi extends ServarrApi<{
       apiKey,
       cacheName,
     }: {
-      url: string;
-      apiKey: string;
-      cacheName?: string;
+      url: string
+      apiKey: string
+      cacheName?: string
     },
     protected readonly logger: MaintainerrLogger,
   ) {
-    super({ url, apiKey, cacheName }, logger);
-    this.logger.setContext(SonarrApi.name);
+    super({ url, apiKey, cacheName }, logger)
+    this.logger.setContext(SonarrApi.name)
   }
 
   public async getSeries(): Promise<SonarrSeries[]> {
     try {
-      const response = await this.get<SonarrSeries[]>('/series');
+      const response = await this.get<SonarrSeries[]>('/series')
 
-      return response;
+      return response
     } catch (e) {
-      this.logger.warn(`Failed to retrieve series: ${e.message}`);
-      this.logger.debug(e);
+      this.logger.warn(`Failed to retrieve series: ${e.message}`)
+      this.logger.debug(e)
     }
   }
 
@@ -49,16 +49,16 @@ export class SonarrApi extends ServarrApi<{
         `/episode?seriesId=${seriesID}${
           seasonNumber ? `&seasonNumber=${seasonNumber}` : ''
         }`,
-      );
+      )
 
       return episodeNumbers
         ? response.filter((el) => episodeNumbers.includes(el.episodeNumber))
-        : response;
+        : response
     } catch (e) {
       this.logger.warn(
         `Failed to retrieve show ${seriesID}'s episodes ${episodeNumbers.join(', ')}: ${e.message}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
   public async getEpisodeFile(
@@ -67,14 +67,14 @@ export class SonarrApi extends ServarrApi<{
     try {
       const response = await this.get<SonarrEpisodeFile>(
         `/episodefile/${episodeFileId}`,
-      );
+      )
 
-      return response;
+      return response
     } catch (e) {
       this.logger.warn(
         `Failed to retrieve episode file id ${episodeFileId}: ${e.message}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
@@ -84,53 +84,51 @@ export class SonarrApi extends ServarrApi<{
         params: {
           term: title,
         },
-      });
+      })
 
       if (!response[0]) {
-        this.logger.warn(`Series not found`);
+        this.logger.warn(`Series not found`)
       }
 
-      return response;
+      return response
     } catch (e) {
       this.logger.warn(
         `Error retrieving series by series title '${title}': ${e.message}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
   public async getSeriesByTvdbId(id: number): Promise<SonarrSeries> {
     try {
-      const response = await this.get<SonarrSeries[]>(`/series?tvdbId=${id}`);
+      const response = await this.get<SonarrSeries[]>(`/series?tvdbId=${id}`)
 
       if (!response?.[0]) {
-        this.logger.warn(`Could not retrieve show by tvdb ID ${id}`);
-        return undefined;
+        this.logger.warn(`Could not retrieve show by tvdb ID ${id}`)
+        return undefined
       }
 
-      return response[0];
+      return response[0]
     } catch (e) {
-      this.logger.warn(`Error retrieving show by tvdb ID ${id}. ${e.message}`);
-      this.logger.debug(e);
+      this.logger.warn(`Error retrieving show by tvdb ID ${id}. ${e.message}`)
+      this.logger.debug(e)
     }
   }
 
   public async updateSeries(series: SonarrSeries) {
-    await this.axios.put<SonarrSeries>('/series', series);
+    await this.axios.put<SonarrSeries>('/series', series)
   }
 
   public async searchSeries(seriesId: number): Promise<void> {
-    this.logger.log(
-      `Executing series search command for seriesId ${seriesId}.`,
-    );
+    this.logger.log(`Executing series search command for seriesId ${seriesId}.`)
 
     try {
-      await this.runCommand('SeriesSearch', { seriesId });
+      await this.runCommand('SeriesSearch', { seriesId })
     } catch (e) {
       this.logger.log(
         `Something went wrong while executing Sonarr series search for series Id ${seriesId}: ${e.message}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
@@ -139,16 +137,16 @@ export class SonarrApi extends ServarrApi<{
     deleteFiles = true,
     importListExclusion = false,
   ) {
-    this.logger.log(`Deleting show with ID ${seriesId} from Sonarr.`);
+    this.logger.log(`Deleting show with ID ${seriesId} from Sonarr.`)
     try {
       await this.runDelete(
         `series/${seriesId}?deleteFiles=${deleteFiles}&addImportListExclusion=${importListExclusion}`,
-      );
+      )
     } catch (e) {
       this.logger.log(
         `Couldn't delete show by ID ${seriesId}. Does it exist in Sonarr? ${e.message}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
@@ -162,30 +160,30 @@ export class SonarrApi extends ServarrApi<{
       `${!deleteFiles ? 'Unmonitoring' : 'Deleting'} ${
         episodeIds.length
       } episode(s) from show with ID ${seriesId} from Sonarr.`,
-    );
+    )
     try {
       const episodes = await this.getEpisodes(
         seriesId,
         seasonNumber,
         episodeIds,
-      );
+      )
 
       for (const e of episodes) {
         // unmonitor
         await this.runPut(
           `episode/${e.id}`,
           JSON.stringify({ ...e, monitored: false }),
-        );
+        )
         // also delete if required
         if (deleteFiles) {
-          await this.runDelete(`episodefile/${e.episodeFileId}`);
+          await this.runDelete(`episodefile/${e.episodeFileId}`)
         }
       }
     } catch (e) {
       this.logger.warn(
         `Couldn't remove/unmonitor episodes: ${episodeIds.join(', ')} for series ID: ${seriesId}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
@@ -197,17 +195,17 @@ export class SonarrApi extends ServarrApi<{
   ): Promise<SonarrSeries> {
     try {
       const data: SonarrSeries = (await this.axios.get(`series/${seriesId}`))
-        .data;
+        .data
 
       const episodes: SonarrEpisode[] = await this.get(
         `episodefile?seriesId=${seriesId}`,
-      );
+      )
 
       // loop seasons
       data.seasons = await Promise.all(
         data.seasons.map(async (s) => {
           if (type === 'all') {
-            s.monitored = false;
+            s.monitored = false
           } else if (
             type === 'existing' ||
             (forceExisting && type === s.seasonNumber)
@@ -220,29 +218,29 @@ export class SonarrApi extends ServarrApi<{
                   e.seasonNumber,
                   [e.id],
                   false,
-                );
+                )
               }
             }
           } else if (typeof type === 'number') {
             // specific season
             if (s.seasonNumber === type) {
-              s.monitored = false;
+              s.monitored = false
             }
           }
-          return s;
+          return s
         }),
-      );
-      await this.runPut(`series/`, JSON.stringify(data));
+      )
+      await this.runPut(`series/`, JSON.stringify(data))
 
       // delete files
       if (deleteFiles) {
         for (const e of episodes) {
           if (typeof type === 'number') {
             if (e.seasonNumber === type) {
-              await this.runDelete(`episodefile/${e.id}`);
+              await this.runDelete(`episodefile/${e.id}`)
             }
           } else {
-            await this.runDelete(`episodefile/${e.id}`);
+            await this.runDelete(`episodefile/${e.id}`)
           }
         }
       }
@@ -251,14 +249,14 @@ export class SonarrApi extends ServarrApi<{
         `Unmonitored ${
           typeof type === 'number' ? `season ${type}` : 'seasons'
         } from Sonarr show with ID ${seriesId}`,
-      );
+      )
 
-      return data;
+      return data
     } catch (e) {
       this.logger.log(
         `Couldn't unmonitor/delete seasons for series ID ${seriesId}. Does it exist in Sonarr?`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
@@ -269,12 +267,12 @@ export class SonarrApi extends ServarrApi<{
     if (existingSeasons) {
       const newSeasons = existingSeasons.map((season) => {
         if (seasons.includes(season.seasonNumber)) {
-          season.monitored = true;
+          season.monitored = true
         }
-        return season;
-      });
+        return season
+      })
 
-      return newSeasons;
+      return newSeasons
     }
 
     const newSeasons = seasons.map(
@@ -282,9 +280,9 @@ export class SonarrApi extends ServarrApi<{
         seasonNumber,
         monitored: true,
       }),
-    );
+    )
 
-    return newSeasons;
+    return newSeasons
   }
 
   public async info(): Promise<SonarrInfo> {
@@ -293,12 +291,12 @@ export class SonarrApi extends ServarrApi<{
         await this.axios.get(`system/status`, {
           signal: AbortSignal.timeout(10000), // aborts request after 10 seconds
         })
-      ).data;
-      return info ? info : null;
+      ).data
+      return info ? info : null
     } catch (e) {
-      this.logger.warn("Couldn't fetch Sonarr info.. Is Sonarr up?");
-      this.logger.debug(e);
-      return null;
+      this.logger.warn("Couldn't fetch Sonarr info.. Is Sonarr up?")
+      this.logger.debug(e)
+      return null
     }
   }
 }

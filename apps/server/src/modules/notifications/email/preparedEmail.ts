@@ -1,7 +1,7 @@
-import Email from 'email-templates';
-import nodemailer from 'nodemailer';
-import { NotificationAgentEmail } from '../notifications-interfaces';
-import { openpgpEncrypt } from './openPgpEncrypt';
+import Email from 'email-templates'
+import nodemailer from 'nodemailer'
+import { NotificationAgentEmail } from '../notifications-interfaces'
+import { openpgpEncrypt } from './openPgpEncrypt'
 
 class PreparedEmail extends Email {
   public constructor(settings: NotificationAgentEmail) {
@@ -23,7 +23,7 @@ class PreparedEmail extends Email {
               pass: settings.options.authPass,
             }
           : undefined,
-    });
+    })
 
     if (settings.options.pgpKey) {
       transport.use(
@@ -33,7 +33,7 @@ class PreparedEmail extends Email {
           password: settings.options.pgpPassword,
           encryptionKeys: [settings.options.pgpKey],
         }),
-      );
+      )
     }
 
     super({
@@ -46,8 +46,8 @@ class PreparedEmail extends Email {
       send: true,
       preview: false,
       transport: transport,
-    });
+    })
   }
 }
 
-export default PreparedEmail;
+export default PreparedEmail

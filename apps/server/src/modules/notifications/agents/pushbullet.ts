@@ -1,20 +1,20 @@
-import axios from 'axios';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { SettingsService } from '../../settings/settings.service';
-import { Notification } from '../entities/notification.entities';
+import axios from 'axios'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { SettingsService } from '../../settings/settings.service'
+import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentKey,
   NotificationAgentPushbullet,
   NotificationType,
-} from '../notifications-interfaces';
-import { hasNotificationType } from '../notifications.service';
-import type { NotificationAgent, NotificationPayload } from './agent';
+} from '../notifications-interfaces'
+import { hasNotificationType } from '../notifications.service'
+import type { NotificationAgent, NotificationPayload } from './agent'
 
 interface PushbulletPayload {
-  type: string;
-  title: string;
-  body: string;
-  channel_tag?: string;
+  type: string
+  title: string
+  body: string
+  channel_tag?: string
 }
 
 class PushbulletAgent implements NotificationAgent {
@@ -24,26 +24,26 @@ class PushbulletAgent implements NotificationAgent {
     private readonly logger: MaintainerrLogger,
     readonly notification: Notification,
   ) {
-    logger.setContext(PushbulletAgent.name);
-    this.notification = notification;
+    logger.setContext(PushbulletAgent.name)
+    this.notification = notification
   }
 
-  getNotification = () => this.notification;
+  getNotification = () => this.notification
 
-  getSettings = () => this.settings;
+  getSettings = () => this.settings
 
-  getIdentifier = () => NotificationAgentKey.PUSHBULLET;
+  getIdentifier = () => NotificationAgentKey.PUSHBULLET
 
   public shouldSend(): boolean {
-    return true;
+    return true
   }
 
   private getNotificationPayload(
     type: NotificationType,
     payload: NotificationPayload,
   ): PushbulletPayload {
-    const title = payload.subject;
-    const body = payload.message ?? '';
+    const title = payload.subject
+    const body = payload.message ?? ''
 
     // for (const extra of payload.extra ?? []) {
     //   body += `\n${extra.name}: ${extra.value}`;
@@ -53,16 +53,16 @@ class PushbulletAgent implements NotificationAgent {
       type: 'note',
       title,
       body,
-    };
+    }
   }
 
   public async send(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<string> {
-    const settings = this.getSettings();
-    const endpoint = 'https://api.pushbullet.com/v2/pushes';
-    const notificationPayload = this.getNotificationPayload(type, payload);
+    const settings = this.getSettings()
+    const endpoint = 'https://api.pushbullet.com/v2/pushes'
+    const notificationPayload = this.getNotificationPayload(type, payload)
 
     // Send notification
     if (
@@ -71,7 +71,7 @@ class PushbulletAgent implements NotificationAgent {
       settings.options.accessToken &&
       settings.options.channelTag
     ) {
-      this.logger.log('Sending Pushbullet notification');
+      this.logger.log('Sending Pushbullet notification')
 
       try {
         await axios.post(
@@ -82,7 +82,7 @@ class PushbulletAgent implements NotificationAgent {
               'Access-Token': settings.options.accessToken,
             },
           },
-        );
+        )
       } catch (e) {
         this.logger.error(
           `Error sending Pushbullet notification. Details: ${JSON.stringify({
@@ -91,23 +91,23 @@ class PushbulletAgent implements NotificationAgent {
             response: e.response?.data,
           })}`,
           e,
-        );
+        )
 
-        return `Failure: ${e.message}`;
+        return `Failure: ${e.message}`
       }
     } else if (
       hasNotificationType(type, settings.types ?? [0]) &&
       settings.enabled &&
       settings.options.accessToken
     ) {
-      this.logger.log('Sending Pushbullet notification');
+      this.logger.log('Sending Pushbullet notification')
 
       try {
         await axios.post(endpoint, notificationPayload, {
           headers: {
             'Access-Token': settings.options.accessToken,
           },
-        });
+        })
       } catch (e) {
         this.logger.error(
           `Error sending Pushbullet notification. Details: ${JSON.stringify({
@@ -116,14 +116,14 @@ class PushbulletAgent implements NotificationAgent {
             response: e.response?.data,
           })}`,
           e,
-        );
+        )
 
-        return `Failure: ${e.message}`;
+        return `Failure: ${e.message}`
       }
     }
 
-    return 'Success';
+    return 'Success'
   }
 }
 
-export default PushbulletAgent;
+export default PushbulletAgent

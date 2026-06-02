@@ -1,11 +1,11 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { SettingsService } from '../../../modules/settings/settings.service';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { InternalApi } from './helpers/internal-api.helper';
+import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import { SettingsService } from '../../../modules/settings/settings.service'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { InternalApi } from './helpers/internal-api.helper'
 
 @Injectable()
 export class InternalApiService {
-  private api: InternalApi;
+  private api: InternalApi
 
   constructor(
     @Inject(forwardRef(() => SettingsService))
@@ -14,7 +14,7 @@ export class InternalApiService {
   ) {}
 
   public init() {
-    const apiPort = process.env.UI_PORT || 6246;
+    const apiPort = process.env.UI_PORT || 6246
 
     this.api = new InternalApi(
       {
@@ -22,10 +22,10 @@ export class InternalApiService {
         apiKey: `${this.settings.apikey}`,
       },
       this.logger,
-    );
+    )
   }
 
   public getApi() {
-    return this.api;
+    return this.api
   }
 }

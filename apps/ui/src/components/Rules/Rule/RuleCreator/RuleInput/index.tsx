@@ -7,7 +7,7 @@ import {
   RulePossibilityTranslations,
 } from '@maintainerr/contracts'
 import { cloneDeep } from 'lodash-es'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { IRule } from '../'
 import { useRuleConstants } from '../../../../../api/rules'
 import { IProperty } from '../../../../../contexts/constants-context'
@@ -91,6 +91,7 @@ const shouldFilterApplication = (
 }
 
 const RuleInput = (props: IRuleInput) => {
+  const { editData, id, newlyAdded, onCommit, onIncomplete, section } = props
   const [operator, setOperator] = useState<string>()
   const [firstval, setFirstVal] = useState<string>()
   const [action, setAction] = useState<RulePossibility>()
@@ -107,60 +108,76 @@ const RuleInput = (props: IRuleInput) => {
   const { isPlex, isJellyfin } = useMediaServerType()
 
   useEffect(() => {
-    if (props.editData?.rule) {
-      setOperator(props.editData.rule.operator?.toString())
-      setFirstVal(JSON.stringify(props.editData.rule.firstVal))
-      setAction(props.editData.rule.action)
+    if (editData?.rule) {
+      queueMicrotask(() => {
+        setOperator(editData.rule.operator?.toString())
+        setFirstVal(JSON.stringify(editData.rule.firstVal))
+        setAction(editData.rule.action)
+      })
 
-      if (props.editData.rule.customVal) {
-        switch (props.editData.rule.customVal.ruleTypeId) {
+      if (editData.rule.customVal) {
+        switch (editData.rule.customVal.ruleTypeId) {
           case 0:
             // TODO: improve this.. Currently this is a hack to determine if param is amount of days or really a number
             if (
-              (props.editData.rule.customVal.value as number) % 86400 === 0 &&
-              (props.editData.rule.customVal.value as number) != 0
+              (editData.rule.customVal.value as number) % 86400 === 0 &&
+              (editData.rule.customVal.value as number) != 0
             ) {
-              setSecondVal(CustomParams.CUSTOM_DAYS)
-              setRuleType(RuleType.NUMBER)
+              queueMicrotask(() => {
+                setSecondVal(CustomParams.CUSTOM_DAYS)
+                setRuleType(RuleType.NUMBER)
+              })
             } else {
-              setSecondVal(CustomParams.CUSTOM_NUMBER)
-              setRuleType(RuleType.NUMBER)
+              queueMicrotask(() => {
+                setSecondVal(CustomParams.CUSTOM_NUMBER)
+                setRuleType(RuleType.NUMBER)
+              })
             }
             break
           case 1:
-            setSecondVal(CustomParams.CUSTOM_DATE)
-            setRuleType(RuleType.DATE)
+            queueMicrotask(() => {
+              setSecondVal(CustomParams.CUSTOM_DATE)
+              setRuleType(RuleType.DATE)
+            })
             break
           case 2:
-            setSecondVal(CustomParams.CUSTOM_TEXT)
-            setRuleType(RuleType.TEXT)
+            queueMicrotask(() => {
+              setSecondVal(CustomParams.CUSTOM_TEXT)
+              setRuleType(RuleType.TEXT)
+            })
             break
           case 3:
-            setSecondVal(CustomParams.CUSTOM_BOOLEAN)
-            setRuleType(RuleType.BOOL)
+            queueMicrotask(() => {
+              setSecondVal(CustomParams.CUSTOM_BOOLEAN)
+              setRuleType(RuleType.BOOL)
+            })
             break
           case 4:
-            setSecondVal(CustomParams.CUSTOM_TEXT_LIST)
-            setRuleType(RuleType.TEXT_LIST)
+            queueMicrotask(() => {
+              setSecondVal(CustomParams.CUSTOM_TEXT_LIST)
+              setRuleType(RuleType.TEXT_LIST)
+            })
             break
         }
-        setCustomVal(props.editData.rule.customVal.value.toString())
+        queueMicrotask(() =>
+          setCustomVal(editData.rule.customVal!.value.toString()),
+        )
       } else {
-        setSecondVal(JSON.stringify(props.editData.rule.lastVal))
+        queueMicrotask(() =>
+          setSecondVal(JSON.stringify(editData.rule.lastVal)),
+        )
       }
-      if (
-        props.id &&
-        props.newlyAdded &&
-        props.newlyAdded?.includes(props.id)
-      ) {
-        setOperator(undefined)
-        setFirstVal(undefined)
-        setAction(undefined)
-        setSecondVal(undefined)
-        setCustomVal(undefined)
+      if (id && newlyAdded && newlyAdded?.includes(id)) {
+        queueMicrotask(() => {
+          setOperator(undefined)
+          setFirstVal(undefined)
+          setAction(undefined)
+          setSecondVal(undefined)
+          setCustomVal(undefined)
+        })
       }
     }
-  }, [])
+  }, [editData?.rule, id, newlyAdded])
 
   const updateFirstValue = (event: { target: { value: string } }) => {
     if (event.target.value === '') {
@@ -207,64 +224,99 @@ const RuleInput = (props: IRuleInput) => {
     props.onDelete(props.section ? props.section : 0, props.id ? props.id : 0)
   }
 
-  const submit = (e: FormEvent | null) => {
-    e?.preventDefault()
+  const submit = useCallback(
+    (e: FormEvent | null) => {
+      e?.preventDefault()
 
-    if (
-      firstval &&
-      action != null &&
-      ((secondVal &&
-        secondVal !== CustomParams.CUSTOM_DATE &&
-        secondVal !== CustomParams.CUSTOM_DAYS &&
-        secondVal !== CustomParams.CUSTOM_NUMBER &&
-        secondVal !== CustomParams.CUSTOM_TEXT &&
-        secondVal !== CustomParams.CUSTOM_TEXT_LIST &&
-        secondVal !== CustomParams.CUSTOM_BOOLEAN) ||
-        customVal)
-    ) {
-      const ruleValues = {
-        operator: operator ? operator : null,
-        firstVal: JSON.parse(firstval),
-        action,
-        section: props.section ? props.section - 1 : 0,
-      }
-      if (customVal) {
-        props.onCommit(props.id ? props.id : 0, {
-          customVal: {
-            ruleTypeId: customValActive
-              ? customValType === RuleType.DATE
-                ? customValType
-                : customValType === RuleType.NUMBER
+      if (
+        firstval &&
+        action != null &&
+        ((secondVal &&
+          secondVal !== CustomParams.CUSTOM_DATE &&
+          secondVal !== CustomParams.CUSTOM_DAYS &&
+          secondVal !== CustomParams.CUSTOM_NUMBER &&
+          secondVal !== CustomParams.CUSTOM_TEXT &&
+          secondVal !== CustomParams.CUSTOM_TEXT_LIST &&
+          secondVal !== CustomParams.CUSTOM_BOOLEAN) ||
+          customVal)
+      ) {
+        const ruleValues = {
+          operator: operator ? operator : null,
+          firstVal: JSON.parse(firstval),
+          action,
+          section: section ? section - 1 : 0,
+        }
+        if (customVal) {
+          onCommit(id ? id : 0, {
+            customVal: {
+              ruleTypeId: customValActive
+                ? customValType === RuleType.DATE
                   ? customValType
-                  : customValType === RuleType.TEXT &&
-                      secondVal === CustomParams.CUSTOM_DAYS
-                    ? RuleType.NUMBER
-                    : customValType === RuleType.TEXT
-                      ? customValType
-                      : customValType === RuleType.BOOL
+                  : customValType === RuleType.NUMBER
+                    ? customValType
+                    : customValType === RuleType.TEXT &&
+                        secondVal === CustomParams.CUSTOM_DAYS
+                      ? RuleType.NUMBER
+                      : customValType === RuleType.TEXT
                         ? customValType
-                        : customValType === RuleType.TEXT_LIST
+                        : customValType === RuleType.BOOL
                           ? customValType
-                          : +ruleType
-              : +ruleType,
-            value: customVal,
-          },
-          ...ruleValues,
-        })
+                          : customValType === RuleType.TEXT_LIST
+                            ? customValType
+                            : +ruleType
+                : +ruleType,
+              value: customVal,
+            },
+            ...ruleValues,
+          })
+        } else {
+          onCommit(id ? id : 0, {
+            lastVal: JSON.parse(secondVal!),
+            ...ruleValues,
+          })
+        }
       } else {
-        props.onCommit(props.id ? props.id : 0, {
-          lastVal: JSON.parse(secondVal!),
-          ...ruleValues,
-        })
+        onIncomplete(id ? id : 0)
       }
-    } else {
-      props.onIncomplete(props.id ? props.id : 0)
-    }
-  }
+    },
+    [
+      action,
+      customVal,
+      customValActive,
+      customValType,
+      firstval,
+      operator,
+      id,
+      onCommit,
+      onIncomplete,
+      ruleType,
+      section,
+      secondVal,
+    ],
+  )
+
+  const getPropFromTuple = useCallback(
+    (value: [number, number] | string): IProperty | undefined => {
+      if (!constants) return undefined
+
+      if (typeof value === 'string') {
+        value = JSON.parse(value)
+      }
+      const application = constants.applications?.find(
+        (el) => el.id === +value[0],
+      )
+
+      const prop = application?.props.find((el) => {
+        return el.id === +value[1]
+      })
+      return prop
+    },
+    [constants],
+  )
 
   useEffect(() => {
     submit(null)
-  }, [secondVal, customVal, operator, action, firstval, customValType])
+  }, [action, customVal, customValType, firstval, operator, secondVal, submit])
 
   useEffect(() => {
     if (!constants) return
@@ -288,10 +340,10 @@ const RuleInput = (props: IRuleInput) => {
       // Find application by ID instead of using array index
       const app = apps?.find((a) => a.id === appId)
       if (!app?.props.find((el) => el.id === val[1])) {
-        setFirstVal(undefined)
+        queueMicrotask(() => setFirstVal(undefined))
       }
     }
-  }, [props.dataType, props.mediaType, constants])
+  }, [constants, firstval, props.dataType, props.mediaType])
 
   useEffect(() => {
     if (firstval) {
@@ -299,65 +351,53 @@ const RuleInput = (props: IRuleInput) => {
 
       if (prop?.type.key) {
         if (possibilities.length <= 0) {
-          setRuleType(+prop?.type.key)
-          setPossibilities(prop.type.possibilities)
+          queueMicrotask(() => {
+            setRuleType(+prop?.type.key)
+            setPossibilities(prop.type.possibilities)
+          })
         } else if (+prop.type.key !== ruleType) {
-          setSecondVal(undefined)
-          setCustomVal('')
-          setRuleType(+prop?.type.key)
-          setPossibilities(prop.type.possibilities)
+          queueMicrotask(() => {
+            setSecondVal(undefined)
+            setCustomVal('')
+            setRuleType(+prop?.type.key)
+            setPossibilities(prop.type.possibilities)
+          })
         }
       }
     }
-  }, [firstval])
+  }, [firstval, getPropFromTuple, possibilities.length, ruleType])
 
   useEffect(() => {
     if (secondVal) {
-      if (secondVal === CustomParams.CUSTOM_NUMBER) {
-        setCustomValActive(true)
-        setCustomValType(RuleType.NUMBER)
-      } else if (secondVal === CustomParams.CUSTOM_DATE) {
-        setCustomValActive(true)
-        setCustomValType(RuleType.DATE)
-      } else if (secondVal === CustomParams.CUSTOM_DAYS) {
-        setCustomValActive(true)
-        setCustomValType(RuleType.TEXT)
-      } else if (secondVal === CustomParams.CUSTOM_TEXT) {
-        setCustomValActive(true)
-        setCustomValType(RuleType.TEXT)
-      } else if (secondVal === CustomParams.CUSTOM_TEXT_LIST) {
-        setCustomValActive(true)
-        setCustomValType(RuleType.TEXT_LIST)
-      } else if (secondVal === CustomParams.CUSTOM_BOOLEAN) {
-        setCustomValActive(true)
-        setCustomValType(RuleType.BOOL)
-        if (customVal !== '0') {
-          setCustomVal('1')
+      queueMicrotask(() => {
+        if (secondVal === CustomParams.CUSTOM_NUMBER) {
+          setCustomValActive(true)
+          setCustomValType(RuleType.NUMBER)
+        } else if (secondVal === CustomParams.CUSTOM_DATE) {
+          setCustomValActive(true)
+          setCustomValType(RuleType.DATE)
+        } else if (secondVal === CustomParams.CUSTOM_DAYS) {
+          setCustomValActive(true)
+          setCustomValType(RuleType.TEXT)
+        } else if (secondVal === CustomParams.CUSTOM_TEXT) {
+          setCustomValActive(true)
+          setCustomValType(RuleType.TEXT)
+        } else if (secondVal === CustomParams.CUSTOM_TEXT_LIST) {
+          setCustomValActive(true)
+          setCustomValType(RuleType.TEXT_LIST)
+        } else if (secondVal === CustomParams.CUSTOM_BOOLEAN) {
+          setCustomValActive(true)
+          setCustomValType(RuleType.BOOL)
+          if (customVal !== '0') {
+            setCustomVal('1')
+          }
+        } else {
+          setCustomValActive(false)
+          setCustomVal(undefined)
         }
-      } else {
-        setCustomValActive(false)
-        setCustomVal(undefined)
-      }
+      })
     }
-  }, [secondVal])
-
-  const getPropFromTuple = (
-    value: [number, number] | string,
-  ): IProperty | undefined => {
-    if (!constants) return undefined
-
-    if (typeof value === 'string') {
-      value = JSON.parse(value)
-    }
-    const application = constants.applications?.find(
-      (el) => el.id === +value[0],
-    )
-
-    const prop = application?.props.find((el) => {
-      return el.id === +value[1]
-    })
-    return prop
-  }
+  }, [customVal, secondVal])
 
   if (!constants || constantsLoading) {
     return <LoadingSpinner />

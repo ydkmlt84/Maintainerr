@@ -1,30 +1,30 @@
-import { Logger } from '@nestjs/common';
-import { randomBytes } from 'crypto';
-import * as openpgp from 'openpgp';
-import type { TransformCallback } from 'stream';
-import { Transform } from 'stream';
+import { Logger } from '@nestjs/common'
+import { randomBytes } from 'crypto'
+import * as openpgp from 'openpgp'
+import type { TransformCallback } from 'stream'
+import { Transform } from 'stream'
 
 interface EncryptorOptions {
-  signingKey?: string;
-  password?: string;
-  encryptionKeys: string[];
+  signingKey?: string
+  password?: string
+  encryptionKeys: string[]
 }
 
 class PGPEncryptor extends Transform {
-  private readonly logger = new Logger(PGPEncryptor.name);
+  private readonly logger = new Logger(PGPEncryptor.name)
 
-  private _messageChunks: Uint8Array[] = [];
-  private _messageLength = 0;
-  private _signingKey?: string;
-  private _password?: string;
+  private _messageChunks: Uint8Array[] = []
+  private _messageLength = 0
+  private _signingKey?: string
+  private _password?: string
 
-  private _encryptionKeys: string[];
+  private _encryptionKeys: string[]
 
   constructor(options: EncryptorOptions) {
-    super();
-    this._signingKey = options.signingKey;
-    this._password = options.password;
-    this._encryptionKeys = options.encryptionKeys;
+    super()
+    this._signingKey = options.signingKey
+    this._password = options.password
+    this._encryptionKeys = options.encryptionKeys
   }
 
   // just save the whole message
@@ -33,15 +33,15 @@ class PGPEncryptor extends Transform {
     _encoding: BufferEncoding,
     callback: TransformCallback,
   ): void => {
-    this._messageChunks.push(chunk);
-    this._messageLength += chunk.length;
-    callback();
-  };
+    this._messageChunks.push(chunk)
+    this._messageLength += chunk.length
+    callback()
+  }
 
   // Actually do stuff
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   _flush = async (callback: TransformCallback): Promise<void> => {
-    const message = Buffer.concat(this._messageChunks, this._messageLength);
+    const message = Buffer.concat(this._messageChunks, this._messageLength)
 
     try {
       // Reconstruct message as buffer
@@ -49,13 +49,13 @@ class PGPEncryptor extends Transform {
         this._encryptionKeys.map((armoredKey) =>
           openpgp.readKey({ armoredKey }),
         ),
-      );
-      let privateKey: openpgp.PrivateKey | undefined;
+      )
+      let privateKey: openpgp.PrivateKey | undefined
 
       // Just return the message if there is no one to encrypt for
       if (!validPublicKeys.length) {
-        this.push(message);
-        return callback();
+        this.push(message)
+        return callback()
       }
 
       // Only sign the message if private key and password exist
@@ -65,32 +65,32 @@ class PGPEncryptor extends Transform {
             armoredKey: this._signingKey,
           }),
           passphrase: this._password,
-        });
+        })
       }
 
-      const emailPartDelimiter = '\r\n\r\n';
-      const messageParts = message.toString().split(emailPartDelimiter);
+      const emailPartDelimiter = '\r\n\r\n'
+      const messageParts = message.toString().split(emailPartDelimiter)
 
       /**
        * In this loop original headers are split up into two parts,
        * one for the email that is sent
        * and one for the encrypted content
        */
-      const header = messageParts.shift() as string;
-      const emailHeaders: string[][] = [];
-      const contentHeaders: string[][] = [];
-      const linesInHeader = header.split('\r\n');
-      let previousHeader: string[] = [];
+      const header = messageParts.shift() as string
+      const emailHeaders: string[][] = []
+      const contentHeaders: string[][] = []
+      const linesInHeader = header.split('\r\n')
+      let previousHeader: string[] = []
       for (let i = 0; i < linesInHeader.length; i++) {
-        const line = linesInHeader[i];
+        const line = linesInHeader[i]
         /**
          * If it is a multi-line header (current line starts with whitespace)
          * or it's the first line in the iteration
          * add the current line with previous header and move on
          */
         if (/^\s/.test(line) || i === 0) {
-          previousHeader.push(line);
-          continue;
+          previousHeader.push(line)
+          continue
         }
 
         /**
@@ -98,7 +98,7 @@ class PGPEncryptor extends Transform {
          * from being missed
          */
         if (i === linesInHeader.length - 1) {
-          previousHeader.push(line);
+          previousHeader.push(line)
         }
 
         /**
@@ -109,15 +109,15 @@ class PGPEncryptor extends Transform {
         if (
           /^(content-type|content-transfer-encoding):/i.test(previousHeader[0])
         ) {
-          contentHeaders.push(previousHeader);
+          contentHeaders.push(previousHeader)
         } else {
-          emailHeaders.push(previousHeader);
+          emailHeaders.push(previousHeader)
         }
-        previousHeader = [line];
+        previousHeader = [line]
       }
 
       // Generate a new boundary for the email content
-      const boundary = 'nm_' + randomBytes(14).toString('hex');
+      const boundary = 'nm_' + randomBytes(14).toString('hex')
       /**
        * Concatenate everything into single strings
        * and add pgp headers to the email headers
@@ -133,10 +133,10 @@ class PGPEncryptor extends Transform {
         '\r\n' +
         'Content-Description: OpenPGP encrypted message' +
         '\r\n' +
-        'Content-Transfer-Encoding: 7bit';
+        'Content-Transfer-Encoding: 7bit'
       const contentHeadersRaw = contentHeaders
         .map((line) => line.join('\r\n'))
-        .join('\r\n');
+        .join('\r\n')
 
       const encryptedMessage = await openpgp.encrypt({
         message: await openpgp.createMessage({
@@ -147,7 +147,7 @@ class PGPEncryptor extends Transform {
         }),
         encryptionKeys: validPublicKeys,
         signingKeys: privateKey,
-      });
+      })
 
       const body =
         '--' +
@@ -168,20 +168,20 @@ class PGPEncryptor extends Transform {
         encryptedMessage +
         '\r\n--' +
         boundary +
-        '--\r\n';
+        '--\r\n'
 
-      this.push(Buffer.from(emailHeadersRaw + emailPartDelimiter + body));
-      callback();
+      this.push(Buffer.from(emailHeadersRaw + emailPartDelimiter + body))
+      callback()
     } catch (e) {
       this.logger.error(
         `Something went wrong while encrypting email message with OpenPGP. Sending email without encryption.`,
         e,
-      );
+      )
 
-      this.push(message);
-      callback();
+      this.push(message)
+      callback()
     }
-  };
+  }
 }
 
 export const openpgpEncrypt = (options: EncryptorOptions) => {
@@ -190,7 +190,7 @@ export const openpgpEncrypt = (options: EncryptorOptions) => {
 
   return function (mail: any, callback: () => unknown): void {
     if (!options.encryptionKeys.length) {
-      setImmediate(callback);
+      setImmediate(callback)
     }
     mail.message.transform(
       () =>
@@ -199,7 +199,7 @@ export const openpgpEncrypt = (options: EncryptorOptions) => {
           password: options.password,
           encryptionKeys: options.encryptionKeys,
         }),
-    );
-    setImmediate(callback);
-  };
-};
+    )
+    setImmediate(callback)
+  }
+}

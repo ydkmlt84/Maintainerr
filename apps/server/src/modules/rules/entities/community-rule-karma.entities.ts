@@ -1,10 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
 
 @Entity()
 export class CommunityRuleKarma {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  community_rule_id: number;
+  community_rule_id: number
 }

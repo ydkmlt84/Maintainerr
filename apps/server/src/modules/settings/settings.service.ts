@@ -5,81 +5,81 @@ import {
   MediaServerType,
   SeerrSetting,
   TautulliSetting,
-} from '@maintainerr/contracts';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { isValidCron } from 'cron-validator';
-import { randomUUID } from 'crypto';
-import { Repository } from 'typeorm';
-import { InternalApiService } from '../api/internal-api/internal-api.service';
-import { MediaServerFactory } from '../api/media-server/media-server.factory';
-import { PlexApiService } from '../api/plex-api/plex-api.service';
-import { SeerrApiService } from '../api/seerr-api/seerr-api.service';
-import { ServarrService } from '../api/servarr-api/servarr.service';
-import { TautulliApiService } from '../api/tautulli-api/tautulli-api.service';
-import { MaintainerrLogger } from '../logging/logs.service';
+} from '@maintainerr/contracts'
+import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { InjectRepository } from '@nestjs/typeorm'
+import { isValidCron } from 'cron-validator'
+import { randomUUID } from 'crypto'
+import { Repository } from 'typeorm'
+import { InternalApiService } from '../api/internal-api/internal-api.service'
+import { MediaServerFactory } from '../api/media-server/media-server.factory'
+import { PlexApiService } from '../api/plex-api/plex-api.service'
+import { SeerrApiService } from '../api/seerr-api/seerr-api.service'
+import { ServarrService } from '../api/servarr-api/servarr.service'
+import { TautulliApiService } from '../api/tautulli-api/tautulli-api.service'
+import { MaintainerrLogger } from '../logging/logs.service'
 import {
   DeleteRadarrSettingResponseDto,
   RadarrSettingRawDto,
   RadarrSettingResponseDto,
-} from "./dto's/radarr-setting.dto";
-import { SettingDto } from "./dto's/setting.dto";
+} from "./dto's/radarr-setting.dto"
+import { SettingDto } from "./dto's/setting.dto"
 import {
   DeleteSonarrSettingResponseDto,
   SonarrSettingRawDto,
   SonarrSettingResponseDto,
-} from "./dto's/sonarr-setting.dto";
-import { RadarrSettings } from './entities/radarr_settings.entities';
-import { Settings } from './entities/settings.entities';
-import { SonarrSettings } from './entities/sonarr_settings.entities';
+} from "./dto's/sonarr-setting.dto"
+import { RadarrSettings } from './entities/radarr_settings.entities'
+import { Settings } from './entities/settings.entities'
+import { SonarrSettings } from './entities/sonarr_settings.entities'
 
 @Injectable()
 export class SettingsService implements SettingDto {
-  id: number;
+  id: number
 
-  clientId: string;
+  clientId: string
 
-  applicationTitle: string;
+  applicationTitle: string
 
-  applicationUrl: string;
+  applicationUrl: string
 
-  apikey: string;
+  apikey: string
 
-  locale: string;
+  locale: string
 
-  media_server_type?: MediaServerType;
+  media_server_type?: MediaServerType
 
-  plex_name: string;
+  plex_name: string
 
-  plex_hostname: string;
+  plex_hostname: string
 
-  plex_port: number;
+  plex_port: number
 
-  plex_ssl: number;
+  plex_ssl: number
 
-  plex_auth_token: string;
+  plex_auth_token: string
 
-  jellyfin_url?: string;
+  jellyfin_url?: string
 
-  jellyfin_api_key?: string;
+  jellyfin_api_key?: string
 
-  jellyfin_user_id?: string;
+  jellyfin_user_id?: string
 
-  jellyfin_server_name?: string;
+  jellyfin_server_name?: string
 
   // Seerr settings
-  seerr_url: string;
+  seerr_url: string
 
-  seerr_api_key: string;
+  seerr_api_key: string
 
-  tautulli_url: string;
+  tautulli_url: string
 
-  tautulli_api_key: string;
+  tautulli_api_key: string
 
-  collection_handler_job_cron: string;
+  collection_handler_job_cron: string
 
-  rules_handler_job_cron: string;
+  rules_handler_job_cron: string
 
   constructor(
     @Inject(forwardRef(() => PlexApiService))
@@ -103,37 +103,36 @@ export class SettingsService implements SettingDto {
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(SettingsService.name);
+    logger.setContext(SettingsService.name)
   }
 
   public async init() {
     const settingsDb = await this.settingsRepo.findOne({
       where: {},
-    });
+    })
     if (settingsDb) {
-      this.id = settingsDb?.id;
-      this.clientId = settingsDb?.clientId;
-      this.applicationTitle = settingsDb?.applicationTitle;
-      this.applicationUrl = settingsDb?.applicationUrl;
-      this.apikey = settingsDb?.apikey;
-      this.locale = settingsDb?.locale;
-      this.media_server_type = settingsDb?.media_server_type;
-      this.plex_name = settingsDb?.plex_name;
-      this.plex_hostname = settingsDb?.plex_hostname;
-      this.plex_port = settingsDb?.plex_port;
-      this.plex_ssl = settingsDb?.plex_ssl;
-      this.plex_auth_token = settingsDb?.plex_auth_token;
-      this.jellyfin_url = settingsDb?.jellyfin_url;
-      this.jellyfin_api_key = settingsDb?.jellyfin_api_key;
-      this.jellyfin_user_id = settingsDb?.jellyfin_user_id;
-      this.jellyfin_server_name = settingsDb?.jellyfin_server_name;
-      this.seerr_url = settingsDb?.seerr_url;
-      this.seerr_api_key = settingsDb?.seerr_api_key;
-      this.tautulli_url = settingsDb?.tautulli_url;
-      this.tautulli_api_key = settingsDb?.tautulli_api_key;
-      this.collection_handler_job_cron =
-        settingsDb?.collection_handler_job_cron;
-      this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron;
+      this.id = settingsDb?.id
+      this.clientId = settingsDb?.clientId
+      this.applicationTitle = settingsDb?.applicationTitle
+      this.applicationUrl = settingsDb?.applicationUrl
+      this.apikey = settingsDb?.apikey
+      this.locale = settingsDb?.locale
+      this.media_server_type = settingsDb?.media_server_type
+      this.plex_name = settingsDb?.plex_name
+      this.plex_hostname = settingsDb?.plex_hostname
+      this.plex_port = settingsDb?.plex_port
+      this.plex_ssl = settingsDb?.plex_ssl
+      this.plex_auth_token = settingsDb?.plex_auth_token
+      this.jellyfin_url = settingsDb?.jellyfin_url
+      this.jellyfin_api_key = settingsDb?.jellyfin_api_key
+      this.jellyfin_user_id = settingsDb?.jellyfin_user_id
+      this.jellyfin_server_name = settingsDb?.jellyfin_server_name
+      this.seerr_url = settingsDb?.seerr_url
+      this.seerr_api_key = settingsDb?.seerr_api_key
+      this.tautulli_url = settingsDb?.tautulli_url
+      this.tautulli_api_key = settingsDb?.tautulli_api_key
+      this.collection_handler_job_cron = settingsDb?.collection_handler_job_cron
+      this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron
 
       // Auto-detect media server type when not set but credentials exist.
       // This handles upgrades from pre-Jellyfin versions (Plex) and any future
@@ -142,30 +141,30 @@ export class SettingsService implements SettingDto {
         if (this.jellyfin_api_key) {
           this.logger.log(
             'Detected existing Jellyfin configuration without media_server_type set. Setting to jellyfin.',
-          );
-          this.media_server_type = MediaServerType.JELLYFIN;
+          )
+          this.media_server_type = MediaServerType.JELLYFIN
           await this.settingsRepo.update(
             { id: this.id },
             { media_server_type: MediaServerType.JELLYFIN },
-          );
+          )
         } else if (this.plex_auth_token) {
           this.logger.log(
             'Detected existing Plex configuration without media_server_type set. Setting to plex.',
-          );
-          this.media_server_type = MediaServerType.PLEX;
+          )
+          this.media_server_type = MediaServerType.PLEX
           await this.settingsRepo.update(
             { id: this.id },
             { media_server_type: MediaServerType.PLEX },
-          );
+          )
         }
       }
     } else {
-      this.logger.log('Settings not found.. Creating initial settings');
+      this.logger.log('Settings not found.. Creating initial settings')
       await this.settingsRepo.insert({
         apikey: this.generateApiKey(),
         clientId: randomUUID(),
-      });
-      await this.init();
+      })
+      await this.init()
     }
   }
 
@@ -175,19 +174,19 @@ export class SettingsService implements SettingDto {
    * Returns '****' if the value is shorter than 8 characters.
    */
   private maskSecret(value: string | null | undefined): string | null {
-    if (!value) return null;
-    if (value.length <= 8) return '****';
-    return `${value.slice(0, 4)}...${value.slice(-4)}`;
+    if (!value) return null
+    if (value.length <= 8) return '****'
+    return `${value.slice(0, 4)}...${value.slice(-4)}`
   }
 
   public async getSettings() {
     try {
-      return this.settingsRepo.findOne({ where: {} });
+      return this.settingsRepo.findOne({ where: {} })
     } catch (err) {
       this.logger.error(
         'Something went wrong while getting settings. Is the database file locked?',
-      );
-      return { status: 'NOK', code: 0, message: err } as BasicResponseDto;
+      )
+      return { status: 'NOK', code: 0, message: err } as BasicResponseDto
     }
   }
 
@@ -196,10 +195,10 @@ export class SettingsService implements SettingDto {
    * Used for the public GET /settings endpoint to avoid exposing secrets.
    */
   public async getPublicSettings() {
-    const settings = await this.getSettings();
+    const settings = await this.getSettings()
 
     if (!settings || !(settings instanceof Settings)) {
-      return settings;
+      return settings
     }
 
     return {
@@ -208,28 +207,28 @@ export class SettingsService implements SettingDto {
       jellyfin_api_key: this.maskSecret(settings.jellyfin_api_key),
       seerr_api_key: this.maskSecret(settings.seerr_api_key),
       tautulli_api_key: this.maskSecret(settings.tautulli_api_key),
-    };
+    }
   }
 
   public async getRadarrSettings() {
     try {
-      return this.radarrSettingsRepo.find();
+      return this.radarrSettingsRepo.find()
     } catch (err) {
       this.logger.error(
         'Something went wrong while getting radarr settings. Is the database file locked?',
-      );
-      return { status: 'NOK', code: 0, message: err } as BasicResponseDto;
+      )
+      return { status: 'NOK', code: 0, message: err } as BasicResponseDto
     }
   }
 
   public async getRadarrSetting(id: number) {
     try {
-      return this.radarrSettingsRepo.findOne({ where: { id: id } });
+      return this.radarrSettingsRepo.findOne({ where: { id: id } })
     } catch (err) {
       this.logger.error(
         `Something went wrong while getting radarr setting ${id}. Is the database file locked?`,
-      );
-      return { status: 'NOK', code: 0, message: err } as BasicResponseDto;
+      )
+      return { status: 'NOK', code: 0, message: err } as BasicResponseDto
     }
   }
 
@@ -237,20 +236,20 @@ export class SettingsService implements SettingDto {
     settings: Omit<RadarrSettings, 'id' | 'collections'>,
   ): Promise<RadarrSettingResponseDto> {
     try {
-      settings.url = settings.url.toLowerCase();
+      settings.url = settings.url.toLowerCase()
 
-      const savedSetting = await this.radarrSettingsRepo.save(settings);
+      const savedSetting = await this.radarrSettingsRepo.save(settings)
 
-      this.logger.log('Radarr setting added');
+      this.logger.log('Radarr setting added')
       return {
         data: savedSetting,
         status: 'OK',
         code: 1,
         message: 'Success',
-      };
+      }
     } catch (e) {
-      this.logger.error('Error while adding Radarr setting: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.error('Error while adding Radarr setting: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
@@ -258,25 +257,25 @@ export class SettingsService implements SettingDto {
     settings: Omit<RadarrSettings, 'collections'>,
   ): Promise<RadarrSettingResponseDto> {
     try {
-      settings.url = settings.url.toLowerCase();
+      settings.url = settings.url.toLowerCase()
 
       const settingsDb = await this.radarrSettingsRepo.findOne({
         where: { id: settings.id },
-      });
+      })
 
       const data = {
         ...settingsDb,
         ...settings,
-      };
+      }
 
-      await this.radarrSettingsRepo.save(data);
+      await this.radarrSettingsRepo.save(data)
 
-      this.servarr.deleteCachedRadarrApiClient(settings.id);
-      this.logger.log('Radarr settings updated');
-      return { data, status: 'OK', code: 1, message: 'Success' };
+      this.servarr.deleteCachedRadarrApiClient(settings.id)
+      this.logger.log('Radarr settings updated')
+      return { data, status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while updating Radarr settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.error('Error while updating Radarr settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
@@ -287,7 +286,7 @@ export class SettingsService implements SettingDto {
       const settingsDb = await this.radarrSettingsRepo.findOne({
         where: { id: id },
         relations: ['collections'],
-      });
+      })
 
       if (settingsDb.collections.length > 0) {
         return {
@@ -297,63 +296,63 @@ export class SettingsService implements SettingDto {
           data: {
             collectionsInUse: settingsDb.collections,
           },
-        };
+        }
       }
 
       await this.radarrSettingsRepo.delete({
         id,
-      });
+      })
 
-      this.servarr.deleteCachedRadarrApiClient(id);
+      this.servarr.deleteCachedRadarrApiClient(id)
 
-      this.logger.log('Radarr setting deleted');
-      return { status: 'OK', code: 1, message: 'Success' };
+      this.logger.log('Radarr setting deleted')
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while deleting Radarr setting: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure', data: null };
+      this.logger.error('Error while deleting Radarr setting: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure', data: null }
     }
   }
 
   public async getSonarrSettings() {
     try {
-      return this.sonarrSettingsRepo.find();
+      return this.sonarrSettingsRepo.find()
     } catch (err) {
       this.logger.error(
         'Something went wrong while getting sonarr settings. Is the database file locked?',
-      );
-      return { status: 'NOK', code: 0, message: err } as BasicResponseDto;
+      )
+      return { status: 'NOK', code: 0, message: err } as BasicResponseDto
     }
   }
 
   public async getSonarrSetting(id: number) {
     try {
-      return this.sonarrSettingsRepo.findOne({ where: { id: id } });
+      return this.sonarrSettingsRepo.findOne({ where: { id: id } })
     } catch (err) {
       this.logger.error(
         `Something went wrong while getting sonarr setting ${id}. Is the database file locked?`,
-      );
-      return { status: 'NOK', code: 0, message: err } as BasicResponseDto;
+      )
+      return { status: 'NOK', code: 0, message: err } as BasicResponseDto
     }
   }
 
   public async removeTautulliSetting() {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.saveSettings({
         ...settingsDb,
         tautulli_url: null,
         tautulli_api_key: null,
-      });
+      })
 
-      this.tautulli_url = null;
-      this.tautulli_api_key = null;
-      this.tautulli.init();
+      this.tautulli_url = null
+      this.tautulli_api_key = null
+      this.tautulli.init()
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error removing Tautulli settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      this.logger.error('Error removing Tautulli settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
@@ -361,43 +360,43 @@ export class SettingsService implements SettingDto {
     settings: TautulliSetting,
   ): Promise<BasicResponseDto> {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.saveSettings({
         ...settingsDb,
         tautulli_url: settings.url,
         tautulli_api_key: settings.api_key,
-      });
+      })
 
-      this.tautulli_url = settings.url;
-      this.tautulli_api_key = settings.api_key;
-      this.tautulli.init();
+      this.tautulli_url = settings.url
+      this.tautulli_api_key = settings.api_key
+      this.tautulli.init()
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while updating Tautulli settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      this.logger.error('Error while updating Tautulli settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
   public async removeSeerrSetting() {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.saveSettings({
         ...settingsDb,
         seerr_url: null,
         seerr_api_key: null,
-      });
+      })
 
-      this.seerr_url = null;
-      this.seerr_api_key = null;
-      this.seerr.init();
+      this.seerr_url = null
+      this.seerr_api_key = null
+      this.seerr.init()
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error removing Seerr settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      this.logger.error('Error removing Seerr settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
@@ -405,22 +404,22 @@ export class SettingsService implements SettingDto {
     settings: SeerrSetting,
   ): Promise<BasicResponseDto> {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.saveSettings({
         ...settingsDb,
         seerr_url: settings.url,
         seerr_api_key: settings.api_key,
-      });
+      })
 
-      this.seerr_url = settings.url;
-      this.seerr_api_key = settings.api_key;
-      this.seerr.init();
+      this.seerr_url = settings.url
+      this.seerr_api_key = settings.api_key
+      this.seerr.init()
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while updating Seerr settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      this.logger.error('Error while updating Seerr settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
@@ -429,15 +428,15 @@ export class SettingsService implements SettingDto {
    */
   public async testJellyfin(settings: JellyfinSetting): Promise<
     BasicResponseDto & {
-      serverName?: string;
-      version?: string;
-      users?: Array<{ id: string; name: string }>;
+      serverName?: string
+      version?: string
+      users?: Array<{ id: string; name: string }>
     }
   > {
     const result = await this.mediaServerFactory.testJellyfinConnection(
       settings.jellyfin_url,
       settings.jellyfin_api_key,
-    );
+    )
 
     if (result.success) {
       return {
@@ -447,13 +446,13 @@ export class SettingsService implements SettingDto {
         serverName: result.serverName,
         version: result.version,
         users: result.users,
-      };
+      }
     } else {
       return {
         status: 'NOK',
         code: 0,
         message: result.error || 'Connection failed',
-      };
+      }
     }
   }
 
@@ -464,41 +463,41 @@ export class SettingsService implements SettingDto {
     settings: JellyfinSetting,
   ): Promise<BasicResponseDto> {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       // Test connection - block save on failure
-      const testResult = await this.testJellyfin(settings);
+      const testResult = await this.testJellyfin(settings)
       if (testResult.code !== 1) {
         return {
           status: 'NOK',
           code: 0,
           message: testResult.message || 'Connection test failed',
-        };
+        }
       }
 
       // Auto-detect admin user if not provided
-      let userId = settings.jellyfin_user_id;
+      let userId = settings.jellyfin_user_id
       if (!userId) {
-        userId = await this.autoDetectJellyfinAdminUser(settings);
+        userId = await this.autoDetectJellyfinAdminUser(settings)
         if (userId) {
-          this.logger.log(`Auto-detected Jellyfin admin user ID: ${userId}`);
+          this.logger.log(`Auto-detected Jellyfin admin user ID: ${userId}`)
         } else {
           this.logger.warn(
             'Could not auto-detect Jellyfin admin user. Some features may not work correctly.',
-          );
+          )
         }
       }
 
       // Validate selected user is an admin when provided
       if (userId && testResult.users && testResult.users.length > 0) {
-        const selectedUser = testResult.users.find((u) => u.id === userId);
+        const selectedUser = testResult.users.find((u) => u.id === userId)
         if (!selectedUser) {
           return {
             status: 'NOK',
             code: 0,
             message:
               'Selected Jellyfin user must be an admin. Please re-test connection and select a valid admin.',
-          };
+          }
         }
       }
 
@@ -509,24 +508,23 @@ export class SettingsService implements SettingDto {
         jellyfin_user_id: userId || null,
         jellyfin_server_name: testResult.serverName || null,
         media_server_type: MediaServerType.JELLYFIN,
-      });
+      })
 
       // Uninitialize service so it reinitializes with new credentials on next use
-      this.mediaServerFactory.uninitializeServer(MediaServerType.JELLYFIN);
+      this.mediaServerFactory.uninitializeServer(MediaServerType.JELLYFIN)
 
-      this.jellyfin_url = settings.jellyfin_url;
-      this.jellyfin_api_key = settings.jellyfin_api_key;
-      this.jellyfin_user_id = userId;
-      this.jellyfin_server_name = testResult.serverName;
-      this.media_server_type = MediaServerType.JELLYFIN;
+      this.jellyfin_url = settings.jellyfin_url
+      this.jellyfin_api_key = settings.jellyfin_api_key
+      this.jellyfin_user_id = userId
+      this.jellyfin_server_name = testResult.serverName
+      this.media_server_type = MediaServerType.JELLYFIN
 
-      this.logger.log('Jellyfin settings saved successfully');
-      return { status: 'OK', code: 1, message: 'Success' };
+      this.logger.log('Jellyfin settings saved successfully')
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while saving Jellyfin settings: ', e);
-      const message =
-        e instanceof Error ? e.message : 'Failed to save settings';
-      return { status: 'NOK', code: 0, message };
+      this.logger.error('Error while saving Jellyfin settings: ', e)
+      const message = e instanceof Error ? e.message : 'Failed to save settings'
+      return { status: 'NOK', code: 0, message }
     }
   }
 
@@ -537,9 +535,9 @@ export class SettingsService implements SettingDto {
     settings: Pick<JellyfinSetting, 'jellyfin_url' | 'jellyfin_api_key'>,
   ): Promise<string | undefined> {
     try {
-      const { Jellyfin } = await import('@jellyfin/sdk');
+      const { Jellyfin } = await import('@jellyfin/sdk')
       const { getUserApi } =
-        await import('@jellyfin/sdk/lib/utils/api/index.js');
+        await import('@jellyfin/sdk/lib/utils/api/index.js')
 
       const jellyfin = new Jellyfin({
         clientInfo: { name: 'Maintainerr', version: '2.0.0' },
@@ -547,29 +545,29 @@ export class SettingsService implements SettingDto {
           name: 'Maintainerr-AutoDetect',
           id: 'maintainerr-detect',
         },
-      });
+      })
 
       const api = jellyfin.createApi(
         settings.jellyfin_url,
         settings.jellyfin_api_key,
-      );
+      )
 
-      const response = await getUserApi(api).getUsers();
-      const users = response.data || [];
+      const response = await getUserApi(api).getUsers()
+      const users = response.data || []
 
       // Find first admin user
-      const adminUser = users.find((user) => user.Policy?.IsAdministrator);
+      const adminUser = users.find((user) => user.Policy?.IsAdministrator)
       if (adminUser?.Id) {
         this.logger.debug(
           `Found Jellyfin admin user: ${adminUser.Name} (${adminUser.Id})`,
-        );
-        return adminUser.Id;
+        )
+        return adminUser.Id
       }
 
-      return undefined;
+      return undefined
     } catch (error) {
-      this.logger.error('Failed to auto-detect Jellyfin admin user: ', error);
-      return undefined;
+      this.logger.error('Failed to auto-detect Jellyfin admin user: ', error)
+      return undefined
     }
   }
 
@@ -578,7 +576,7 @@ export class SettingsService implements SettingDto {
    */
   public async removeJellyfinSettings(): Promise<BasicResponseDto> {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.saveSettings({
         ...settingsDb,
@@ -586,21 +584,21 @@ export class SettingsService implements SettingDto {
         jellyfin_api_key: null,
         jellyfin_user_id: null,
         jellyfin_server_name: null,
-      });
+      })
 
       // Uninitialize service to clear credentials
-      this.mediaServerFactory.uninitializeServer(MediaServerType.JELLYFIN);
+      this.mediaServerFactory.uninitializeServer(MediaServerType.JELLYFIN)
 
-      this.jellyfin_url = undefined;
-      this.jellyfin_api_key = undefined;
-      this.jellyfin_user_id = undefined;
-      this.jellyfin_server_name = undefined;
+      this.jellyfin_url = undefined
+      this.jellyfin_api_key = undefined
+      this.jellyfin_user_id = undefined
+      this.jellyfin_server_name = undefined
 
-      this.logger.log('Jellyfin settings cleared');
-      return { status: 'OK', code: 1, message: 'Success' };
+      this.logger.log('Jellyfin settings cleared')
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error removing Jellyfin settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      this.logger.error('Error removing Jellyfin settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
@@ -608,20 +606,20 @@ export class SettingsService implements SettingDto {
     settings: Omit<SonarrSettings, 'id' | 'collections'>,
   ): Promise<SonarrSettingResponseDto> {
     try {
-      settings.url = settings.url.toLowerCase();
+      settings.url = settings.url.toLowerCase()
 
-      const savedSetting = await this.sonarrSettingsRepo.save(settings);
+      const savedSetting = await this.sonarrSettingsRepo.save(settings)
 
-      this.logger.log('Sonarr setting added');
+      this.logger.log('Sonarr setting added')
       return {
         data: savedSetting,
         status: 'OK',
         code: 1,
         message: 'Success',
-      };
+      }
     } catch (e) {
-      this.logger.error('Error while adding Sonarr setting: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.error('Error while adding Sonarr setting: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
@@ -629,26 +627,26 @@ export class SettingsService implements SettingDto {
     settings: Omit<SonarrSettings, 'collections'>,
   ): Promise<SonarrSettingResponseDto> {
     try {
-      settings.url = settings.url.toLowerCase();
+      settings.url = settings.url.toLowerCase()
 
       const settingsDb = await this.sonarrSettingsRepo.findOne({
         where: { id: settings.id },
-      });
+      })
 
       const data = {
         ...settingsDb,
         ...settings,
-      };
+      }
 
-      await this.sonarrSettingsRepo.save(data);
+      await this.sonarrSettingsRepo.save(data)
 
-      this.servarr.deleteCachedSonarrApiClient(settings.id);
+      this.servarr.deleteCachedSonarrApiClient(settings.id)
 
-      this.logger.log('Sonarr settings updated');
-      return { data, status: 'OK', code: 1, message: 'Success' };
+      this.logger.log('Sonarr settings updated')
+      return { data, status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while updating Sonarr settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.error('Error while updating Sonarr settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
@@ -659,7 +657,7 @@ export class SettingsService implements SettingDto {
       const settingsDb = await this.sonarrSettingsRepo.findOne({
         where: { id: id },
         relations: ['collections'],
-      });
+      })
 
       if (settingsDb.collections.length > 0) {
         return {
@@ -669,49 +667,49 @@ export class SettingsService implements SettingDto {
           data: {
             collectionsInUse: settingsDb.collections,
           },
-        };
+        }
       }
 
       await this.sonarrSettingsRepo.delete({
         id,
-      });
-      this.servarr.deleteCachedSonarrApiClient(id);
+      })
+      this.servarr.deleteCachedSonarrApiClient(id)
 
-      this.logger.log('Sonarr settings deleted');
-      return { status: 'OK', code: 1, message: 'Success' };
+      this.logger.log('Sonarr settings deleted')
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while deleting Sonarr setting: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure', data: null };
+      this.logger.error('Error while deleting Sonarr setting: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure', data: null }
     }
   }
 
   public async deletePlexApiAuth(): Promise<BasicResponseDto> {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.settingsRepo.update(
         {
           id: settingsDb.id,
         },
         { plex_auth_token: null },
-      );
+      )
 
-      this.plex_auth_token = null;
-      this.plexApi.uninitialize();
+      this.plex_auth_token = null
+      this.plexApi.uninitialize()
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (err) {
       this.logger.error(
         'Something went wrong while deleting the Plex auth token',
         err,
-      );
-      return { status: 'NOK', code: 0, message: err };
+      )
+      return { status: 'NOK', code: 0, message: err }
     }
   }
 
   public async savePlexApiAuthToken(plex_auth_token: string) {
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
       await this.settingsRepo.update(
         {
@@ -720,53 +718,53 @@ export class SettingsService implements SettingDto {
         {
           plex_auth_token: plex_auth_token,
         },
-      );
+      )
 
-      this.plex_auth_token = plex_auth_token;
+      this.plex_auth_token = plex_auth_token
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while updating Plex auth token: ', e);
-      return { status: 'NOK', code: 0, message: 'Failed' };
+      this.logger.error('Error while updating Plex auth token: ', e)
+      return { status: 'NOK', code: 0, message: 'Failed' }
     }
   }
 
   public async patchSettings(
     settings: Partial<Settings>,
   ): Promise<BasicResponseDto> {
-    const settingsDb = await this.settingsRepo.findOne({ where: {} });
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
     if (!settingsDb) {
-      this.logger.error('Settings could not be loaded for partial update.');
+      this.logger.error('Settings could not be loaded for partial update.')
       return {
         status: 'NOK',
         code: 0,
         message: 'No settings found to update',
-      };
+      }
     }
 
     const mergedSettings: Settings = {
       ...settingsDb,
       ...settings,
-    };
+    }
 
-    return this.updateSettings(mergedSettings);
+    return this.updateSettings(mergedSettings)
   }
 
   private async saveSettings(settings: Settings): Promise<Settings> {
-    const settingsDb = await this.settingsRepo.findOne({ where: {} });
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
     const updatedSettings = await this.settingsRepo.save({
       ...settingsDb,
       ...settings,
-    });
+    })
 
     this.eventEmitter.emit(MaintainerrEvent.Settings_Updated, {
       oldSettings: settingsDb,
       settings: updatedSettings,
-    });
+    })
 
-    return updatedSettings;
+    return updatedSettings
   }
 
   public async updateSettings(settings: Settings): Promise<BasicResponseDto> {
@@ -776,40 +774,40 @@ export class SettingsService implements SettingDto {
     ) {
       this.logger.error(
         'Invalid CRON configuration found, settings update aborted.',
-      );
+      )
       return {
         status: 'NOK',
         code: 0,
         message: 'Update failed, invalid CRON value was found',
-      };
+      }
     }
 
     try {
-      const settingsDb = await this.settingsRepo.findOne({ where: {} });
+      const settingsDb = await this.settingsRepo.findOne({ where: {} })
 
-      settings.plex_hostname = settings.plex_hostname?.toLowerCase();
-      settings.seerr_url = settings.seerr_url?.toLowerCase();
-      settings.tautulli_url = settings.tautulli_url?.toLowerCase();
+      settings.plex_hostname = settings.plex_hostname?.toLowerCase()
+      settings.seerr_url = settings.seerr_url?.toLowerCase()
+      settings.tautulli_url = settings.tautulli_url?.toLowerCase()
       settings.plex_ssl =
         settings.plex_hostname?.includes('https://') ||
         settings.plex_port == 443
           ? 1
-          : 0;
+          : 0
       settings.plex_hostname = settings.plex_hostname
         ?.replace('https://', '')
-        ?.replace('http://', '');
+        ?.replace('http://', '')
 
       await this.saveSettings({
         ...settingsDb,
         ...settings,
-      });
+      })
 
-      await this.init();
-      this.logger.log('Settings updated');
-      await this.plexApi.initialize();
-      this.seerr.init();
-      this.tautulli.init();
-      this.internalApi.init();
+      await this.init()
+      this.logger.log('Settings updated')
+      await this.plexApi.initialize()
+      this.seerr.init()
+      this.tautulli.init()
+      this.internalApi.init()
 
       // reload Collection handler job if changed
       if (
@@ -818,26 +816,26 @@ export class SettingsService implements SettingDto {
       ) {
         this.logger.log(
           `Collection Handler cron schedule changed.. Reloading job.`,
-        );
+        )
         await this.internalApi
           .getApi()
           .put(
             '/collections/schedule/update',
             `{"schedule": "${settings.collection_handler_job_cron}"}`,
-          );
+          )
       }
 
-      return { status: 'OK', code: 1, message: 'Success' };
+      return { status: 'OK', code: 1, message: 'Success' }
     } catch (e) {
-      this.logger.error('Error while updating settings: ', e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.error('Error while updating settings: ', e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
   public generateApiKey(): string {
     return Buffer.from(`Maintainerr${Date.now()}${randomUUID()})`).toString(
       'base64',
-    );
+    )
   }
 
   public async testSeerr(setting?: SeerrSetting): Promise<BasicResponseDto> {
@@ -848,7 +846,7 @@ export class SettingsService implements SettingDto {
             url: setting.url,
           }
         : undefined,
-    );
+    )
   }
 
   public async testTautulli(
@@ -858,21 +856,21 @@ export class SettingsService implements SettingDto {
       return await this.tautulli.testConnection({
         apiKey: setting.api_key,
         url: setting.url,
-      });
+      })
     }
 
     try {
-      const resp = await this.tautulli.info();
+      const resp = await this.tautulli.info()
       return resp?.response && resp?.response.result == 'success'
         ? {
             status: 'OK',
             code: 1,
             message: resp.response.data?.tautulli_version,
           }
-        : { status: 'NOK', code: 0, message: 'Failure' };
+        : { status: 'NOK', code: 0, message: 'Failure' }
     } catch (e) {
-      this.logger.debug(e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.debug(e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
@@ -880,23 +878,23 @@ export class SettingsService implements SettingDto {
     id: number | RadarrSettingRawDto,
   ): Promise<BasicResponseDto> {
     try {
-      const apiClient = await this.servarr.getRadarrApiClient(id);
+      const apiClient = await this.servarr.getRadarrApiClient(id)
 
-      const resp = await apiClient.info();
+      const resp = await apiClient.info()
       //Make sure it's actually Radarr and not Sonarr
       if (resp?.appName && resp.appName.toLowerCase() !== 'radarr') {
         return {
           status: 'NOK',
           code: 0,
           message: `Unexpected application name returned: ${resp.appName}`,
-        };
+        }
       }
       return resp?.version != null
         ? { status: 'OK', code: 1, message: resp.version }
-        : { status: 'NOK', code: 0, message: 'Failure' };
+        : { status: 'NOK', code: 0, message: 'Failure' }
     } catch (e) {
-      this.logger.debug(e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.debug(e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
@@ -904,47 +902,47 @@ export class SettingsService implements SettingDto {
     id: number | SonarrSettingRawDto,
   ): Promise<BasicResponseDto> {
     try {
-      const apiClient = await this.servarr.getSonarrApiClient(id);
+      const apiClient = await this.servarr.getSonarrApiClient(id)
 
-      const resp = await apiClient.info();
+      const resp = await apiClient.info()
       //Make sure it's actually Sonarr and not Radarr
       if (resp?.appName && resp.appName.toLowerCase() !== 'sonarr') {
         return {
           status: 'NOK',
           code: 0,
           message: `Unexpected application name returned: ${resp.appName}`,
-        };
+        }
       }
       return resp?.version != null
         ? { status: 'OK', code: 1, message: resp.version }
-        : { status: 'NOK', code: 0, message: 'Failure' };
+        : { status: 'NOK', code: 0, message: 'Failure' }
     } catch (e) {
-      this.logger.debug(e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.debug(e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
   public async testPlex(): Promise<any> {
     try {
-      const resp = await this.plexApi.getStatus();
+      const resp = await this.plexApi.getStatus()
       return resp?.version != null
         ? { status: 'OK', code: 1, message: resp.version }
-        : { status: 'NOK', code: 0, message: 'Failure' };
+        : { status: 'NOK', code: 0, message: 'Failure' }
     } catch (e) {
-      this.logger.debug(e);
-      return { status: 'NOK', code: 0, message: 'Failure' };
+      this.logger.debug(e)
+      return { status: 'NOK', code: 0, message: 'Failure' }
     }
   }
 
   public async testMediaServerConnection(): Promise<boolean> {
     if (!this.media_server_type) {
-      return false;
+      return false
     }
 
     switch (this.media_server_type) {
       case MediaServerType.JELLYFIN: {
         if (!this.jellyfin_url || !this.jellyfin_api_key) {
-          return false;
+          return false
         }
 
         return (
@@ -955,12 +953,12 @@ export class SettingsService implements SettingDto {
               jellyfin_user_id: this.jellyfin_user_id,
             })
           ).status === 'OK'
-        );
+        )
       }
       case MediaServerType.PLEX:
-        return (await this.testPlex()).status === 'OK';
+        return (await this.testPlex()).status === 'OK'
       default:
-        return false;
+        return false
     }
   }
 
@@ -969,36 +967,36 @@ export class SettingsService implements SettingDto {
     try {
       // If no media server type is configured, connections cannot be tested
       if (!this.media_server_type) {
-        return false;
+        return false
       }
 
-      const mediaServerState = await this.testMediaServerConnection();
+      const mediaServerState = await this.testMediaServerConnection()
 
-      let radarrState = true;
-      let sonarrState = true;
-      let seerrState = true;
-      let tautulliState = true;
+      let radarrState = true
+      let sonarrState = true
+      let seerrState = true
+      let tautulliState = true
 
-      const radarrSettings = await this.radarrSettingsRepo.find();
+      const radarrSettings = await this.radarrSettingsRepo.find()
       for (const radarrSetting of radarrSettings) {
         radarrState =
           (await this.testRadarr(radarrSetting.id)).status === 'OK' &&
-          radarrState;
+          radarrState
       }
 
-      const sonarrSettings = await this.sonarrSettingsRepo.find();
+      const sonarrSettings = await this.sonarrSettingsRepo.find()
       for (const sonarrSetting of sonarrSettings) {
         sonarrState =
           (await this.testSonarr(sonarrSetting.id)).status === 'OK' &&
-          sonarrState;
+          sonarrState
       }
 
       if (this.seerrConfigured()) {
-        seerrState = (await this.testSeerr()).status === 'OK';
+        seerrState = (await this.testSeerr()).status === 'OK'
       }
 
       if (this.tautulliConfigured()) {
-        tautulliState = (await this.testTautulli()).status === 'OK';
+        tautulliState = (await this.testTautulli()).status === 'OK'
       }
 
       if (
@@ -1008,43 +1006,43 @@ export class SettingsService implements SettingDto {
         seerrState &&
         tautulliState
       ) {
-        return true;
+        return true
       } else {
-        return false;
+        return false
       }
     } catch (e) {
-      this.logger.debug(e);
-      return false;
+      this.logger.debug(e)
+      return false
     }
   }
 
   public seerrConfigured(): boolean {
-    return this.seerr_url !== null && this.seerr_api_key !== null;
+    return this.seerr_url !== null && this.seerr_api_key !== null
   }
 
   public tautulliConfigured(): boolean {
-    return this.tautulli_url !== null && this.tautulli_api_key !== null;
+    return this.tautulli_url !== null && this.tautulli_api_key !== null
   }
 
   /**
    * Get the current media server type
    */
   public getMediaServerType(): MediaServerType | null {
-    return (this.media_server_type as MediaServerType) || null;
+    return (this.media_server_type as MediaServerType) || null
   }
 
   /**
    * Get count of Radarr settings (for switch preview)
    */
   public async getRadarrSettingsCount(): Promise<number> {
-    return this.radarrSettingsRepo.count();
+    return this.radarrSettingsRepo.count()
   }
 
   /**
    * Get count of Sonarr settings (for switch preview)
    */
   public async getSonarrSettingsCount(): Promise<number> {
-    return this.sonarrSettingsRepo.count();
+    return this.sonarrSettingsRepo.count()
   }
 
   // Test if all required settings are set.
@@ -1052,14 +1050,14 @@ export class SettingsService implements SettingDto {
     try {
       // If no media server type is selected, setup is not complete
       if (!this.media_server_type) {
-        return false;
+        return false
       }
 
       // Check based on configured media server type
       if (this.media_server_type === MediaServerType.JELLYFIN) {
         // Jellyfin requires URL and API key (user ID is optional, can be auto-detected later)
         if (this.jellyfin_url && this.jellyfin_api_key) {
-          return true;
+          return true
         }
       } else if (this.media_server_type === MediaServerType.PLEX) {
         // Plex requires hostname, name, port, and auth token
@@ -1069,30 +1067,30 @@ export class SettingsService implements SettingDto {
           this.plex_port &&
           this.plex_auth_token
         ) {
-          return true;
+          return true
         }
       }
-      return false;
+      return false
     } catch (e) {
-      this.logger.debug(e);
-      return false;
+      this.logger.debug(e)
+      return false
     }
   }
 
   public appVersion(): string {
     return process.env.npm_package_version
       ? process.env.npm_package_version
-      : '0.0.0';
+      : '0.0.0'
   }
 
   public cronIsValid(schedule: string) {
     if (isValidCron(schedule)) {
-      return true;
+      return true
     }
-    return false;
+    return false
   }
 
   public async getPlexServers() {
-    return await this.plexApi.getAvailableServers();
+    return await this.plexApi.getAvailableServers()
   }
 }

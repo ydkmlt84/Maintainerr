@@ -1,4 +1,4 @@
-import { LoggerService } from '@nestjs/common';
+import { LoggerService } from '@nestjs/common'
 
 jest.mock('@nestjs/common', () => {
   return {
@@ -11,7 +11,7 @@ jest.mock('@nestjs/common', () => {
         warn: jest.fn(),
         fatal: jest.fn(),
         verbose: jest.fn(),
-      } satisfies LoggerService;
+      } satisfies LoggerService
     },
-  };
-});
+  }
+})

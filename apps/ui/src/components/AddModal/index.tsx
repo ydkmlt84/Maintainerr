@@ -53,7 +53,7 @@ const AddModal = (props: IAddModal) => {
       : selectedEpisodes !== -1
         ? selectedEpisodes
         : selectedSeasons
-  }, [selectedSeasons, selectedEpisodes])
+  }, [props.type, selectedSeasons, selectedEpisodes])
 
   const selectedContext = useMemo((): MediaItemType => {
     return props.type === 'show'
@@ -113,8 +113,10 @@ const AddModal = (props: IAddModal) => {
   }
 
   useEffect(() => {
-    setSelectedSeasons(-1)
-    setSelectedEpisodes(-1)
+    queueMicrotask(() => {
+      setSelectedSeasons(-1)
+      setSelectedEpisodes(-1)
+    })
 
     if (props.type && props.type === 'show') {
       // get seasons
@@ -136,15 +138,15 @@ const AddModal = (props: IAddModal) => {
         },
       )
     }
-  }, [])
+  }, [props.mediaServerId, props.type])
 
   useEffect(() => {
-    setSelectedCollection(collectionOptions[0]?.id)
+    queueMicrotask(() => setSelectedCollection(collectionOptions[0]?.id))
   }, [collectionOptions])
 
   useEffect(() => {
     if (selectedSeasons !== -1) {
-      setLoading(true)
+      queueMicrotask(() => setLoading(true))
 
       // get episodes
       GetApiHandler(`/media-server/meta/${selectedSeasons}/children`).then(
@@ -165,13 +167,13 @@ const AddModal = (props: IAddModal) => {
         },
       )
     } else {
-      setSelectedEpisodes(-1)
+      queueMicrotask(() => setSelectedEpisodes(-1))
     }
   }, [selectedSeasons])
 
   // fetch correct collections based on selected type
   useEffect(() => {
-    setLoading(true)
+    queueMicrotask(() => setLoading(true))
 
     if (props.type === 'show') {
       if (selectedEpisodes !== -1) {
@@ -211,7 +213,7 @@ const AddModal = (props: IAddModal) => {
         setLoading(false)
       })
     }
-  }, [selectedSeasons, selectedEpisodes, props.type])
+  }, [origCollectionOptions, selectedSeasons, selectedEpisodes, props.type])
 
   return (
     <>

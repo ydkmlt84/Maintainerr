@@ -3,7 +3,7 @@ import {
   LogFile,
   LogSetting,
   logSettingSchema,
-} from '@maintainerr/contracts';
+} from '@maintainerr/contracts'
 import {
   BeforeApplicationShutdown,
   Body,
@@ -18,16 +18,16 @@ import {
   Req,
   Res,
   StreamableFile,
-} from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { Response } from 'express';
-import { createReadStream, readdir } from 'fs';
-import { readdir as readdirp, stat } from 'fs/promises';
-import { IncomingMessage } from 'http';
-import mime from 'mime-types';
-import path from 'path';
-import readLastLines from 'read-last-lines';
+} from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { ZodValidationPipe } from 'nestjs-zod'
+import { Response } from 'express'
+import { createReadStream, readdir } from 'fs'
+import { readdir as readdirp, stat } from 'fs/promises'
+import { IncomingMessage } from 'http'
+import mime from 'mime-types'
+import path from 'path'
+import readLastLines from 'read-last-lines'
 import {
   catchError,
   concat,
@@ -40,18 +40,18 @@ import {
   of,
   Subject,
   switchMap,
-} from 'rxjs';
-import { Readable } from 'stream';
-import { formatLogMessage } from './logFormatting';
-import { MaintainerrLogger } from './logs.service';
-import { LogSettingsService } from './logs.service';
+} from 'rxjs'
+import { Readable } from 'stream'
+import { formatLogMessage } from './logFormatting'
+import { MaintainerrLogger } from './logs.service'
+import { LogSettingsService } from './logs.service'
 
 const logsDirectory =
   process.env.NODE_ENV === 'production'
     ? '/opt/data/logs'
-    : path.join(__dirname, `../../../../../data/logs`);
+    : path.join(__dirname, `../../../../../data/logs`)
 
-const safeLogFileRegex = /maintainerr-\d{4}-\d{2}-\d{2}\.log(\.gz)?/;
+const safeLogFileRegex = /maintainerr-\d{4}-\d{2}-\d{2}\.log(\.gz)?/
 
 @Controller('/api/logs')
 export class LogsController implements BeforeApplicationShutdown {
@@ -60,17 +60,17 @@ export class LogsController implements BeforeApplicationShutdown {
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: MaintainerrLogger,
   ) {
-    this.logger.setContext(LogsController.name);
+    this.logger.setContext(LogsController.name)
   }
 
   connectedClients = new Map<
     string,
     { close: () => void; subject: Subject<NestMessageEvent> }
-  >();
+  >()
 
   async beforeApplicationShutdown() {
     for (const [, client] of this.connectedClients) {
-      client.close();
+      client.close()
     }
   }
 
@@ -81,88 +81,88 @@ export class LogsController implements BeforeApplicationShutdown {
     @Req() request: RawBodyRequest<IncomingMessage>,
   ) {
     if (request?.socket) {
-      request.socket.setKeepAlive(true);
-      request.socket.setNoDelay(true);
-      request.socket.setTimeout(0);
+      request.socket.setKeepAlive(true)
+      request.socket.setNoDelay(true)
+      request.socket.setTimeout(0)
     }
 
-    const subject = new Subject<NestMessageEvent>();
+    const subject = new Subject<NestMessageEvent>()
 
     const observer = {
       next: (msg: NestMessageEvent) => {
-        if (msg.type) response.write(`event: ${msg.type}\n`);
-        if (msg.id) response.write(`id: ${msg.id}\n`);
-        if (msg.retry) response.write(`retry: ${msg.retry}\n`);
+        if (msg.type) response.write(`event: ${msg.type}\n`)
+        if (msg.id) response.write(`id: ${msg.id}\n`)
+        if (msg.retry) response.write(`retry: ${msg.retry}\n`)
 
-        response.write(`data: ${JSON.stringify(msg.data)}\n\n`);
+        response.write(`data: ${JSON.stringify(msg.data)}\n\n`)
       },
-    };
+    }
 
-    subject.subscribe(observer);
+    subject.subscribe(observer)
 
-    const clientKey = String(Math.random());
+    const clientKey = String(Math.random())
     this.connectedClients.set(clientKey, {
       close: () => {
-        response.end();
+        response.end()
       },
       subject,
-    });
+    })
 
     response.on('close', () => {
-      subject.complete();
-      pingSubscription.unsubscribe();
-      logEventStreamSubscription.unsubscribe();
-      this.connectedClients.delete(clientKey);
-      response.end();
-    });
+      subject.complete()
+      pingSubscription.unsubscribe()
+      logEventStreamSubscription.unsubscribe()
+      this.connectedClients.delete(clientKey)
+      response.end()
+    })
 
     response.set({
       'Cache-Control':
         'private, no-cache, no-store, must-revalidate, max-age=0, no-transform',
       Connection: 'keep-alive',
       'Content-Type': 'text/event-stream',
-    });
+    })
 
-    response.flushHeaders();
-    response.write('\n');
+    response.flushHeaders()
+    response.write('\n')
 
     const currentLogFile = new Promise<string | undefined>(
       (resolve, reject) => {
         readdir(logsDirectory, (err, files) => {
           if (err) {
-            reject(err);
-            return;
+            reject(err)
+            return
           } else {
             const currentLogFile = files
               .filter((x) => x.endsWith('.log'))
               .sort()
-              .reverse()?.[0];
+              .reverse()?.[0]
 
             if (!currentLogFile) {
-              resolve(undefined);
-              return;
+              resolve(undefined)
+              return
             }
 
-            const filePath = path.join(logsDirectory, currentLogFile);
-            resolve(filePath);
+            const filePath = path.join(logsDirectory, currentLogFile)
+            resolve(filePath)
           }
-        });
+        })
       },
-    );
+    )
 
     const currentLogFileRecentLines = from(currentLogFile).pipe(
       switchMap((file) =>
         file ? from(readLastLines.read(file, 200)) : of(''),
       ),
       catchError(() => of('')),
-    );
+    )
 
     const strToDate = (dtStr: string) => {
-      if (!dtStr) return null;
+      if (!dtStr) return null
 
-      const dateParts = dtStr.split('/');
-      const timeParts = dateParts[2].split(' ')[1].split(':');
-      dateParts[2] = dateParts[2].split(' ')[0];
+      const dateParts = dtStr.split('/')
+      const timeParts = dateParts[2].split(' ')[1].split(':')
+      dateParts[2] = dateParts[2].split(' ')[0]
 
       return new Date(
         +dateParts[2],
@@ -171,28 +171,28 @@ export class LogsController implements BeforeApplicationShutdown {
         +timeParts[0],
         +timeParts[1],
         +timeParts[2],
-      );
-    };
+      )
+    }
 
     const parseLogLine = (line: string): LogEvent | null => {
       const regex =
-        /\[(?<context>[^\]]+)\]  \|  (?<timestamp>[^\[]+)  \[(?<level>[^\]]+)\] \[(?<label>[^\]]+)\] (?<message>.*)/s;
+        /\[(?<context>[^\]]+)\]  \|  (?<timestamp>[^\[]+)  \[(?<level>[^\]]+)\] \[(?<label>[^\]]+)\] (?<message>.*)/s
 
-      const match = line.match(regex);
+      const match = line.match(regex)
 
       if (!match) {
-        return null;
+        return null
       }
 
-      const date = strToDate(match.groups.timestamp);
-      const level = match.groups.level;
-      const message = match.groups.message;
+      const date = strToDate(match.groups.timestamp)
+      const level = match.groups.level
+      const message = match.groups.message
       return {
         date,
         level,
         message,
-      };
-    };
+      }
+    }
 
     const logEvents = fromEvent(this.eventEmitter, 'log').pipe(
       map((info: any) => {
@@ -201,30 +201,30 @@ export class LogsController implements BeforeApplicationShutdown {
           level: info.level.toUpperCase(),
           message: info.message,
           ...(info.stack && { stack: info.stack }),
-        };
+        }
       }),
-    );
+    )
 
     const logEventStream = concat(
       from(currentLogFileRecentLines).pipe(
         filter((x) => x !== ''),
         mergeMap((data: string) => {
-          const logFileRegex = /\[maintainerr\].*?(?=\[maintainerr\]|\Z)/gs;
-          const matches = data.match(logFileRegex) ?? [];
-          const events: MessageEvent[] = [];
+          const logFileRegex = /\[maintainerr\].*?(?=\[maintainerr\]|\Z)/gs
+          const matches = data.match(logFileRegex) ?? []
+          const events: MessageEvent[] = []
 
           for (const match of matches) {
-            const logEvent = parseLogLine(match);
+            const logEvent = parseLogLine(match)
 
             if (!logEvent) {
-              continue;
+              continue
             }
 
-            const event = new MessageEvent<LogEvent>('log', { data: logEvent });
-            events.push(event);
+            const event = new MessageEvent<LogEvent>('log', { data: logEvent })
+            events.push(event)
           }
 
-          return events;
+          return events
         }),
       ),
       from(logEvents).pipe(
@@ -235,84 +235,84 @@ export class LogsController implements BeforeApplicationShutdown {
               level: data.level,
               message: formatLogMessage(data.message, data.stack),
             },
-          });
+          })
 
-          return event;
+          return event
         }),
       ),
-    );
+    )
 
     const logEventStreamSubscription = logEventStream
       .pipe(map((x) => this.sendDataToClient(clientKey, x)))
-      .subscribe();
+      .subscribe()
 
     // Send data to the client every 30s to keep the connection alive
     const pingSubscription = interval(30 * 1000)
       .pipe(map(() => response.write(': ping\n\n')))
-      .subscribe();
+      .subscribe()
   }
 
   sendDataToClient(clientId: string, message: NestMessageEvent) {
-    this.connectedClients.get(clientId)?.subject.next(message);
+    this.connectedClients.get(clientId)?.subject.next(message)
   }
 
   @Get('files')
   async getFiles(): Promise<LogFile[]> {
     const files = (await readdirp(logsDirectory))
       .filter((x) => safeLogFileRegex.test(x))
-      .sort();
-    const response: LogFile[] = [];
+      .sort()
+    const response: LogFile[] = []
 
     for (const file of files) {
-      const stat2 = await stat(path.join(logsDirectory, file));
+      const stat2 = await stat(path.join(logsDirectory, file))
       response.push({
         name: file,
         size: stat2.size,
-      });
+      })
     }
 
-    return response;
+    return response
   }
 
   @Get('files/:file')
   async getFile(@Param('file') file: string) {
     if (!safeLogFileRegex.test(file)) {
-      throw new HttpException('Invalid file', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Invalid file', HttpStatus.BAD_REQUEST)
     }
 
-    const filePath = path.join(logsDirectory, file);
-    const fileMimeType = mime.lookup(filePath);
-    const fileStream: Readable = createReadStream(filePath);
+    const filePath = path.join(logsDirectory, file)
+    const fileMimeType = mime.lookup(filePath)
+    const fileStream: Readable = createReadStream(filePath)
 
     return new StreamableFile(fileStream, {
       type: fileMimeType !== false ? fileMimeType : 'application/octet-stream',
       disposition: `attachment; filename="${file}"`,
-    });
+    })
   }
 
   @Get('settings')
   async getLogSettings(): Promise<LogSetting> {
-    return await this.logSettingsService.get();
+    return await this.logSettingsService.get()
   }
 
   @Post('settings')
   async setLogSettings(
     @Body(new ZodValidationPipe(logSettingSchema)) payload: LogSetting,
   ) {
-    return await this.logSettingsService.update(payload);
+    return await this.logSettingsService.update(payload)
   }
 
   @Post('client-error')
   logClientError(
     @Body()
     payload: {
-      message?: string;
-      stack?: string;
-      context?: string;
-      details?: string;
+      message?: string
+      stack?: string
+      context?: string
+      details?: string
     },
   ) {
-    const message = payload?.message || 'Client error';
+    const message = payload?.message || 'Client error'
     this.logger.error(
       {
         message,
@@ -321,12 +321,12 @@ export class LogsController implements BeforeApplicationShutdown {
       },
       payload?.stack,
       payload?.context || 'UI',
-    );
+    )
 
     return {
       status: 'OK',
       code: 1,
       message: 'Logged',
-    };
+    }
   }
 }

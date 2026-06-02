@@ -1,32 +1,32 @@
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { RuleGroup } from '../../rules/entities/rule-group.entities';
-import { NotificationAgentOptions } from '../notifications-interfaces';
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { RuleGroup } from '../../rules/entities/rule-group.entities'
+import { NotificationAgentOptions } from '../notifications-interfaces'
 
 @Entity()
 export class Notification {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column({ nullable: false })
-  name: string;
+  name: string
 
   @Column({ nullable: false })
-  agent: string;
+  agent: string
 
   @Column({ default: false })
-  enabled: boolean;
+  enabled: boolean
 
   @Column('simple-json', { nullable: true })
-  types: number[];
+  types: number[]
 
   @Column('json', { nullable: false })
-  options: NotificationAgentOptions;
+  options: NotificationAgentOptions
 
   @Column({ default: 3, nullable: false })
-  aboutScale: number;
+  aboutScale: number
 
   @ManyToMany(() => RuleGroup, (rulegroup) => rulegroup.notifications, {
     onDelete: 'CASCADE',
   })
-  rulegroups: RuleGroup[];
+  rulegroups: RuleGroup[]
 }

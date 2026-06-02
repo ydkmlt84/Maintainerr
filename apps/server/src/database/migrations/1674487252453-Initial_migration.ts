@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class InitialMigration1674487252453 implements MigrationInterface {
-  name = 'InitialMigration1674487252453';
+  name = 'InitialMigration1674487252453'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "settings" (
@@ -26,20 +26,20 @@ export class InitialMigration1674487252453 implements MigrationInterface {
             "collection_handler_job_cron"	varchar NOT NULL DEFAULT ('0 0-23/12 * * *'),
             "rules_handler_job_cron"	varchar NOT NULL DEFAULT ('0 0-23/8 * * *'),
             PRIMARY KEY("id" AUTOINCREMENT)
-        );`);
+        );`)
 
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "community_rule_karma" (
         "id"	integer NOT NULL,
         "community_rule_id"	integer NOT NULL,
         PRIMARY KEY("id" AUTOINCREMENT)
-    );`);
+    );`)
 
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "exclusion" (
         "id"	integer NOT NULL,
         "plexId"	integer NOT NULL,
         "ruleGroupId"	integer,
         PRIMARY KEY("id" AUTOINCREMENT)
-    );`);
+    );`)
 
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "collection_media" (
         "id"	integer NOT NULL,
@@ -51,7 +51,7 @@ export class InitialMigration1674487252453 implements MigrationInterface {
         "isManual"	boolean DEFAULT (0),
         CONSTRAINT "FK_604b0cd0f85150923289b7f2c19" FOREIGN KEY("collectionId") REFERENCES "collection"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
         PRIMARY KEY("id" AUTOINCREMENT)
-    );`);
+    );`)
 
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "rules" (
         "id"	integer NOT NULL,
@@ -61,7 +61,7 @@ export class InitialMigration1674487252453 implements MigrationInterface {
         "isActive"	boolean NOT NULL DEFAULT (1),
         CONSTRAINT "FK_bb013935b8859281ad67e311d19" FOREIGN KEY("ruleGroupId") REFERENCES "rule_group"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
         PRIMARY KEY("id" AUTOINCREMENT)
-    );`);
+    );`)
 
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "rule_group" (
         "id"	integer NOT NULL,
@@ -73,7 +73,7 @@ export class InitialMigration1674487252453 implements MigrationInterface {
         CONSTRAINT "FK_9c757efe456ec36319ef10e9648" FOREIGN KEY("collectionId") REFERENCES "collection"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
         CONSTRAINT "REL_9c757efe456ec36319ef10e964" UNIQUE("collectionId"),
         PRIMARY KEY("id" AUTOINCREMENT)
-    );`);
+    );`)
 
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "collection" (
         "id"	integer NOT NULL,
@@ -87,16 +87,16 @@ export class InitialMigration1674487252453 implements MigrationInterface {
         "deleteAfterDays"	integer,
         "type"	integer NOT NULL DEFAULT (1),
         PRIMARY KEY("id" AUTOINCREMENT)
-    );`);
+    );`)
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE "settings";`);
-    await queryRunner.query(`DROP TABLE "community_rule_karma";`);
-    await queryRunner.query(`DROP TABLE "exclusion";`);
-    await queryRunner.query(`DROP TABLE "collection_media";`);
-    await queryRunner.query(`DROP TABLE "rules";`);
-    await queryRunner.query(`DROP TABLE "rule_group";`);
-    await queryRunner.query(`DROP TABLE "collection";`);
+    await queryRunner.query(`DROP TABLE "settings";`)
+    await queryRunner.query(`DROP TABLE "community_rule_karma";`)
+    await queryRunner.query(`DROP TABLE "exclusion";`)
+    await queryRunner.query(`DROP TABLE "collection_media";`)
+    await queryRunner.query(`DROP TABLE "rules";`)
+    await queryRunner.query(`DROP TABLE "rule_group";`)
+    await queryRunner.query(`DROP TABLE "collection";`)
   }
 }

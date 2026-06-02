@@ -12,14 +12,19 @@ const CollectionsListPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [collections, setCollections] = useState<ICollection[]>()
 
-  const getCollections = async () => {
-    const colls: ICollection[] = await GetApiHandler('/collections')
-    setCollections(colls)
-    setIsLoading(false)
-  }
-
   useEffect(() => {
-    getCollections()
+    let ignore = false
+
+    GetApiHandler<ICollection[]>('/collections').then((colls) => {
+      if (!ignore) {
+        setCollections(colls)
+        setIsLoading(false)
+      }
+    })
+
+    return () => {
+      ignore = true
+    }
   }, [])
 
   const doActions = async () => {

@@ -1,4 +1,4 @@
-import NodeCache from 'node-cache';
+import NodeCache from 'node-cache'
 
 type AvailableCacheIds =
   | 'tmdb'
@@ -8,23 +8,23 @@ type AvailableCacheIds =
   | 'plexcommunity'
   | 'tautulli'
   | 'github'
-  | 'jellyfin';
+  | 'jellyfin'
 
-type CacheType = AvailableCacheIds | 'radarr' | 'sonarr';
+type CacheType = AvailableCacheIds | 'radarr' | 'sonarr'
 
-const DEFAULT_TTL = 300; // 5 min
-const DEFAULT_CHECK_PERIOD = 120; // 2 min
+const DEFAULT_TTL = 300 // 5 min
+const DEFAULT_CHECK_PERIOD = 120 // 2 min
 
 type CacheOptions = {
-  stdTtl?: number;
-  checkPeriod?: number;
-};
+  stdTtl?: number
+  checkPeriod?: number
+}
 
 export class Cache {
-  public id: string;
-  public data: NodeCache;
-  public name: string;
-  public type?: CacheType;
+  public id: string
+  public data: NodeCache
+  public name: string
+  public type?: CacheType
 
   constructor(
     id: string,
@@ -32,21 +32,21 @@ export class Cache {
     type: CacheType,
     options: CacheOptions = {},
   ) {
-    this.id = id;
-    this.name = name;
-    this.type = type;
+    this.id = id
+    this.name = name
+    this.type = type
     this.data = new NodeCache({
       stdTTL: options.stdTtl ?? DEFAULT_TTL,
       checkperiod: options.checkPeriod ?? DEFAULT_CHECK_PERIOD,
-    });
+    })
   }
 
   public getStats() {
-    return this.data.getStats();
+    return this.data.getStats()
   }
 
   public flush(): void {
-    this.data.flushAll();
+    this.data.flushAll()
   }
 }
 
@@ -70,7 +70,7 @@ class CacheManager {
       checkPeriod: 60 * 60, // Check every hour
     }),
     jellyfin: new Cache('jellyfin', 'Jellyfin API', 'jellyfin'),
-  };
+  }
 
   public createCache(
     id: string,
@@ -79,33 +79,33 @@ class CacheManager {
     options?: CacheOptions,
   ): Cache {
     if (this.availableCaches[id]) {
-      throw new Error(`Cache with id ${id} already exists.`);
+      throw new Error(`Cache with id ${id} already exists.`)
     }
 
-    return (this.availableCaches[id] = new Cache(id, name, type, options));
+    return (this.availableCaches[id] = new Cache(id, name, type, options))
   }
 
   public getCache(id: string): Cache | undefined {
-    return this.availableCaches[id];
+    return this.availableCaches[id]
   }
 
   public getCachesByType(type: CacheType): Cache[] {
     return Object.values(this.availableCaches).filter(
       (cache) => cache.type === type,
-    );
+    )
   }
 
   public getAllCaches(): Record<string, Cache> {
-    return this.availableCaches;
+    return this.availableCaches
   }
 
   public flushAll(): void {
     for (const [, value] of Object.entries(this.getAllCaches())) {
-      value.flush();
+      value.flush()
     }
   }
 }
 
-const cacheManager = new CacheManager();
+const cacheManager = new CacheManager()
 
-export default cacheManager;
+export default cacheManager

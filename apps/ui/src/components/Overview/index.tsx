@@ -152,6 +152,7 @@ interface AppRecentActivityItem {
   collectionTitle: string
   posterTmdbId?: string
   posterType?: 'movie' | 'show'
+  posterPath?: string
   timestamp: string
   message: string
   type: number
@@ -782,7 +783,7 @@ const Overview = () => {
   return (
     <>
       <title>Overview - Maintainerr</title>
-      <div className="mx-auto w-full max-w-[96rem] min-w-0 space-y-4 pb-10 pt-4 sm:space-y-5">
+      <div className="mx-auto w-full min-w-0 max-w-[96rem] space-y-4 pb-10 pt-4 sm:space-y-5">
         <section className="grid min-w-0 gap-4 sm:gap-5 lg:grid-cols-2">
           <StoragePressureCard
             storage={stats?.storage}
@@ -949,7 +950,7 @@ const MediaMetricCard = ({ libraries }: { libraries: AppLibraryStats[] }) => {
   )
 
   return (
-  <div className="h-full min-w-0 rounded-xl border border-zinc-700 bg-zinc-800 p-2.5 shadow-lg shadow-black/20">
+    <div className="h-full min-w-0 rounded-xl border border-zinc-700 bg-zinc-800 p-2.5 shadow-lg shadow-black/20">
       <div className="flex items-center justify-between gap-3">
         <span className="rounded-lg bg-zinc-900 p-1.5 text-maintainerr-400">
           <ChartBarIcon className="h-5 w-5" />
@@ -1072,7 +1073,7 @@ const LogsCard = () => {
             return (
               <div
                 key={`${row.date}-${index}`}
-              className="flex min-w-0 gap-2 overflow-hidden rounded-md bg-zinc-900 px-2 py-1 font-mono text-[11px] leading-4"
+                className="flex min-w-0 gap-2 overflow-hidden rounded-md bg-zinc-900 px-2 py-1 font-mono text-[11px] leading-4"
               >
                 <span className="shrink-0 text-zinc-500">
                   {new Date(row.date).toLocaleTimeString()}
@@ -1382,8 +1383,13 @@ const RecentActivityThumbnail = ({ item }: { item: AppRecentActivityItem }) => {
   const [posterPath, setPosterPath] = useState<string>()
 
   useEffect(() => {
+    if (item.posterPath) {
+      queueMicrotask(() => setPosterPath(item.posterPath))
+      return
+    }
+
     if (!item.posterTmdbId || !item.posterType) {
-      setPosterPath(undefined)
+      queueMicrotask(() => setPosterPath(undefined))
       return
     }
 
@@ -1399,7 +1405,7 @@ const RecentActivityThumbnail = ({ item }: { item: AppRecentActivityItem }) => {
     return () => {
       active = false
     }
-  }, [item.posterTmdbId, item.posterType])
+  }, [item.posterPath, item.posterTmdbId, item.posterType])
 
   return posterPath ? (
     <img

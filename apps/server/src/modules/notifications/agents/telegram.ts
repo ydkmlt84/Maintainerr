@@ -1,32 +1,32 @@
-import axios from 'axios';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { SettingsService } from '../../settings/settings.service';
-import { Notification } from '../entities/notification.entities';
+import axios from 'axios'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { SettingsService } from '../../settings/settings.service'
+import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentKey,
   NotificationAgentTelegram,
   NotificationType,
-} from '../notifications-interfaces';
-import { hasNotificationType } from '../notifications.service';
-import type { NotificationAgent, NotificationPayload } from './agent';
+} from '../notifications-interfaces'
+import { hasNotificationType } from '../notifications.service'
+import type { NotificationAgent, NotificationPayload } from './agent'
 
 interface TelegramMessagePayload {
-  text: string;
-  parse_mode: string;
-  chat_id: string;
-  disable_notification: boolean;
+  text: string
+  parse_mode: string
+  chat_id: string
+  disable_notification: boolean
 }
 
 interface TelegramPhotoPayload {
-  photo: string;
-  caption: string;
-  parse_mode: string;
-  chat_id: string;
-  disable_notification: boolean;
+  photo: string
+  caption: string
+  parse_mode: string
+  chat_id: string
+  disable_notification: boolean
 }
 
 class TelegramAgent implements NotificationAgent {
-  private baseUrl = 'https://api.telegram.org/';
+  private baseUrl = 'https://api.telegram.org/'
 
   public constructor(
     private readonly appSettings: SettingsService,
@@ -34,37 +34,37 @@ class TelegramAgent implements NotificationAgent {
     private readonly logger: MaintainerrLogger,
     readonly notification: Notification,
   ) {
-    logger.setContext(TelegramAgent.name);
-    this.notification = notification;
+    logger.setContext(TelegramAgent.name)
+    this.notification = notification
   }
 
-  getNotification = () => this.notification;
+  getNotification = () => this.notification
 
-  getSettings = () => this.settings;
+  getSettings = () => this.settings
 
-  getIdentifier = () => NotificationAgentKey.TELEGRAM;
+  getIdentifier = () => NotificationAgentKey.TELEGRAM
 
   public shouldSend(): boolean {
-    const settings = this.getSettings();
+    const settings = this.getSettings()
 
     if (settings.enabled && settings.options.botAuthToken) {
-      return true;
+      return true
     }
 
-    return false;
+    return false
   }
 
   private escapeText(text: string | undefined): string {
-    return text ? text.replace(/[_*[\]()~>#+=|{}.!-]/gi, (x) => '\\' + x) : '';
+    return text ? text.replace(/[_*[\]()~>#+=|{}.!-]/gi, (x) => '\\' + x) : ''
   }
 
   private getNotificationPayload(
     type: NotificationType,
     payload: NotificationPayload,
   ): Partial<TelegramMessagePayload | TelegramPhotoPayload> {
-    let message = `\*${this.escapeText(payload.subject)}\*`;
+    let message = `\*${this.escapeText(payload.subject)}\*`
     if (payload.message) {
-      message += `\n${this.escapeText(payload.message)}`;
+      message += `\n${this.escapeText(payload.message)}`
     }
 
     // for (const extra of payload.extra ?? []) {
@@ -80,31 +80,31 @@ class TelegramAgent implements NotificationAgent {
       : {
           text: message,
           parse_mode: 'MarkdownV2',
-        };
+        }
   }
 
   public async send(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<string> {
-    const settings = this.getSettings();
+    const settings = this.getSettings()
     const endpoint = `${this.baseUrl}bot${settings.options.botAuthToken}/${
       payload.image ? 'sendPhoto' : 'sendMessage'
-    }`;
-    const notificationPayload = this.getNotificationPayload(type, payload);
+    }`
+    const notificationPayload = this.getNotificationPayload(type, payload)
 
     if (
       hasNotificationType(type, settings.types ?? [0]) &&
       settings.options.chatId
     ) {
-      this.logger.log('Sending Telegram notification');
+      this.logger.log('Sending Telegram notification')
 
       try {
         await axios.post(endpoint, {
           ...notificationPayload,
           chat_id: settings.options.chatId,
           disable_notification: !!settings.options.sendSilently,
-        } as TelegramMessagePayload | TelegramPhotoPayload);
+        } as TelegramMessagePayload | TelegramPhotoPayload)
       } catch (e) {
         this.logger.error(
           `Error sending Telegram notification. Details: ${JSON.stringify({
@@ -113,13 +113,13 @@ class TelegramAgent implements NotificationAgent {
             response: e.response?.data,
           })}`,
           e,
-        );
-        return `Failure: ${e.message}`;
+        )
+        return `Failure: ${e.message}`
       }
     }
 
-    return 'Success';
+    return 'Success'
   }
 }
 
-export default TelegramAgent;
+export default TelegramAgent

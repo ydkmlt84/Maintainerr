@@ -4,9 +4,9 @@ import {
   MediaType,
   RuleOperators,
   RulePossibility,
-} from '@maintainerr/contracts';
+} from '@maintainerr/contracts'
 
-export { Application, MediaType, RuleOperators, RulePossibility };
+export { Application, MediaType, RuleOperators, RulePossibility }
 
 export const enum ArrAction {
   DELETE,
@@ -25,7 +25,7 @@ export class RuleType {
       RulePossibility.NOT_EQUALS,
     ],
     'number',
-  );
+  )
   static readonly DATE = new RuleType(
     '1',
     [
@@ -37,7 +37,7 @@ export class RuleType {
       RulePossibility.IN_NEXT,
     ],
     'date',
-  );
+  )
   static readonly TEXT = new RuleType(
     '2',
     [
@@ -47,12 +47,12 @@ export class RuleType {
       RulePossibility.NOT_CONTAINS,
     ],
     'text',
-  );
+  )
   static readonly BOOL = new RuleType(
     '3',
     [RulePossibility.EQUALS, RulePossibility.NOT_EQUALS],
     'boolean',
-  );
+  )
   static readonly TEXT_LIST = new RuleType(
     '4',
     [
@@ -70,25 +70,25 @@ export class RuleType {
       RulePossibility.COUNT_SMALLER,
     ],
     'text list',
-  );
+  )
   public constructor(
     private readonly key: string,
     public readonly possibilities: number[],
     public readonly humanName: string,
   ) {}
   toString() {
-    return this.key;
+    return this.key
   }
 }
 
 export interface Property {
-  id: number;
-  name: string;
-  type: RuleType;
-  mediaType: MediaType;
-  humanName: string;
-  cacheReset?: boolean; // for properties that require a cache reset between group executions
-  showType?: MediaItemType[]; // if not configured = available for all types
+  id: number
+  name: string
+  type: RuleType
+  mediaType: MediaType
+  humanName: string
+  cacheReset?: boolean // for properties that require a cache reset between group executions
+  showType?: MediaItemType[] // if not configured = available for all types
   /**
    * When this property doesn't exist on a target server during migration,
    * fall back to the property with this name instead of marking it incompatible.
@@ -96,14 +96,14 @@ export interface Property {
    * Example: Plex's `collectionsIncludingSmart` sets `migrateTo: 'collections'`
    * because Jellyfin has no smart-collection concept and uses regular collections.
    */
-  migrateTo?: string;
+  migrateTo?: string
 }
 
 export interface ApplicationProperties {
-  id: number;
-  name: string;
-  mediaType: MediaType;
-  props: Property[];
+  id: number
+  name: string
+  mediaType: MediaType
+  props: Property[]
 }
 export class RuleConstants {
   applications: ApplicationProperties[] = [
@@ -1332,5 +1332,5 @@ export class RuleConstants {
         },
       ],
     },
-  ];
+  ]
 }

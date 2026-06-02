@@ -15,7 +15,7 @@ import {
   RecentlyAddedOptions,
   UpdateCollectionParams,
   WatchRecord,
-} from '@maintainerr/contracts';
+} from '@maintainerr/contracts'
 
 /**
  * Core interface for media server implementations.
@@ -36,50 +36,50 @@ export interface IMediaServerService {
    * Initialize the connection to the media server.
    * Should validate connection and cache server info.
    */
-  initialize(): Promise<void>;
+  initialize(): Promise<void>
 
   /**
    * Cleanup resources and connections.
    * Should clear caches and reset state.
    */
-  uninitialize(): void;
+  uninitialize(): void
 
   /**
    * Check if the service is properly initialized and ready for use.
    */
-  isSetup(): boolean;
+  isSetup(): boolean
 
   /**
    * Get the type of media server this service connects to.
    */
-  getServerType(): MediaServerType;
+  getServerType(): MediaServerType
 
   /**
    * Check if a specific feature is supported by this media server.
    * Used to conditionally enable/disable functionality.
    */
-  supportsFeature(feature: MediaServerFeature): boolean;
+  supportsFeature(feature: MediaServerFeature): boolean
 
   /**
    * Get server status and version information.
    * Returns undefined if server is unreachable.
    */
-  getStatus(): Promise<MediaServerStatus | undefined>;
+  getStatus(): Promise<MediaServerStatus | undefined>
 
   /**
    * Get all users with access to the media server.
    */
-  getUsers(): Promise<MediaUser[]>;
+  getUsers(): Promise<MediaUser[]>
 
   /**
    * Get a specific user by ID.
    */
-  getUser(id: string): Promise<MediaUser | undefined>;
+  getUser(id: string): Promise<MediaUser | undefined>
 
   /**
    * Get all libraries available on the media server.
    */
-  getLibraries(): Promise<MediaLibrary[]>;
+  getLibraries(): Promise<MediaLibrary[]>
 
   /**
    * Get contents of a specific library with optional pagination and filtering.
@@ -87,7 +87,7 @@ export interface IMediaServerService {
   getLibraryContents(
     libraryId: string,
     options?: LibraryQueryOptions,
-  ): Promise<PagedResult<MediaItem>>;
+  ): Promise<PagedResult<MediaItem>>
 
   /**
    * Get total count of items in a library, optionally filtered by type.
@@ -95,7 +95,7 @@ export interface IMediaServerService {
   getLibraryContentCount(
     libraryId: string,
     type?: MediaItemType,
-  ): Promise<number>;
+  ): Promise<number>
 
   /**
    * Search within a specific library.
@@ -104,17 +104,17 @@ export interface IMediaServerService {
     libraryId: string,
     query: string,
     type?: MediaItemType,
-  ): Promise<MediaItem[]>;
+  ): Promise<MediaItem[]>
 
   /**
    * Get detailed metadata for a specific item.
    */
-  getMetadata(itemId: string): Promise<MediaItem | undefined>;
+  getMetadata(itemId: string): Promise<MediaItem | undefined>
 
   /**
    * Get child items (seasons for shows, episodes for seasons).
    */
-  getChildrenMetadata(parentId: string): Promise<MediaItem[]>;
+  getChildrenMetadata(parentId: string): Promise<MediaItem[]>
 
   /**
    * Get recently added items from a library.
@@ -122,12 +122,12 @@ export interface IMediaServerService {
   getRecentlyAdded(
     libraryId: string,
     options?: RecentlyAddedOptions,
-  ): Promise<MediaItem[]>;
+  ): Promise<MediaItem[]>
 
   /**
    * Search across all content on the server.
    */
-  searchContent(query: string): Promise<MediaItem[]>;
+  searchContent(query: string): Promise<MediaItem[]>
 
   /**
    * Get watch history for a specific item.
@@ -135,59 +135,59 @@ export interface IMediaServerService {
    * - Plex: Single API call to history endpoint
    * - Jellyfin: Requires iterating over users
    */
-  getWatchHistory(itemId: string): Promise<WatchRecord[]>;
+  getWatchHistory(itemId: string): Promise<WatchRecord[]>
 
   /**
    * Get list of user IDs who have watched/seen a specific item.
    * Convenience method built on top of getWatchHistory.
    */
-  getItemSeenBy(itemId: string): Promise<string[]>;
+  getItemSeenBy(itemId: string): Promise<string[]>
 
   /**
    * Get all collections in a library.
    */
-  getCollections(libraryId: string): Promise<MediaCollection[]>;
+  getCollections(libraryId: string): Promise<MediaCollection[]>
 
   /**
    * Get a specific collection by ID.
    */
-  getCollection(collectionId: string): Promise<MediaCollection | undefined>;
+  getCollection(collectionId: string): Promise<MediaCollection | undefined>
 
   /**
    * Create a new collection.
    * @throws Error if creation fails
    */
-  createCollection(params: CreateCollectionParams): Promise<MediaCollection>;
+  createCollection(params: CreateCollectionParams): Promise<MediaCollection>
 
   /**
    * Delete a collection.
    * @throws Error if deletion fails
    */
-  deleteCollection(collectionId: string): Promise<void>;
+  deleteCollection(collectionId: string): Promise<void>
 
   /**
    * Get items in a collection.
    * Returns empty array if collection not found or on error.
    */
-  getCollectionChildren(collectionId: string): Promise<MediaItem[]>;
+  getCollectionChildren(collectionId: string): Promise<MediaItem[]>
 
   /**
    * Add an item to a collection.
    * @throws Error if operation fails
    */
-  addToCollection(collectionId: string, itemId: string): Promise<void>;
+  addToCollection(collectionId: string, itemId: string): Promise<void>
 
   /**
    * Remove an item from a collection.
    * @throws Error if operation fails
    */
-  removeFromCollection(collectionId: string, itemId: string): Promise<void>;
+  removeFromCollection(collectionId: string, itemId: string): Promise<void>
 
   /**
    * Update a collection's metadata (title, summary, etc.)
    * @throws Error if not supported by media server or update fails
    */
-  updateCollection(params: UpdateCollectionParams): Promise<MediaCollection>;
+  updateCollection(params: UpdateCollectionParams): Promise<MediaCollection>
 
   /**
    * Update collection visibility/hub settings.
@@ -195,24 +195,24 @@ export interface IMediaServerService {
    */
   updateCollectionVisibility(
     settings: CollectionVisibilitySettings,
-  ): Promise<void>;
+  ): Promise<void>
 
   /**
    * Get watchlist items for a user.
    * Only available on Plex (requires Plex.tv API).
    */
-  getWatchlistForUser?(userId: string): Promise<string[]>;
+  getWatchlistForUser?(userId: string): Promise<string[]>
 
   /**
    * Get playlists in a library.
    */
-  getPlaylists(libraryId: string): Promise<MediaPlaylist[]>;
+  getPlaylists(libraryId: string): Promise<MediaPlaylist[]>
 
   /**
    * Delete an item from disk.
    * This is a destructive operation!
    */
-  deleteFromDisk(itemId: string): Promise<void>;
+  deleteFromDisk(itemId: string): Promise<void>
 
   /**
    * Get all media server IDs for a context action (add/remove from collection).
@@ -227,11 +227,11 @@ export interface IMediaServerService {
     collectionType: MediaItemType | undefined,
     context: { type: MediaItemType; id: string },
     mediaId: string,
-  ): Promise<string[]>;
+  ): Promise<string[]>
 
   /**
    * Reset metadata cache.
    * @param itemId - If provided, only reset cache for this item. Otherwise reset all.
    */
-  resetMetadataCache(itemId?: string): void;
+  resetMetadataCache(itemId?: string): void
 }

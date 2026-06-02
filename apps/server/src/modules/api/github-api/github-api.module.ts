@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { GitHubApiService } from './github-api.service';
+import { Module } from '@nestjs/common'
+import { GitHubApiService } from './github-api.service'
 
 @Module({
   imports: [],

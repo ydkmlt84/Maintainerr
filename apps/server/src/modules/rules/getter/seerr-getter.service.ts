@@ -2,10 +2,10 @@ import {
   MediaItem,
   MediaItemType,
   RequestMediaStatus,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import _ from 'lodash';
-import { MediaServerFactory } from '../../api/media-server/media-server.factory';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import _ from 'lodash'
+import { MediaServerFactory } from '../../api/media-server/media-server.factory'
 import {
   SeerrApiService,
   SeerrMovieResponse,
@@ -13,19 +13,19 @@ import {
   SeerrSeasonResponse,
   SeerrTVRequest,
   SeerrTVResponse,
-} from '../../api/seerr-api/seerr-api.service';
-import { TmdbIdService } from '../../api/tmdb-api/tmdb-id.service';
-import { TmdbApiService } from '../../api/tmdb-api/tmdb.service';
-import { MaintainerrLogger } from '../../logging/logs.service';
+} from '../../api/seerr-api/seerr-api.service'
+import { TmdbIdService } from '../../api/tmdb-api/tmdb-id.service'
+import { TmdbApiService } from '../../api/tmdb-api/tmdb.service'
+import { MaintainerrLogger } from '../../logging/logs.service'
 import {
   Application,
   Property,
   RuleConstants,
-} from '../constants/rules.constants';
+} from '../constants/rules.constants'
 
 @Injectable()
 export class SeerrGetterService {
-  appProperties: Property[];
+  appProperties: Property[]
 
   constructor(
     private readonly seerrApi: SeerrApiService,
@@ -34,71 +34,71 @@ export class SeerrGetterService {
     private readonly tmdbIdHelper: TmdbIdService,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(SeerrGetterService.name);
-    const ruleConstants = new RuleConstants();
+    logger.setContext(SeerrGetterService.name)
+    const ruleConstants = new RuleConstants()
     this.appProperties = ruleConstants.applications.find(
       (el) => el.id === Application.SEERR,
-    ).props;
+    ).props
   }
 
   async get(id: number, libItem: MediaItem, dataType?: MediaItemType) {
     try {
-      let origLibItem: MediaItem = undefined;
-      let seasonMediaResponse: SeerrSeasonResponse = undefined;
-      let tvMediaResponse: SeerrTVResponse = undefined;
-      let movieMediaResponse: SeerrMovieResponse = undefined;
+      let origLibItem: MediaItem = undefined
+      let seasonMediaResponse: SeerrSeasonResponse = undefined
+      let tvMediaResponse: SeerrTVResponse = undefined
+      let movieMediaResponse: SeerrMovieResponse = undefined
 
       // get original show in case of season / episode
       if (dataType === 'season' || dataType === 'episode') {
-        origLibItem = _.cloneDeep(libItem);
-        const mediaServer = await this.mediaServerFactory.getService();
+        origLibItem = _.cloneDeep(libItem)
+        const mediaServer = await this.mediaServerFactory.getService()
         libItem = await mediaServer.getMetadata(
           dataType === 'season' ? libItem.parentId : libItem.grandparentId,
-        );
+        )
       }
 
-      const prop = this.appProperties.find((el) => el.id === id);
-      const tmdb = await this.tmdbIdHelper.getTmdbIdFromMediaItem(libItem);
+      const prop = this.appProperties.find((el) => el.id === id)
+      const tmdb = await this.tmdbIdHelper.getTmdbIdFromMediaItem(libItem)
 
       if (tmdb && tmdb.id) {
         if (libItem.type === 'movie') {
-          movieMediaResponse = await this.seerrApi.getMovie(tmdb.id.toString());
+          movieMediaResponse = await this.seerrApi.getMovie(tmdb.id.toString())
         } else {
-          tvMediaResponse = await this.seerrApi.getShow(tmdb.id.toString());
+          tvMediaResponse = await this.seerrApi.getShow(tmdb.id.toString())
           if (dataType === 'season' || dataType === 'episode') {
             const seasonNumber =
               dataType === 'season'
                 ? origLibItem.index
-                : origLibItem.parentIndex;
+                : origLibItem.parentIndex
             seasonMediaResponse = await this.seerrApi.getSeason(
               tmdb.id.toString(),
               seasonNumber?.toString(),
-            );
+            )
             if (!seasonMediaResponse) {
               this.logger.debug(
                 `Couldn't fetch season data for '${libItem.title}' season ${seasonNumber} from Seerr. As a result, unreliable results are expected.`,
-              );
+              )
             }
           }
         }
       } else {
         this.logger.debug(
           `Couldn't find tmdb id for media '${libItem.title}' with id '${libItem.id}'. As a result, no Seerr query could be made.`,
-        );
+        )
       }
 
       const mediaResponse: SeerrTVResponse | SeerrMovieResponse =
-        tvMediaResponse ?? movieMediaResponse;
+        tvMediaResponse ?? movieMediaResponse
 
       if (mediaResponse?.mediaInfo) {
         switch (prop.name) {
           case 'addUser': {
             try {
-              const userNames: string[] = [];
+              const userNames: string[] = []
               if (mediaResponse.mediaInfo.requests) {
                 for (const request of mediaResponse.mediaInfo.requests) {
                   const isSeasonOrEpisode =
-                    dataType === 'season' || dataType === 'episode';
+                    dataType === 'season' || dataType === 'episode'
 
                   // For seasons/episodes, only include if the request covers the correct season
                   if (
@@ -111,60 +111,60 @@ export class SeerrGetterService {
                         : origLibItem.parentIndex,
                     )
                   ) {
-                    continue;
+                    continue
                   }
 
-                  const username = this.resolveRequestUsername(request);
+                  const username = this.resolveRequestUsername(request)
                   if (username) {
-                    userNames.push(username);
+                    userNames.push(username)
                   }
                 }
-                return [...new Set(userNames)];
+                return [...new Set(userNames)]
               }
-              return [];
+              return []
             } catch (e) {
-              this.logger.warn("Couldn't get addUser from Seerr");
-              this.logger.debug(e);
-              return null;
+              this.logger.warn("Couldn't get addUser from Seerr")
+              this.logger.debug(e)
+              return null
             }
           }
           case 'amountRequested': {
             return dataType === 'season' || dataType === 'episode'
               ? this.getSeasonRequests(origLibItem, tvMediaResponse).length
-              : mediaResponse?.mediaInfo.requests.length;
+              : mediaResponse?.mediaInfo.requests.length
           }
           case 'requestDate': {
             if (dataType === 'season' || dataType === 'episode') {
               const createdAt = this.getSeasonRequests(
                 origLibItem,
                 tvMediaResponse,
-              )[0]?.createdAt;
+              )[0]?.createdAt
 
-              return createdAt ? new Date(createdAt) : null;
+              return createdAt ? new Date(createdAt) : null
             }
             return mediaResponse?.mediaInfo?.requests[0]?.createdAt
               ? new Date(mediaResponse?.mediaInfo?.requests[0]?.createdAt)
-              : null;
+              : null
           }
           case 'releaseDate': {
             if (libItem.type === 'movie') {
               return movieMediaResponse?.releaseDate
                 ? new Date(movieMediaResponse?.releaseDate)
-                : null;
+                : null
             } else {
               if (dataType === 'episode') {
                 const ep = seasonMediaResponse.episodes?.find(
                   (el) => el.episodeNumber === origLibItem.index,
-                );
-                return ep?.airDate ? new Date(ep.airDate) : null;
+                )
+                return ep?.airDate ? new Date(ep.airDate) : null
               } else if (dataType === 'season') {
                 return seasonMediaResponse?.airDate
                   ? new Date(seasonMediaResponse.airDate)
-                  : null;
+                  : null
               } else {
                 return tvMediaResponse?.firstAirDate
                   ? new Date(tvMediaResponse.firstAirDate)
-                  : null;
+                  : null
               }
             }
           }
@@ -173,20 +173,20 @@ export class SeerrGetterService {
               const season = this.getSeasonRequests(
                 origLibItem,
                 tvMediaResponse,
-              )[0];
+              )[0]
               if (season && season.media) {
                 if (
                   season.media.status >= RequestMediaStatus.PARTIALLY_AVAILABLE
                 ) {
-                  return new Date(season.media.updatedAt);
+                  return new Date(season.media.updatedAt)
                 }
               }
-              return null;
+              return null
             } else {
               return mediaResponse?.mediaInfo.status >=
                 RequestMediaStatus.PARTIALLY_AVAILABLE
                 ? new Date(mediaResponse?.mediaInfo?.updatedAt)
-                : null;
+                : null
             }
           }
           case 'mediaAddedAt': {
@@ -194,20 +194,20 @@ export class SeerrGetterService {
               const season = this.getSeasonRequests(
                 origLibItem,
                 tvMediaResponse,
-              )[0];
+              )[0]
               if (season && season.media) {
                 if (
                   season.media.status >= RequestMediaStatus.PARTIALLY_AVAILABLE
                 ) {
-                  return new Date(season.media.mediaAddedAt);
+                  return new Date(season.media.mediaAddedAt)
                 }
               }
-              return null;
+              return null
             } else {
               return mediaResponse?.mediaInfo.status >=
                 RequestMediaStatus.PARTIALLY_AVAILABLE
                 ? new Date(mediaResponse?.mediaInfo?.mediaAddedAt)
-                : null;
+                : null
             }
           }
           case 'isRequested': {
@@ -216,30 +216,30 @@ export class SeerrGetterService {
                 return this.getSeasonRequests(origLibItem, tvMediaResponse)
                   .length > 0
                   ? 1
-                  : 0;
+                  : 0
               } else {
-                return mediaResponse?.mediaInfo.requests.length > 0 ? 1 : 0;
+                return mediaResponse?.mediaInfo.requests.length > 0 ? 1 : 0
               }
             } catch (e) {
-              return 0;
+              return 0
             }
           }
           default: {
-            return null;
+            return null
           }
         }
       } else {
         this.logger.debug(
           `Couldn't fetch Seerr metadata for media '${libItem.title}' with id '${libItem.id}'. As a result, no Seerr query could be made.`,
-        );
-        return null;
+        )
+        return null
       }
     } catch (e) {
       this.logger.warn(
         `Seerr-Getter - Action failed for '${libItem.title}' with id '${libItem.id}': ${e.message}`,
-      );
-      this.logger.debug(e);
-      return undefined;
+      )
+      this.logger.debug(e)
+      return undefined
     }
   }
 
@@ -247,25 +247,25 @@ export class SeerrGetterService {
     libItem: MediaItem,
     mediaResponse: SeerrTVResponse,
   ) {
-    const seasonRequests: SeerrTVRequest[] = [];
+    const seasonRequests: SeerrTVRequest[] = []
     mediaResponse.mediaInfo?.requests.forEach((el) => {
       const season = el.seasons.find(
         (season) =>
           +season.seasonNumber ===
           (libItem.type === 'episode' ? +libItem.parentIndex : +libItem.index),
-      );
+      )
       if (season) {
-        seasonRequests.push(el);
+        seasonRequests.push(el)
       }
-    });
-    return seasonRequests;
+    })
+    return seasonRequests
   }
 
   private includesSeason(seasons: SeerrSeasonRequest[], seasonNumber: number) {
     const season = seasons.find(
       (season) => season.seasonNumber === seasonNumber,
-    );
-    return season !== undefined;
+    )
+    return season !== undefined
   }
 
   /**
@@ -282,16 +282,16 @@ export class SeerrGetterService {
    */
   private resolveRequestUsername(request: {
     requestedBy?: {
-      plexUsername?: string;
-      jellyfinUsername?: string;
-      username?: string;
-    };
+      plexUsername?: string
+      jellyfinUsername?: string
+      username?: string
+    }
   }): string | undefined {
-    const user = request.requestedBy;
-    if (!user) return undefined;
+    const user = request.requestedBy
+    if (!user) return undefined
 
     return (
       user.plexUsername || user.jellyfinUsername || user.username || undefined
-    );
+    )
   }
 }

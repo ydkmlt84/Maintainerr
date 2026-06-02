@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { DataSource } from 'typeorm'
 
 const datasource = new DataSource({
   type: 'better-sqlite3',
@@ -7,15 +7,15 @@ const datasource = new DataSource({
   synchronize: false,
   migrationsTableName: 'migrations',
   migrations: ['./src/database/migrations/**/*.ts'],
-});
+})
 
 datasource
   .initialize()
   .then(() => {
-    console.log(`Data Source has been initialized`);
+    console.log(`Data Source has been initialized`)
   })
   .catch((err) => {
-    console.error(`Data Source initialization error`, err);
-  });
+    console.error(`Data Source initialization error`, err)
+  })
 
-export default datasource;
+export default datasource

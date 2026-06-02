@@ -12,12 +12,12 @@ import {
   MediaSource,
   MediaUser,
   WatchRecord,
-} from '@maintainerr/contracts';
-import { EPlexDataType } from '../../plex-api/enums/plex-data-type-enum';
+} from '@maintainerr/contracts'
+import { EPlexDataType } from '../../plex-api/enums/plex-data-type-enum'
 import {
   PlexCollection,
   PlexPlaylist,
-} from '../../plex-api/interfaces/collection.interface';
+} from '../../plex-api/interfaces/collection.interface'
 import {
   PlexActor,
   PlexGenre,
@@ -25,8 +25,8 @@ import {
   PlexLibraryItem,
   PlexSeenBy,
   PlexUserAccount,
-} from '../../plex-api/interfaces/library.interfaces';
-import { Media, PlexMetadata } from '../../plex-api/interfaces/media.interface';
+} from '../../plex-api/interfaces/library.interfaces'
+import { Media, PlexMetadata } from '../../plex-api/interfaces/media.interface'
 
 /**
  * Mapper for converting Plex-specific types to server-agnostic MediaItem types.
@@ -50,18 +50,18 @@ export class PlexMapper {
   ): MediaItemType {
     switch (plexType) {
       case 'movie':
-        return 'movie';
+        return 'movie'
       case 'show':
-        return 'show';
+        return 'show'
       case 'season':
-        return 'season';
+        return 'season'
       case 'episode':
-        return 'episode';
+        return 'episode'
       case 'collection':
         // Collections don't have a dedicated MediaItemType - default to movie for API consistency
-        return 'movie';
+        return 'movie'
       default:
-        return 'movie';
+        return 'movie'
     }
   }
 
@@ -72,15 +72,15 @@ export class PlexMapper {
   static toPlexDataType(type: MediaItemType): EPlexDataType {
     switch (type) {
       case 'movie':
-        return EPlexDataType.MOVIES;
+        return EPlexDataType.MOVIES
       case 'show':
-        return EPlexDataType.SHOWS;
+        return EPlexDataType.SHOWS
       case 'season':
-        return EPlexDataType.SEASONS;
+        return EPlexDataType.SEASONS
       case 'episode':
-        return EPlexDataType.EPISODES;
+        return EPlexDataType.EPISODES
       default:
-        return EPlexDataType.MOVIES;
+        return EPlexDataType.MOVIES
     }
   }
 
@@ -90,15 +90,15 @@ export class PlexMapper {
   static plexDataTypeToMediaItemType(plexType: EPlexDataType): MediaItemType {
     switch (plexType) {
       case EPlexDataType.MOVIES:
-        return 'movie';
+        return 'movie'
       case EPlexDataType.SHOWS:
-        return 'show';
+        return 'show'
       case EPlexDataType.SEASONS:
-        return 'season';
+        return 'season'
       case EPlexDataType.EPISODES:
-        return 'episode';
+        return 'episode'
       default:
-        return 'movie';
+        return 'movie'
     }
   }
 
@@ -118,35 +118,35 @@ export class PlexMapper {
       imdb: [],
       tmdb: [],
       tvdb: [],
-    };
+    }
 
     if (!guids || !Array.isArray(guids)) {
-      return providerIds;
+      return providerIds
     }
 
     for (const guid of guids) {
-      if (!guid.id) continue;
+      if (!guid.id) continue
 
-      const match = guid.id.match(/^(\w+):\/\/(.+)$/);
-      if (!match) continue;
+      const match = guid.id.match(/^(\w+):\/\/(.+)$/)
+      if (!match) continue
 
-      const [, provider, id] = match;
+      const [, provider, id] = match
 
       switch (provider.toLowerCase()) {
         case 'imdb':
-          providerIds.imdb.push(id);
-          break;
+          providerIds.imdb.push(id)
+          break
         case 'tmdb':
-          providerIds.tmdb.push(id);
-          break;
+          providerIds.tmdb.push(id)
+          break
         case 'tvdb':
-          providerIds.tvdb.push(id);
-          break;
+          providerIds.tvdb.push(id)
+          break
         // Ignore plex:// and other unknown providers
       }
     }
 
-    return providerIds;
+    return providerIds
   }
 
   /**
@@ -194,7 +194,7 @@ export class PlexMapper {
       parentIndex: plex.parentIndex,
       collections: plex.Collection?.map((c) => c.tag),
       labels: plex.Label?.map((l) => l.tag),
-    };
+    }
   }
 
   /**
@@ -241,7 +241,7 @@ export class PlexMapper {
       parentIndex: plex.parentIndex,
       collections: plex.Collection?.map((c) => c.tag),
       labels: plex.Label?.map((l) => l.tag),
-    };
+    }
   }
 
   /**
@@ -253,7 +253,7 @@ export class PlexMapper {
       title: plex.title,
       type: plex.type === 'movie' ? 'movie' : 'show',
       agent: plex.agent,
-    };
+    }
   }
 
   /**
@@ -264,7 +264,7 @@ export class PlexMapper {
       id: plex.id.toString(),
       name: plex.name,
       thumb: plex.thumb,
-    };
+    }
   }
 
   /**
@@ -276,7 +276,7 @@ export class PlexMapper {
       itemId: plex.ratingKey,
       watchedAt: new Date(plex.viewedAt * 1000),
       progress: 100, // Plex marks as "seen" when complete
-    };
+    }
   }
 
   /**
@@ -293,7 +293,7 @@ export class PlexMapper {
       updatedAt: plex.updatedAt ? new Date(plex.updatedAt * 1000) : undefined,
       smart: plex.smart,
       libraryId: undefined, // Not available on PlexCollection directly
-    };
+    }
   }
 
   /**
@@ -309,7 +309,7 @@ export class PlexMapper {
       durationMs: plex.duration,
       addedAt: plex.addedAt ? new Date(plex.addedAt * 1000) : undefined,
       updatedAt: plex.updatedAt ? new Date(plex.updatedAt * 1000) : undefined,
-    };
+    }
   }
 
   /**
@@ -324,12 +324,12 @@ export class PlexMapper {
       version: plex.version,
       name: serverName,
       platform: undefined,
-    };
+    }
   }
 
   private static toMediaSources(media: Media[] | undefined): MediaSource[] {
     if (!media || !Array.isArray(media)) {
-      return [];
+      return []
     }
 
     return media.map((m) => ({
@@ -346,23 +346,23 @@ export class PlexMapper {
       container: m.container,
       sizeBytes:
         m.Part?.reduce((sum, p) => sum + (p.size || 0), 0) || undefined,
-    }));
+    }))
   }
 
   private static toMediaGenres(genres: PlexGenre[] | undefined): MediaGenre[] {
     if (!genres || !Array.isArray(genres)) {
-      return [];
+      return []
     }
 
     return genres.map((g) => ({
       id: g.id,
       name: g.tag,
-    }));
+    }))
   }
 
   private static toMediaActors(actors: PlexActor[] | undefined): MediaActor[] {
     if (!actors || !Array.isArray(actors)) {
-      return [];
+      return []
     }
 
     return actors.map((a) => ({
@@ -370,18 +370,18 @@ export class PlexMapper {
       name: a.tag,
       role: a.role,
       thumb: a.thumb,
-    }));
+    }))
   }
 
   private static toMediaRatings(plex: PlexLibraryItem): MediaRating[] {
-    const ratings: MediaRating[] = [];
+    const ratings: MediaRating[] = []
 
     if (plex.rating !== undefined) {
       ratings.push({
         source: 'critic',
         value: plex.rating,
         type: 'critic',
-      });
+      })
     }
 
     if (plex.audienceRating !== undefined) {
@@ -389,21 +389,21 @@ export class PlexMapper {
         source: 'audience',
         value: plex.audienceRating,
         type: 'audience',
-      });
+      })
     }
 
-    return ratings;
+    return ratings
   }
 
   private static metadataToMediaRatings(plex: PlexMetadata): MediaRating[] {
-    const ratings: MediaRating[] = [];
+    const ratings: MediaRating[] = []
 
     if (plex.rating !== undefined) {
       ratings.push({
         source: 'critic',
         value: plex.rating,
         type: 'critic',
-      });
+      })
     }
 
     if (plex.audienceRating !== undefined) {
@@ -411,7 +411,7 @@ export class PlexMapper {
         source: 'audience',
         value: plex.audienceRating,
         type: 'audience',
-      });
+      })
     }
 
     // PlexMetadata also has Rating[] array
@@ -422,11 +422,11 @@ export class PlexMapper {
             source: r.image,
             value: r.value,
             type: r.type,
-          });
+          })
         }
       }
     }
 
-    return ratings;
+    return ratings
   }
 }

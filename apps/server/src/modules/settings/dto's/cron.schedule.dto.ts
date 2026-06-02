@@ -1,3 +1,3 @@
 export class CronScheduleDto {
-  schedule: string;
+  schedule: string
 }

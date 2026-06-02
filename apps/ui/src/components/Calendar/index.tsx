@@ -498,6 +498,8 @@ const CalendarPage = () => {
     queryKey: [
       'calendar',
       'details',
+      selectedEntry,
+      collectionLookup,
       selectedEntry?.item.id ?? null,
       selectedEntry ? getDayKey(selectedEntry.date) : null,
     ],

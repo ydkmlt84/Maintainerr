@@ -3,7 +3,14 @@ import {
   type MediaLibrary,
   type MediaLibrarySortParams,
 } from '@maintainerr/contracts'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useMediaServerLibraries } from '../../api/media-server'
 import SearchContext from '../../contexts/search-context'
 import GetApiHandler from '../../utils/ApiHandler'
@@ -33,6 +40,7 @@ const getStoredMediaLibraryId = (): string | undefined => {
 const Media = () => {
   // const [isLoading, setIsLoading] = useState<Boolean>(false)
   const loadingRef = useRef<boolean>(false)
+  const [isLoading, setIsLoadingState] = useState(false)
 
   const [loadingExtra, setLoadingExtra] = useState<boolean>(false)
 
@@ -50,6 +58,7 @@ const Media = () => {
   const [filterValue, setFilterValue] = useState(defaultFilterValue)
 
   const pageData = useRef<number>(0)
+  const [pageDataCount, setPageDataCount] = useState(0)
   const SearchCtx = useContext(SearchContext)
 
   const { data: libraries } = useMediaServerLibraries()
@@ -69,13 +78,63 @@ const Media = () => {
   const libraryCountLabel = hasResolvedTotalSize
     ? `${totalSize.toLocaleString()} items`
     : 'Loading count'
-  const loadedCount = data.length
 
   const fetchAmount = 30
 
   const setIsLoading = (val: boolean) => {
     loadingRef.current = val
+    setIsLoadingState(val)
   }
+
+  const switchLib = useCallback((libraryId: string) => {
+    setIsLoading(true)
+    pageData.current = 0
+    setPageDataCount(0)
+    setTotalSize(999)
+    setData([])
+    dataRef.current = []
+    setSearchUsed(false)
+    setSelectedLibrary(libraryId)
+    window.localStorage.setItem(mediaLibraryStorageKey, libraryId)
+  }, [])
+
+  const fetchData = useCallback(
+    async (requestedSortParams: MediaLibrarySortParams = sortParams) => {
+      if (
+        selectedLibraryRef.current &&
+        SearchCtx.search.text === '' &&
+        totalSizeRef.current >= pageData.current * fetchAmount
+      ) {
+        const askedLib = selectedLibraryRef.current
+
+        const resp: { totalSize: number; items: MediaItem[] } =
+          await GetApiHandler(
+            `/media-server/library/${selectedLibraryRef.current}/content?page=${
+              pageData.current + 1
+            }&limit=${fetchAmount}&${new URLSearchParams({
+              sort: requestedSortParams.sort,
+              sortOrder: requestedSortParams.sortOrder,
+            }).toString()}`,
+          )
+
+        if (askedLib === selectedLibraryRef.current) {
+          setTotalSize(resp.totalSize)
+          pageData.current = pageData.current + 1
+          setPageDataCount(pageData.current)
+          setData(
+            dedupeMediaItems([
+              ...dataRef.current,
+              ...(resp && resp.items ? resp.items : []),
+            ]),
+          )
+          setIsLoading(false)
+        }
+        setLoadingExtra(false)
+        setIsLoading(false)
+      }
+    },
+    [SearchCtx.search.text, sortParams],
+  )
 
   useEffect(() => {
     if (!libraries || libraries.length === 0) {
@@ -91,15 +150,24 @@ const Media = () => {
         switchLib(selectedLibrary ? selectedLibrary : libraries[0].id)
       }
     }, 300)
+  }, [
+    SearchCtx.search.text,
+    data.length,
+    libraries,
+    selectedLibrary,
+    switchLib,
+  ])
 
+  useEffect(() => {
     // Cleanup on unmount
     return () => {
       setData([])
       dataRef.current = []
       totalSizeRef.current = 999
       pageData.current = 0
+      setPageDataCount(0)
     }
-  }, [libraries])
+  }, [])
 
   useEffect(() => {
     if (!libraries || libraries.length === 0) return
@@ -110,6 +178,7 @@ const Media = () => {
           setSearchUsed(true)
           setTotalSize(resp.length)
           pageData.current = resp.length * 50
+          setPageDataCount(pageData.current)
           setData(
             resp ? dedupeMediaItems(sortMediaItems(resp, sortParams)) : [],
           )
@@ -117,19 +186,22 @@ const Media = () => {
         },
       )
     } else {
-      setSearchUsed(false)
-      setData([])
-      setTotalSize(999)
       pageData.current = 0
-      setIsLoading(true)
-      fetchData()
+      queueMicrotask(() => {
+        setSearchUsed(false)
+        setData([])
+        setTotalSize(999)
+        setPageDataCount(0)
+        setIsLoading(true)
+        fetchData()
+      })
     }
-  }, [SearchCtx.search.text])
+  }, [SearchCtx.search.text, fetchData, libraries, sortParams])
 
   useEffect(() => {
     selectedLibraryRef.current = selectedLibrary
     fetchData()
-  }, [selectedLibrary])
+  }, [fetchData, selectedLibrary])
 
   useEffect(() => {
     dataRef.current = data
@@ -138,53 +210,6 @@ const Media = () => {
   useEffect(() => {
     totalSizeRef.current = totalSize
   }, [totalSize])
-
-  const switchLib = (libraryId: string) => {
-    setIsLoading(true)
-    pageData.current = 0
-    setTotalSize(999)
-    setData([])
-    dataRef.current = []
-    setSearchUsed(false)
-    setSelectedLibrary(libraryId)
-    window.localStorage.setItem(mediaLibraryStorageKey, libraryId)
-  }
-
-  const fetchData = async (
-    requestedSortParams: MediaLibrarySortParams = sortParams,
-  ) => {
-    if (
-      selectedLibraryRef.current &&
-      SearchCtx.search.text === '' &&
-      totalSizeRef.current >= pageData.current * fetchAmount
-    ) {
-      const askedLib = selectedLibraryRef.current
-
-      const resp: { totalSize: number; items: MediaItem[] } =
-        await GetApiHandler(
-          `/media-server/library/${selectedLibraryRef.current}/content?page=${
-            pageData.current + 1
-          }&limit=${fetchAmount}&${new URLSearchParams({
-            sort: requestedSortParams.sort,
-            sortOrder: requestedSortParams.sortOrder,
-          }).toString()}`,
-        )
-
-      if (askedLib === selectedLibraryRef.current) {
-        setTotalSize(resp.totalSize)
-        pageData.current = pageData.current + 1
-        setData(
-          dedupeMediaItems([
-            ...dataRef.current,
-            ...(resp && resp.items ? resp.items : []),
-          ]),
-        )
-        setIsLoading(false)
-      }
-      setLoadingExtra(false)
-      setIsLoading(false)
-    }
-  }
 
   const handleSortChange = (nextSortValue: string) => {
     const nextSortState = onSortChange(nextSortValue)
@@ -200,6 +225,7 @@ const Media = () => {
     }
 
     pageData.current = 0
+    setPageDataCount(0)
     setTotalSize(999)
     setData([])
     dataRef.current = []
@@ -238,7 +264,7 @@ const Media = () => {
                   options={sortConfig.options}
                   value={sortValue}
                   onSortChange={handleSortChange}
-                  isLoading={loadingRef.current}
+                  isLoading={isLoading}
                 />
               </div>
               <div className="relative w-full sm:w-[12rem]">
@@ -263,18 +289,16 @@ const Media = () => {
         ) : undefined}
         {selectedLibrary ? (
           <MediaContent
-            dataFinished={
-              !(totalSizeRef.current >= pageData.current * fetchAmount)
-            }
+            dataFinished={!(totalSize >= pageDataCount * fetchAmount)}
             fetchData={() => {
               setLoadingExtra(true)
               fetchData()
             }}
-            loading={loadingRef.current}
+            loading={isLoading}
             extrasLoading={
               loadingExtra &&
-              !loadingRef.current &&
-              totalSizeRef.current >= pageData.current * fetchAmount
+              !isLoading &&
+              totalSize >= pageDataCount * fetchAmount
             }
             data={data}
             libraryId={selectedLibrary!}

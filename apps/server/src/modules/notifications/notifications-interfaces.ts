@@ -1,70 +1,70 @@
 export interface DiscordOptions {
-  agent: NotificationAgentKey.DISCORD;
-  botUsername?: string;
-  botAvatarUrl?: string;
-  webhookUrl: string;
+  agent: NotificationAgentKey.DISCORD
+  botUsername?: string
+  botAvatarUrl?: string
+  webhookUrl: string
 }
 
 export interface SlackOptions {
-  agent: NotificationAgentKey.SLACK;
-  webhookUrl: string;
+  agent: NotificationAgentKey.SLACK
+  webhookUrl: string
 }
 
 export interface EmailOptions {
-  agent: NotificationAgentKey.EMAIL;
-  senderName: string;
-  emailFrom: string;
-  emailTo: string;
-  smtpHost: string;
-  smtpPort: number;
-  secure?: boolean;
-  ignoreTls?: boolean;
-  requireTls?: boolean;
-  authUser?: string;
-  authPass?: string;
-  allowSelfSigned?: boolean;
-  pgpKey?: string;
-  pgpPassword?: string;
+  agent: NotificationAgentKey.EMAIL
+  senderName: string
+  emailFrom: string
+  emailTo: string
+  smtpHost: string
+  smtpPort: number
+  secure?: boolean
+  ignoreTls?: boolean
+  requireTls?: boolean
+  authUser?: string
+  authPass?: string
+  allowSelfSigned?: boolean
+  pgpKey?: string
+  pgpPassword?: string
 }
 
 export interface LunaSeaOptions {
-  agent: NotificationAgentKey.LUNASEA;
-  webhookUrl: string;
-  profileName?: string;
+  agent: NotificationAgentKey.LUNASEA
+  webhookUrl: string
+  profileName?: string
 }
 
 export interface TelegramOptions {
-  agent: NotificationAgentKey.TELEGRAM;
-  botUsername?: string;
-  botAuthToken: string;
-  chatId: string;
-  sendSilently?: boolean;
+  agent: NotificationAgentKey.TELEGRAM
+  botUsername?: string
+  botAuthToken: string
+  chatId: string
+  sendSilently?: boolean
 }
 
 export interface PushbulletOptions {
-  agent: NotificationAgentKey.PUSHBULLET;
-  accessToken: string;
-  channelTag?: string;
+  agent: NotificationAgentKey.PUSHBULLET
+  accessToken: string
+  channelTag?: string
 }
 
 export interface PushoverOptions {
-  agent: NotificationAgentKey.PUSHOVER;
-  accessToken: string;
-  userToken: string;
-  sound: string;
+  agent: NotificationAgentKey.PUSHOVER
+  accessToken: string
+  userToken: string
+  sound: string
 }
 
 export interface WebhookOptions {
-  agent: NotificationAgentKey.WEBHOOK;
-  webhookUrl: string;
-  jsonPayload: string;
-  authHeader?: string;
+  agent: NotificationAgentKey.WEBHOOK
+  webhookUrl: string
+  jsonPayload: string
+  authHeader?: string
 }
 
 export interface GotifyOptions {
-  agent: NotificationAgentKey.GOTIFY;
-  url: string;
-  token: string;
+  agent: NotificationAgentKey.GOTIFY
+  url: string
+  token: string
 }
 
 export type NotificationAgentOptions =
@@ -76,52 +76,52 @@ export type NotificationAgentOptions =
   | PushbulletOptions
   | PushoverOptions
   | WebhookOptions
-  | GotifyOptions;
+  | GotifyOptions
 
 interface BaseNotificationAgentConfig {
-  enabled: boolean;
-  types?: number[];
+  enabled: boolean
+  types?: number[]
 }
 
 export interface NotificationAgentConfig extends BaseNotificationAgentConfig {
-  options: NotificationAgentOptions;
+  options: NotificationAgentOptions
 }
 
 // Specific agent configurations
 export interface NotificationAgentDiscord extends BaseNotificationAgentConfig {
-  options: DiscordOptions;
+  options: DiscordOptions
 }
 
 export interface NotificationAgentSlack extends BaseNotificationAgentConfig {
-  options: SlackOptions;
+  options: SlackOptions
 }
 
 export interface NotificationAgentEmail extends BaseNotificationAgentConfig {
-  options: EmailOptions;
+  options: EmailOptions
 }
 
 export interface NotificationAgentLunaSea extends BaseNotificationAgentConfig {
-  options: LunaSeaOptions;
+  options: LunaSeaOptions
 }
 
 export interface NotificationAgentTelegram extends BaseNotificationAgentConfig {
-  options: TelegramOptions;
+  options: TelegramOptions
 }
 
 export interface NotificationAgentPushbullet extends BaseNotificationAgentConfig {
-  options: PushbulletOptions;
+  options: PushbulletOptions
 }
 
 export interface NotificationAgentPushover extends BaseNotificationAgentConfig {
-  options: PushoverOptions;
+  options: PushoverOptions
 }
 
 export interface NotificationAgentWebhook extends BaseNotificationAgentConfig {
-  options: WebhookOptions;
+  options: WebhookOptions
 }
 
 export interface NotificationAgentGotify extends BaseNotificationAgentConfig {
-  options: GotifyOptions;
+  options: GotifyOptions
 }
 
 export type AnyNotificationAgentConfig =
@@ -133,7 +133,7 @@ export type AnyNotificationAgentConfig =
   | NotificationAgentPushbullet
   | NotificationAgentPushover
   | NotificationAgentWebhook
-  | NotificationAgentGotify;
+  | NotificationAgentGotify
 
 export enum NotificationAgentKey {
   DISCORD = 'discord',

@@ -1,10 +1,10 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class AddLogSettings1740094282798 implements MigrationInterface {
-  name = 'AddLogSettings1740094282798';
+  name = 'AddLogSettings1740094282798'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const logLevel = process.env.DEBUG == 'true' ? 'debug' : 'info';
+    const logLevel = process.env.DEBUG == 'true' ? 'debug' : 'info'
 
     await queryRunner.query(`
             CREATE TABLE "log_settings" (
@@ -13,19 +13,19 @@ export class AddLogSettings1740094282798 implements MigrationInterface {
                 "max_size" integer NOT NULL DEFAULT (20),
                 "max_files" integer NOT NULL DEFAULT (7)
             )
-        `);
+        `)
 
     await queryRunner.query(`
             INSERT INTO "log_settings"("level", "max_size", "max_files")
             SELECT '${logLevel}',
                 20,
                 7
-        `);
+        `)
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
             DROP TABLE "log_settings"
-        `);
+        `)
   }
 }

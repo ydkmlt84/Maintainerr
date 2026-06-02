@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { EventsBufferService } from './events-buffer.service';
-import { EventsController } from './events.controller';
+import { Module } from '@nestjs/common'
+import { EventsBufferService } from './events-buffer.service'
+import { EventsController } from './events.controller'
 
 @Module({
   providers: [EventsBufferService],

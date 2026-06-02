@@ -1,25 +1,25 @@
-import { Global, Module } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
-import chalk from 'chalk';
-import path from 'path';
-import { Repository } from 'typeorm';
-import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import { LogSettings } from './entities/logSettings.entities';
-import { formatLogMessage } from './logFormatting';
-import { LogsController } from './logs.controller';
+import { Global, Module } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm'
+import chalk from 'chalk'
+import path from 'path'
+import { Repository } from 'typeorm'
+import winston from 'winston'
+import DailyRotateFile from 'winston-daily-rotate-file'
+import { LogSettings } from './entities/logSettings.entities'
+import { formatLogMessage } from './logFormatting'
+import { LogsController } from './logs.controller'
 import {
   LogSettingsService,
   MaintainerrLogger,
   MaintainerrLoggerFactory,
-} from './logs.service';
-import { EventEmitterTransport } from './winston/eventEmitterTransport';
+} from './logs.service'
+import { EventEmitterTransport } from './winston/eventEmitterTransport'
 
 const dataDir =
   process.env.NODE_ENV === 'production'
     ? '/opt/data'
-    : path.join(__dirname, '../../../../../data');
+    : path.join(__dirname, '../../../../../data')
 
 @Global()
 @Module({
@@ -35,9 +35,9 @@ const dataDir =
         logSettingsRepo: Repository<LogSettings>,
         eventEmitter: EventEmitter2,
       ) => {
-        const logSettings = await logSettingsRepo.findOne({ where: {} });
-        const maxSize = `${logSettings.max_size}m`;
-        const maxFiles = `${logSettings.max_files}d`;
+        const logSettings = await logSettingsRepo.findOne({ where: {} })
+        const maxSize = `${logSettings.max_size}m`
+        const maxFiles = `${logSettings.max_files}d`
 
         const dailyRotateFileTransport = new DailyRotateFile({
           filename: path.join(dataDir, 'logs/maintainerr-%DATE%.log'),
@@ -49,11 +49,11 @@ const dataDir =
             winston.format.timestamp({ format: 'DD/MM/YYYY HH:mm:ss' }),
             winston.format.printf(
               ({ level, message, timestamp, context, stack }) => {
-                return `[maintainerr]  |  ${timestamp}  [${level.toUpperCase()}] [${context}] ${formatLogMessage(message, stack)}`;
+                return `[maintainerr]  |  ${timestamp}  [${level.toUpperCase()}] [${context}] ${formatLogMessage(message, stack)}`
               },
             ),
           ),
-        });
+        })
 
         return winston.createLogger({
           level: logSettings.level,
@@ -69,7 +69,7 @@ const dataDir =
             winston.format.timestamp({ format: 'DD/MM/YYYY HH:mm:ss' }),
             winston.format.printf(
               ({ level, message, timestamp, context, stack }) => {
-                const coloredTimestamp = chalk.white(timestamp);
+                const coloredTimestamp = chalk.white(timestamp)
 
                 const colouredMessage = (message) => {
                   return level === 'debug' || level === 'verbose'
@@ -80,12 +80,12 @@ const dataDir =
                         ? chalk.yellow(message)
                         : level === 'info'
                           ? chalk.green(message)
-                          : chalk.cyan(message);
-                };
+                          : chalk.cyan(message)
+                }
 
-                const formattedLevel = `[${level.toUpperCase()}]`;
+                const formattedLevel = `[${level.toUpperCase()}]`
 
-                return `${chalk.green(`[maintainerr] |`)} ${coloredTimestamp}  ${colouredMessage(formattedLevel)} ${chalk.blue(`[${context}]`)} ${colouredMessage(formatLogMessage(message, stack))}`;
+                return `${chalk.green(`[maintainerr] |`)} ${coloredTimestamp}  ${colouredMessage(formattedLevel)} ${chalk.blue(`[${context}]`)} ${colouredMessage(formatLogMessage(message, stack))}`
               },
             ),
           ),
@@ -94,7 +94,7 @@ const dataDir =
             dailyRotateFileTransport,
             new EventEmitterTransport(eventEmitter),
           ],
-        });
+        })
       },
     },
   ],

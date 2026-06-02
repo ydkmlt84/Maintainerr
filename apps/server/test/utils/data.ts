@@ -1,36 +1,36 @@
-import { faker } from '@faker-js/faker';
+import { faker } from '@faker-js/faker'
 import {
   MediaItem,
   MediaItemType,
   MediaItemWithParent,
   MediaLibrary,
   MediaServerType,
-} from '@maintainerr/contracts';
+} from '@maintainerr/contracts'
 import {
   PlexLibrary,
   PlexLibraryItem,
-} from '../../src/modules/api/plex-api/interfaces/library.interfaces';
-import { PlexMetadata } from '../../src/modules/api/plex-api/interfaces/media.interface';
+} from '../../src/modules/api/plex-api/interfaces/library.interfaces'
+import { PlexMetadata } from '../../src/modules/api/plex-api/interfaces/media.interface'
 import {
   RadarrMovie,
   RadarrMovieFile,
   RadarrQuality,
-} from '../../src/modules/api/servarr-api/interfaces/radarr.interface';
+} from '../../src/modules/api/servarr-api/interfaces/radarr.interface'
 import {
   SonarrEpisode,
   SonarrEpisodeFile,
   SonarrSeries,
   SonarrSeriesStatusTypes,
   SonarrSeriesTypes,
-} from '../../src/modules/api/servarr-api/interfaces/sonarr.interface';
-import { Collection } from '../../src/modules/collections/entities/collection.entities';
+} from '../../src/modules/api/servarr-api/interfaces/sonarr.interface'
+import { Collection } from '../../src/modules/collections/entities/collection.entities'
 import {
   CollectionMedia,
   CollectionMediaWithMetadata,
-} from '../../src/modules/collections/entities/collection_media.entities';
-import { ServarrAction } from '../../src/modules/collections/interfaces/collection.interface';
-import { MaintainerrLogger } from '../../src/modules/logging/logs.service';
-import { RulesDto } from '../../src/modules/rules/dtos/rules.dto';
+} from '../../src/modules/collections/entities/collection_media.entities'
+import { ServarrAction } from '../../src/modules/collections/interfaces/collection.interface'
+import { MaintainerrLogger } from '../../src/modules/logging/logs.service'
+import { RulesDto } from '../../src/modules/rules/dtos/rules.dto'
 
 export const createCollection = (
   properties: Partial<Collection> = {},
@@ -72,8 +72,8 @@ export const createCollection = (
     sortTitle: undefined,
     totalSizeBytes: null,
     ...properties,
-  };
-};
+  }
+}
 
 export const createCollectionMedia = (
   collectionOrType?: Collection | MediaItemType,
@@ -84,11 +84,11 @@ export const createCollectionMedia = (
     collectionOrType !== null &&
     typeof collectionOrType === 'object' &&
     'id' in collectionOrType &&
-    'type' in collectionOrType;
+    'type' in collectionOrType
 
   const collectionToUse = isCollection
     ? (collectionOrType as Collection)
-    : createCollection({ type: collectionOrType as MediaItemType });
+    : createCollection({ type: collectionOrType as MediaItemType })
 
   return {
     id: faker.number.int(),
@@ -100,15 +100,15 @@ export const createCollectionMedia = (
     mediaServerId: faker.number.int().toString(),
     tmdbId: faker.number.int(),
     ...properties,
-  };
-};
+  }
+}
 
 type CollectionMediaWithMetadataOptional = Omit<
   CollectionMediaWithMetadata,
   'mediaData'
 > & {
-  mediaData: Partial<Omit<MediaItemWithParent, 'type'>>;
-};
+  mediaData: Partial<Omit<MediaItemWithParent, 'type'>>
+}
 
 export const createCollectionMediaWithMetadata = (
   collectionOrType?: Collection | MediaItemType,
@@ -117,7 +117,7 @@ export const createCollectionMediaWithMetadata = (
   const collectionMedia: CollectionMedia = {
     ...createCollectionMedia(collectionOrType, properties),
     ...properties,
-  };
+  }
 
   return {
     ...createCollectionMedia(collectionOrType, properties),
@@ -126,8 +126,8 @@ export const createCollectionMediaWithMetadata = (
       ...properties.mediaData,
       type: collectionMedia.collection.type,
     }),
-  };
-};
+  }
+}
 
 export const createMediaItem = (
   properties: Partial<MediaItem> = {},
@@ -139,7 +139,7 @@ export const createMediaItem = (
       'show',
       'season',
       'episode',
-    ] as MediaItemType[]);
+    ] as MediaItemType[])
 
   return {
     id: faker.number.int().toString(),
@@ -167,15 +167,15 @@ export const createMediaItem = (
     summary: faker.lorem.paragraph(),
     year: faker.number.int({ min: 1900, max: 2024 }),
     ...properties,
-  };
-};
+  }
+}
 
 export const createPlexMetadata = (
   properties: Partial<PlexMetadata> = {},
 ): PlexMetadata => {
   const type =
     properties.type ??
-    faker.helpers.arrayElement(['movie', 'show', 'season', 'episode']);
+    faker.helpers.arrayElement(['movie', 'show', 'season', 'episode'])
 
   return {
     ratingKey: faker.string.sample(10),
@@ -206,8 +206,8 @@ export const createPlexMetadata = (
     media: [],
     ...properties,
     type,
-  };
-};
+  }
+}
 
 export const createPlexLibraries = (
   properties: Partial<PlexLibrary> = {},
@@ -216,8 +216,8 @@ export const createPlexLibraries = (
     createPlexLibrary(properties),
     createPlexLibrary(),
     createPlexLibrary(),
-  ];
-};
+  ]
+}
 
 export const createPlexLibrary = (
   properties: Partial<PlexLibrary> = {},
@@ -227,7 +227,7 @@ export const createPlexLibrary = (
   key: faker.string.sample(10),
   title: faker.string.sample(10),
   ...properties,
-});
+})
 
 /**
  * Create a MediaLibrary for testing (server-agnostic library representation)
@@ -240,7 +240,7 @@ export const createMediaLibrary = (
   type: faker.helpers.arrayElement(['movie', 'show']),
   agent: faker.string.sample(10),
   ...properties,
-});
+})
 
 /**
  * Create multiple MediaLibraries for testing
@@ -252,8 +252,8 @@ export const createMediaLibraries = (
     createMediaLibrary(properties),
     createMediaLibrary(),
     createMediaLibrary(),
-  ];
-};
+  ]
+}
 
 export const createPlexLibraryItem = (
   type?: PlexMetadata['type'],
@@ -288,7 +288,7 @@ export const createPlexLibraryItem = (
   viewCount: faker.number.int(),
   year: faker.number.int(),
   ...properties,
-});
+})
 
 export const createRadarrMovie = (
   properties: Partial<RadarrMovie> = {},
@@ -345,7 +345,7 @@ export const createRadarrMovie = (
   titleSlug: faker.string.sample(10),
   year: faker.number.int(),
   ...properties,
-});
+})
 
 export const createRadarrMovieFile = (
   properties: Partial<RadarrMovieFile> = {},
@@ -385,7 +385,7 @@ export const createRadarrMovieFile = (
     ...(properties.mediaInfo as any),
   },
   ...properties,
-});
+})
 
 export const createRadarrQuality = (
   properties: Partial<RadarrQuality> = {},
@@ -396,12 +396,12 @@ export const createRadarrQuality = (
   resolution: faker.helpers.arrayElement([720, 1080, 2160, 480, 360, 240]),
   source: faker.helpers.arrayElement(['bluray', 'tv', 'webdl', 'dvd']),
   ...properties,
-});
+})
 
 export const createSonarrSeries = (
   properties: Partial<SonarrSeries> = {},
 ): SonarrSeries => {
-  const title = faker.string.sample(10);
+  const title = faker.string.sample(10)
 
   return {
     title,
@@ -467,8 +467,8 @@ export const createSonarrSeries = (
     certification: faker.string.sample(10),
     genres: [faker.string.sample(10), faker.string.sample(10)],
     ...properties,
-  };
-};
+  }
+}
 
 export const createSonarrEpisode = (
   properties: Partial<SonarrEpisode> = {},
@@ -483,7 +483,7 @@ export const createSonarrEpisode = (
   episodeFileId: faker.number.int(),
   monitored: faker.datatype.boolean(),
   ...properties,
-});
+})
 
 export const createSonarrEpisodeFile = (
   properties: Partial<SonarrEpisodeFile> = {},
@@ -523,7 +523,7 @@ export const createSonarrEpisodeFile = (
     ...(properties.mediaInfo as any),
   },
   ...properties,
-});
+})
 
 export const createRulesDto = (
   properties: Partial<RulesDto> = {},
@@ -540,7 +540,7 @@ export const createRulesDto = (
   rules: [],
   description: faker.string.sample(10),
   ...properties,
-});
+})
 
 /**
  * Create a mock MaintainerrLogger for use in tests that construct services manually.
@@ -553,4 +553,4 @@ export const createMockLogger = (): jest.Mocked<MaintainerrLogger> =>
     warn: jest.fn(),
     error: jest.fn(),
     debug: jest.fn(),
-  }) as unknown as jest.Mocked<MaintainerrLogger>;
+  }) as unknown as jest.Mocked<MaintainerrLogger>

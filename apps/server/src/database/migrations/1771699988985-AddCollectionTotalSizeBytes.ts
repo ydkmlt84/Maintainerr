@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class AddCollectionTotalSizeBytes1771699988985 implements MigrationInterface {
-  name = 'AddCollectionTotalSizeBytes1771699988985';
+  name = 'AddCollectionTotalSizeBytes1771699988985'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -34,7 +34,7 @@ export class AddCollectionTotalSizeBytes1771699988985 implements MigrationInterf
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection"(
                     "id",
@@ -87,21 +87,21 @@ export class AddCollectionTotalSizeBytes1771699988985 implements MigrationInterf
                 "mediaServerId",
                 "mediaServerType"
             FROM "collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection"
                 RENAME TO "collection"
-        `);
+        `)
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
             ALTER TABLE "collection"
                 RENAME TO "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -131,7 +131,7 @@ export class AddCollectionTotalSizeBytes1771699988985 implements MigrationInterf
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection"(
                     "id",
@@ -184,9 +184,9 @@ export class AddCollectionTotalSizeBytes1771699988985 implements MigrationInterf
                 "mediaServerId",
                 "mediaServerType"
             FROM "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection"
-        `);
+        `)
   }
 }

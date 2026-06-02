@@ -86,7 +86,6 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
           `No TMDB ID found for "${title}" (id: ${id}). Backdrop image unavailable. ` +
             'Please check your media server metadata - the item may not be matched correctly.',
         )
-        setBackdrop(null)
       }
     }, [id, mediaType, tmdbid, title])
 

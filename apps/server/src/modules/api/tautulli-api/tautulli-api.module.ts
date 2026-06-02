@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { TautulliApiService } from './tautulli-api.service';
-import { TautulliApiController } from './tautulli-api.controller';
-import { ExternalApiModule } from '../external-api/external-api.module';
+import { Module } from '@nestjs/common'
+import { TautulliApiService } from './tautulli-api.service'
+import { TautulliApiController } from './tautulli-api.controller'
+import { ExternalApiModule } from '../external-api/external-api.module'
 
 @Module({
   imports: [ExternalApiModule],

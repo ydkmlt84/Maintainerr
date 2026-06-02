@@ -14,7 +14,7 @@ import {
   PagedResult,
   UpdateCollectionParams,
   WatchRecord,
-} from '@maintainerr/contracts';
+} from '@maintainerr/contracts'
 import {
   BadRequestException,
   Body,
@@ -28,14 +28,14 @@ import {
   Put,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { z } from 'zod';
-import { MediaServerSetupGuard } from './guards';
-import { MediaServerFactory } from './media-server.factory';
+} from '@nestjs/common'
+import { ZodValidationPipe } from 'nestjs-zod'
+import { z } from 'zod'
+import { MediaServerSetupGuard } from './guards'
+import { MediaServerFactory } from './media-server.factory'
 
-const mediaLibrarySortQuerySchema = z.enum(mediaLibrarySortFields).optional();
-const mediaSortOrderQuerySchema = z.enum(mediaSortOrders).optional();
+const mediaLibrarySortQuerySchema = z.enum(mediaLibrarySortFields).optional()
+const mediaSortOrderQuerySchema = z.enum(mediaSortOrders).optional()
 
 /**
  * Unified Media Server Controller
@@ -48,26 +48,26 @@ const mediaSortOrderQuerySchema = z.enum(mediaSortOrders).optional();
 @Controller('api/media-server')
 @UseGuards(MediaServerSetupGuard)
 export class MediaServerController {
-  private readonly logger = new Logger(MediaServerController.name);
+  private readonly logger = new Logger(MediaServerController.name)
 
   constructor(private readonly mediaServerFactory: MediaServerFactory) {}
 
   @Get()
   async getStatus(): Promise<MediaServerStatus | undefined> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getStatus();
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getStatus()
   }
 
   @Get('type')
   async getServerType(): Promise<{ type: string }> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return { type: mediaServer.getServerType() };
+    const mediaServer = await this.mediaServerFactory.getService()
+    return { type: mediaServer.getServerType() }
   }
 
   @Get('libraries')
   async getLibraries(): Promise<MediaLibrary[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return await mediaServer.getLibraries();
+    const mediaServer = await this.mediaServerFactory.getService()
+    return await mediaServer.getLibraries()
   }
 
   @Get('library/:id/content')
@@ -81,10 +81,10 @@ export class MediaServerController {
     @Query('sortOrder', new ZodValidationPipe(mediaSortOrderQuerySchema))
     sortOrder?: MediaSortOrder,
   ): Promise<PagedResult<MediaItem>> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    const pageNum = Math.max(page ?? 1, 1);
-    const size = limit ?? 50;
-    const offset = (pageNum - 1) * size;
+    const mediaServer = await this.mediaServerFactory.getService()
+    const pageNum = Math.max(page ?? 1, 1)
+    const size = limit ?? 50
+    const offset = (pageNum - 1) * size
 
     return await mediaServer.getLibraryContents(id, {
       offset,
@@ -92,7 +92,7 @@ export class MediaServerController {
       type,
       sort,
       sortOrder,
-    });
+    })
   }
 
   @Get('library/:id/content/search/:query')
@@ -101,8 +101,8 @@ export class MediaServerController {
     @Param('query') query: string,
     @Query('type') type?: MediaItemType,
   ): Promise<MediaItem[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.searchLibraryContents(id, query, type);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.searchLibraryContents(id, query, type)
   }
 
   @Get('library/:id/recent')
@@ -110,78 +110,78 @@ export class MediaServerController {
     @Param('id') id: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ): Promise<MediaItem[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getRecentlyAdded(id, { limit });
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getRecentlyAdded(id, { limit })
   }
 
   @Get('users')
   async getUsers(): Promise<MediaUser[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getUsers();
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getUsers()
   }
 
   @Get('user/:id')
   async getUser(@Param('id') id: string): Promise<MediaUser | undefined> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getUser(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getUser(id)
   }
 
   @Get('meta/:id')
   async getMetadata(@Param('id') id: string): Promise<MediaItem | undefined> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getMetadata(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getMetadata(id)
   }
 
   @Get('meta/:id/children')
   async getChildrenMetadata(@Param('id') id: string): Promise<MediaItem[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getChildrenMetadata(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getChildrenMetadata(id)
   }
 
   @Get('meta/:id/seen')
   async getWatchHistory(@Param('id') id: string): Promise<WatchRecord[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getWatchHistory(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getWatchHistory(id)
   }
 
   @Get('search/:query')
   async searchContent(@Param('query') query: string): Promise<MediaItem[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.searchContent(query);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.searchContent(query)
   }
 
   @Get('library/:id/collections')
   async getCollections(@Param('id') id: string): Promise<MediaCollection[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getCollections(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getCollections(id)
   }
 
   @Get('collection/:id')
   async getCollection(
     @Param('id') id: string,
   ): Promise<MediaCollection | undefined> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getCollection(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getCollection(id)
   }
 
   @Get('collection/:id/children')
   async getCollectionChildren(@Param('id') id: string): Promise<MediaItem[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.getCollectionChildren(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.getCollectionChildren(id)
   }
 
   @Post('collection')
   async createCollection(
     @Body() params: CreateCollectionParams,
   ): Promise<MediaCollection> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.createCollection(params);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.createCollection(params)
   }
 
   @Delete('collection/:id')
   async deleteCollection(@Param('id') id: string): Promise<void> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.deleteCollection(id);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.deleteCollection(id)
   }
 
   @Put('collection/:collectionId/item/:itemId')
@@ -189,8 +189,8 @@ export class MediaServerController {
     @Param('collectionId') collectionId: string,
     @Param('itemId') itemId: string,
   ): Promise<void> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.addToCollection(collectionId, itemId);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.addToCollection(collectionId, itemId)
   }
 
   @Delete('collection/:collectionId/item/:itemId')
@@ -198,8 +198,8 @@ export class MediaServerController {
     @Param('collectionId') collectionId: string,
     @Param('itemId') itemId: string,
   ): Promise<void> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.removeFromCollection(collectionId, itemId);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.removeFromCollection(collectionId, itemId)
   }
 
   // COLLECTION METADATA & VISIBILITY
@@ -213,8 +213,8 @@ export class MediaServerController {
   async updateCollection(
     @Body() params: UpdateCollectionParams,
   ): Promise<MediaCollection> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.updateCollection(params);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.updateCollection(params)
   }
 
   /**
@@ -234,9 +234,9 @@ export class MediaServerController {
     ) {
       throw new BadRequestException(
         'libraryId, collectionId, and at least one visibility setting are required.',
-      );
+      )
     }
-    const mediaServer = await this.mediaServerFactory.getService();
-    return mediaServer.updateCollectionVisibility(settings);
+    const mediaServer = await this.mediaServerFactory.getService()
+    return mediaServer.updateCollectionVisibility(settings)
   }
 }

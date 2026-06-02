@@ -1,4 +1,4 @@
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm'
 
 const ormConfig: TypeOrmModuleOptions = {
   type: 'better-sqlite3',
@@ -14,5 +14,5 @@ const ormConfig: TypeOrmModuleOptions = {
       : ['./dist/database/migrations/**/*{.js,.ts}'],
   autoLoadEntities: true,
   migrationsRun: true,
-};
-export default ormConfig;
+}
+export default ormConfig

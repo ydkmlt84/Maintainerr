@@ -1,34 +1,34 @@
-import { Injectable } from '@nestjs/common';
-import YAML from 'yaml';
+import { Injectable } from '@nestjs/common'
+import YAML from 'yaml'
 import {
   MediaDataTypeStrings,
   MediaItemType,
   MediaItemTypes,
-} from '@maintainerr/contracts';
-import { MaintainerrLogger } from '../../logging/logs.service';
+} from '@maintainerr/contracts'
+import { MaintainerrLogger } from '../../logging/logs.service'
 import {
   ICustomIdentifier,
   RuleConstanstService,
-} from '../constants/constants.service';
-import { RuleOperators, RulePossibility } from '../constants/rules.constants';
-import { RuleDto } from '../dtos/rule.dto';
-import { ReturnStatus } from '../rules.service';
+} from '../constants/constants.service'
+import { RuleOperators, RulePossibility } from '../constants/rules.constants'
+import { RuleDto } from '../dtos/rule.dto'
+import { ReturnStatus } from '../rules.service'
 
 interface IRuleYamlParent {
-  mediaType: string;
-  rules: ISectionYaml[];
+  mediaType: string
+  rules: ISectionYaml[]
 }
 
 interface ISectionYaml {
-  [key: number]: IRuleYaml[];
+  [key: number]: IRuleYaml[]
 }
 
 interface IRuleYaml {
-  operator?: string;
-  action: string;
-  firstValue: string;
-  lastValue?: string;
-  customValue?: ICustomIdentifier;
+  operator?: string
+  action: string
+  firstValue: string
+  lastValue?: string
+  customValue?: ICustomIdentifier
 }
 
 @Injectable()
@@ -37,21 +37,21 @@ export class RuleYamlService {
     private readonly ruleConstanstService: RuleConstanstService,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(RuleYamlService.name);
+    logger.setContext(RuleYamlService.name)
   }
 
   public encode(rules: RuleDto[], mediaType: MediaItemType): ReturnStatus {
     try {
-      let workingSection = { id: 0, rules: [] };
-      const sections: ISectionYaml[] = [];
+      let workingSection = { id: 0, rules: [] }
+      const sections: ISectionYaml[] = []
 
       for (const rule of rules) {
         if (rule.section !== workingSection.id) {
           // push section and prepare next section
           sections.push({
             [+workingSection.id]: workingSection.rules,
-          });
-          workingSection = { id: rule.section, rules: [] };
+          })
+          workingSection = { id: rule.section, rules: [] }
         }
 
         // transform rule and add to workingSection
@@ -75,64 +75,62 @@ export class RuleYamlService {
                 ),
               }
             : {}),
-        });
+        })
       }
 
       // push last workingsection to sections
-      sections.push({ [+workingSection.id]: workingSection.rules });
+      sections.push({ [+workingSection.id]: workingSection.rules })
       // Convert MediaItemType to uppercase string for YAML serialization
-      const mediaTypeIndex = MediaItemTypes.indexOf(mediaType);
+      const mediaTypeIndex = MediaItemTypes.indexOf(mediaType)
       const fullObject: IRuleYamlParent = {
         mediaType:
           mediaTypeIndex >= 0
             ? MediaDataTypeStrings[mediaTypeIndex]
             : MediaDataTypeStrings[0],
         rules: sections,
-      };
+      }
       // Transform to yaml
-      const yaml = YAML.stringify(fullObject);
+      const yaml = YAML.stringify(fullObject)
 
       return {
         code: 1,
         result: yaml,
         message: 'success',
-      };
+      }
     } catch (e) {
-      this.logger.warn(`Yaml export failed : ${e.message}`);
-      this.logger.debug(e);
+      this.logger.warn(`Yaml export failed : ${e.message}`)
+      this.logger.debug(e)
       return {
         code: 0,
         message: 'Yaml export failed. Please check logs',
-      };
+      }
     }
   }
 
   public decode(yaml: string, mediaType: MediaItemType): ReturnStatus {
     try {
-      const decoded: IRuleYamlParent = YAML.parse(yaml);
-      const rules: RuleDto[] = [];
-      let idRef = 0;
+      const decoded: IRuleYamlParent = YAML.parse(yaml)
+      const rules: RuleDto[] = []
+      let idRef = 0
 
       // Convert YAML uppercase string to MediaItemType
       const yamlMediaTypeIndex = MediaDataTypeStrings.indexOf(
         decoded.mediaType.toUpperCase(),
-      );
+      )
       const yamlMediaType: MediaItemType | undefined =
-        yamlMediaTypeIndex >= 0
-          ? MediaItemTypes[yamlMediaTypeIndex]
-          : undefined;
+        yamlMediaTypeIndex >= 0 ? MediaItemTypes[yamlMediaTypeIndex] : undefined
 
       // Break when media types are incompatible
       if (!yamlMediaType || mediaType !== yamlMediaType) {
-        this.logger.warn(`Yaml import failed. Incompatible media types`);
+        this.logger.warn(`Yaml import failed. Incompatible media types`)
         this.logger.debug(
           `Media type '${mediaType}' is not compatible with YAML media type '${decoded.mediaType}'`,
-        );
+        )
 
         return {
           code: 0,
           message: 'Yaml import failed. Incompatible media types.',
-        };
+        }
       }
 
       for (const section of decoded.rules) {
@@ -161,28 +159,28 @@ export class RuleYamlService {
                     ),
                 }
               : {}),
-          });
+          })
         }
-        idRef++;
+        idRef++
       }
 
       const returnObj: { mediaType: MediaItemType; rules: RuleDto[] } = {
         mediaType: yamlMediaType,
         rules: rules,
-      };
+      }
 
       return {
         code: 1,
         result: JSON.stringify(returnObj),
         message: 'success',
-      };
+      }
     } catch (e) {
-      this.logger.warn(`Yaml import failed. Is the yaml valid?`);
-      this.logger.debug(e);
+      this.logger.warn(`Yaml import failed. Is the yaml valid?`)
+      this.logger.debug(e)
       return {
         code: 0,
         message: 'Import failed, please check your yaml',
-      };
+      }
     }
   }
 }
