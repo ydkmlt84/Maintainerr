@@ -14,12 +14,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {...props}
         ref={ref}
         className={clsx(
-          'block w-full min-w-0 flex-1 rounded-md border border-sky-500/25 bg-slate-900/80 text-white shadow-sm shadow-slate-950/20 transition duration-150 ease-in-out focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40 disabled:opacity-50 sm:text-sm sm:leading-5',
-          {
-            '!border-red-500 outline-red-500 focus:border-red-500 focus:outline-none focus:ring-0':
-              !props.disabled && error,
-            className,
-          },
+          'block w-full min-w-0 flex-1 rounded-md border border-zinc-500 bg-zinc-700 text-white shadow-sm transition duration-150 ease-in-out focus:border-maintainerr-600 focus:outline-none focus:ring-0 disabled:opacity-50 sm:text-sm sm:leading-5',
+          !props.disabled &&
+            error &&
+            '!border-red-500 outline-red-500 focus:border-red-500 focus:outline-none focus:ring-0',
+          className,
         )}
         aria-required={required}
         aria-invalid={error}

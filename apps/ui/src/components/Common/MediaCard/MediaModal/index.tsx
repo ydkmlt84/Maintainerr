@@ -1,5 +1,6 @@
 import { MediaItem } from '@maintainerr/contracts'
 import React, { memo, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useMediaServerType } from '../../../../hooks/useMediaServerType'
 import GetApiHandler from '../../../../utils/ApiHandler'
 
@@ -96,13 +97,13 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
         document.body.style.overflow = ''
       }
     }, [])
-    return (
+    return createPortal(
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-3"
         onClick={onClose} // Close modal when clicking outside
       >
         <div
-          className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl border border-sky-500/20 bg-slate-950/95 shadow-2xl shadow-slate-950/50"
+          className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl border border-zinc-700 bg-zinc-950/95 shadow-2xl shadow-slate-950/50"
           onClick={(e) => e.stopPropagation()} // Prevent modal close on content click
         >
           {/* Top Half with Background Image */}
@@ -117,7 +118,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             ></div>
             {loading && (
               <div className="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-sky-600 border-t-sky-200"></div>
+                <div className="h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-maintainerr-600 border-t-maintainerr-200"></div>
               </div>
             )}
 
@@ -129,10 +130,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                       mediaType === 'movie'
                         ? 'bg-black'
                         : mediaType === 'show'
-                          ? 'bg-sky-900'
+                          ? 'bg-zinc-800'
                           : mediaType === 'season'
-                            ? 'bg-cyan-800'
-                            : 'bg-indigo-900'
+                            ? 'bg-zinc-800'
+                            : 'bg-zinc-800'
                     }`}
                   >
                     {mediaType}
@@ -312,7 +313,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               <div className="ml-auto flex space-x-3">
                 <button
                   onClick={onClose}
-                  className="rounded bg-sky-600 px-4 py-2 text-white shadow-lg shadow-sky-950/30 hover:bg-sky-500 focus:outline-none"
+                  className="rounded bg-maintainerr-600 px-4 py-2 text-white shadow-lg shadow-maintainerr-950/30 hover:bg-maintainerr focus:outline-none"
                 >
                   Close
                 </button>
@@ -320,7 +321,8 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body,
     )
   },
 )

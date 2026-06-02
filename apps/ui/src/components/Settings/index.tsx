@@ -102,25 +102,27 @@ const SettingsWrapper = () => {
 
   if (error) {
     return (
-      <>
-        <div className="mt-6">
+      <div className="mt-6 flex flex-col gap-6 sm:mt-0 sm:block sm:pl-64">
+        <div className="sm:fixed sm:bottom-0 sm:left-0 sm:top-[7.5rem] sm:w-64 sm:p-4">
           <SettingsTabs settingsRoutes={settingsRoutes} allEnabled={false} />
         </div>
-        <div className="mt-10 flex">
+        <div className="flex min-w-0 flex-1">
           <Alert type="error" title="There was a problem loading settings." />
         </div>
-      </>
+      </div>
     )
   }
 
   if (isLoading) {
     return (
-      <>
-        <div className="mt-6">
+      <div className="mt-6 flex flex-col gap-6 sm:mt-0 sm:block sm:pl-64">
+        <div className="sm:fixed sm:bottom-0 sm:left-0 sm:top-[7.5rem] sm:w-64 sm:p-4">
           <SettingsTabs settingsRoutes={settingsRoutes} allEnabled={false} />
         </div>
-        <LoadingSpinner />
-      </>
+        <div className="min-w-0 flex-1">
+          <LoadingSpinner />
+        </div>
+      </div>
     )
   }
 
@@ -132,17 +134,17 @@ const SettingsWrapper = () => {
     )
 
     return (
-      <>
-        <div className="mt-6">
+      <div className="mt-6 flex flex-col gap-6 sm:mt-0 sm:block sm:pl-64">
+        <div className="sm:fixed sm:bottom-0 sm:left-0 sm:top-[7.5rem] sm:w-64 sm:p-4">
           <SettingsTabs
             settingsRoutes={settingsRoutes}
             allEnabled={isMediaServerConfigured}
           />
         </div>
-        <div className="mt-10 text-white">
+        <div className="min-w-0 flex-1 text-white">
           <Outlet context={{ settings }} />
         </div>
-      </>
+      </div>
     )
   }
 

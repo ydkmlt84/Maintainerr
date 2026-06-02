@@ -28,16 +28,16 @@ const SettingsLink: React.FC<ISettingsLink> = (props: ISettingsLink) => {
   }
 
   let linkClasses =
-    (props.disabled ? 'pointer-events-none touch-none ' : '') +
-    'px-1 py-4 ml-8 text-sm font-medium leading-5 transition duration-300 border-b-2  whitespace-nowrap first:ml-0'
-  let activeLinkColor = 'text-amber-500 border-amber-600 border-b'
+    (props.disabled ? 'pointer-events-none touch-none opacity-50 ' : '') +
+    'flex w-full items-center rounded-md border px-3 py-3 text-sm font-medium leading-5 transition duration-300'
+  let activeLinkColor = 'panel-surface border-zinc-500 text-white shadow-sm'
   let inactiveLinkColor =
-    'text-zinc-500 border-transparent hover:text-zinc-300 hover:border-zinc-400 focus:text-zinc-300 focus:border-zinc-400'
+    'border-transparent text-slate-400 hover:border-zinc-600 hover:bg-zinc-900/80 hover:text-slate-100 focus:border-zinc-500 focus:bg-zinc-900/80 focus:text-slate-100'
 
   if (props.tabType === 'button') {
     linkClasses =
       'px-3 py-2 text-sm font-medium transition duration-300 rounded-md whitespace-nowrap mx-2 my-1'
-    activeLinkColor = 'bg-amber-700'
+    activeLinkColor = 'bg-maintainerr-600 text-white'
     inactiveLinkColor = 'bg-zinc-800 hover:bg-zinc-700 focus:bg-zinc-700'
   }
 
@@ -83,10 +83,12 @@ const SettingsTabs: React.FC<{
   return (
     <>
       <div className="sm:hidden">
-        <label htmlFor="tabs" className="sr-only">
+        <label htmlFor="settings-tabs" className="sr-only">
           Select a Tab
         </label>
         <select
+          id="settings-tabs"
+          className="block w-full rounded-md border border-zinc-700 bg-zinc-900 text-white shadow-sm shadow-slate-950/20 transition duration-150 ease-in-out focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/40 sm:text-sm sm:leading-5"
           value={currentRoute}
           onChange={(e) => {
             navigate(e.target.value)
@@ -129,8 +131,8 @@ const SettingsTabs: React.FC<{
           </nav>
         </div>
       ) : (
-        <div className="hide-scrollbar hidden overflow-x-scroll border-b border-zinc-600 sm:block">
-          <nav className="flex">
+        <aside className="hidden sm:block">
+          <nav className="flex flex-col gap-2 p-1.5" aria-label="Settings">
             {settingsRoutes.map((route, index) => (
               <SettingsLink
                 disabled={!allEnabled}
@@ -144,7 +146,7 @@ const SettingsTabs: React.FC<{
               </SettingsLink>
             ))}
           </nav>
-        </div>
+        </aside>
       )}
     </>
   )

@@ -1,13 +1,15 @@
-import { Transition, TransitionChild } from '@headlessui/react'
 import {
   CalendarIcon,
+  ChartBarIcon,
   ClipboardCheckIcon,
   CollectionIcon,
   CogIcon,
   EyeIcon,
+  MenuIcon,
+  SearchIcon,
   XIcon,
 } from '@heroicons/react/outline'
-import { ReactNode, useContext, useMemo, useRef } from 'react'
+import { ReactNode, useContext, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import SearchContext from '../../../contexts/search-context'
 import Messages from '../../Messages/Messages'
@@ -22,15 +24,15 @@ interface NavBarLink {
 }
 
 interface NavBarProps {
-  open?: boolean
-  setClosed: () => void
+  onSearchOpen: () => void
 }
 
-const NavBar: React.FC<NavBarProps> = ({ open, setClosed }) => {
-  const navRef = useRef<HTMLDivElement>(null)
+const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const SearchCtx = useContext(SearchContext)
   const basePath = import.meta.env.VITE_BASE_PATH ?? ''
   const location = useLocation()
+  const isMediaRoute = /^\/media(?:\/.*)?$/.test(location.pathname)
   // Keep variable for potential future customization
   const collectionsLabel = 'Collections'
 
@@ -39,35 +41,42 @@ const NavBar: React.FC<NavBarProps> = ({ open, setClosed }) => {
       {
         key: '0',
         href: '/overview',
-        svgIcon: <EyeIcon className="mr-3 h-6 w-6" />,
+        svgIcon: <ChartBarIcon className="h-5 w-5" />,
         name: 'Overview',
         matchPattern: /^\/(?:overview(?:\/.*)?|)$/,
       },
       {
         key: '1',
+        href: '/media',
+        svgIcon: <EyeIcon className="h-5 w-5" />,
+        name: 'Media',
+        matchPattern: /^\/media(?:\/.*)?$/,
+      },
+      {
+        key: '2',
         href: '/rules',
-        svgIcon: <ClipboardCheckIcon className="mr-3 h-6 w-6" />,
+        svgIcon: <ClipboardCheckIcon className="h-5 w-5" />,
         name: 'Rules',
         matchPattern: /^\/rules(?:\/.*)?$/,
       },
       {
-        key: '2',
+        key: '3',
         href: '/collections',
-        svgIcon: <CollectionIcon className="mr-3 h-6 w-6" />,
+        svgIcon: <CollectionIcon className="h-5 w-5" />,
         name: collectionsLabel,
         matchPattern: /^\/collections(?:\/.*)?$/,
       },
       {
-        key: '3',
+        key: '4',
         href: '/calendar',
-        svgIcon: <CalendarIcon className="mr-3 h-6 w-6" />,
+        svgIcon: <CalendarIcon className="h-5 w-5" />,
         name: 'Calendar',
         matchPattern: /^\/calendar(?:\/.*)?$/,
       },
       {
-        key: '4',
+        key: '5',
         href: '/settings',
-        svgIcon: <CogIcon className="mr-3 h-6 w-6" />,
+        svgIcon: <CogIcon className="h-5 w-5" />,
         name: 'Settings',
         matchPattern: /^\/settings(?:\/.*)?$/,
       },
@@ -84,126 +93,99 @@ const NavBar: React.FC<NavBarProps> = ({ open, setClosed }) => {
   }
 
   return (
-    <div>
-      <div className="lg:hidden">
-        <Transition show={open}>
-          <TransitionChild>
-            <div className="fixed inset-0 z-40 bg-slate-950 opacity-90 transition-opacity duration-300 ease-linear data-[closed]:opacity-0"></div>
-          </TransitionChild>
-          <TransitionChild>
-            <div className="fixed inset-y-0 z-40 flex translate-x-0 transform transition duration-300 ease-in-out data-[closed]:-translate-x-full">
-              <div className="sidebar relative flex w-full max-w-xs flex-1 flex-col bg-slate-950">
-                <div className="sidebar-close-button absolute right-0 top-0 -mr-14 p-1">
-                  <button
-                    className="flex h-12 w-12 items-center justify-center rounded-full text-white focus:bg-sky-900 focus:outline-none"
-                    aria-label="Close sidebar"
-                    onClick={() => setClosed()}
-                  >
-                    <XIcon className="h-6 w-6 text-white" />
-                  </button>
-                </div>
-                <div
-                  ref={navRef}
-                  className="flex h-0 flex-1 flex-col overflow-y-auto pb-8 pt-4 sm:pb-4"
-                >
-                  <div className="flex flex-shrink-0 items-center px-2">
-                    <span className="px-4 text-xl text-zinc-50">
-                      <Link to="/">
-                        <img
-                          style={{ width: '100%', height: 'auto' }}
-                          src={`${basePath}/logo.svg`}
-                          alt="Logo"
-                        />
-                      </Link>
-                    </span>
-                  </div>
-                  <nav className="mt-12 flex-1 space-y-4 px-4">
-                    {navBarItems.map((link) => {
-                      return (
-                        <Link
-                          key={link.key}
-                          to={link.href}
-                          onClick={() => {
-                            if (link.href === '/overview') {
-                              SearchCtx.removeText()
-                            }
-                            setClosed()
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          className={`flex items-center rounded-md px-2 py-2 text-base font-medium leading-6 text-white transition duration-150 ease-in-out ${
-                            linkIsActive(link)
-                              ? 'border border-sky-400/40 bg-gradient-to-br from-sky-600/95 to-cyan-900/95 shadow-lg shadow-sky-950/40 hover:from-sky-500 hover:to-cyan-800'
-                              : 'border border-transparent hover:border-sky-500/20 hover:bg-sky-500/10'
-                          } focus:bg-sky-900 focus:outline-none`}
-                        >
-                          {link.svgIcon}
-                          {link.name}
-                        </Link>
-                      )
-                    })}
-                  </nav>
-                </div>
-                <span className="mb-4 flex flex-col gap-y-4">
-                  <Messages />
-                  <VersionStatus />
-                </span>
-              </div>
-              <div className="w-14 flex-shrink-0">
-                {/* <!-- Force sidebar to shrink to fit close icon --> */}
-              </div>
-            </div>
-          </TransitionChild>
-        </Transition>
-      </div>
-
-      <div className="fixed bottom-0 left-0 top-0 z-30 hidden lg:flex lg:flex-shrink-0">
-        <div className="sidebar flex w-64 flex-col">
-          <div className="flex h-0 flex-1 flex-col">
-            <div className="flex flex-1 flex-col overflow-y-auto pb-4 pt-4">
-              <div className="flex flex-shrink-0 items-center">
-                <span className="px-4 text-2xl text-zinc-50">
-                  <Link to="/">
-                    <img
-                      style={{ width: '100%', height: 'auto' }}
-                      src={`${basePath}/logo.svg`}
-                      alt="Logo"
-                    />
-                  </Link>
-                </span>
-              </div>
-              <nav className="mt-12 flex-1 space-y-4 px-4">
-                {navBarItems.map((navBarLink) => {
-                  return (
-                    <Link
-                      key={`desktop-${navBarLink.key}`}
-                      to={navBarLink.href}
-                      onClick={() => {
-                        if (navBarLink.href === '/overview') {
-                          SearchCtx.removeText()
-                        }
-                      }}
-                      className={`group flex items-center rounded-md px-2 py-2 text-lg font-medium leading-6 text-white transition duration-150 ease-in-out ${
-                        linkIsActive(navBarLink)
-                          ? 'border border-sky-400/40 bg-gradient-to-br from-sky-600/95 to-cyan-900/95 shadow-lg shadow-sky-950/40 hover:from-sky-500 hover:to-cyan-800'
-                          : 'border border-transparent hover:border-sky-500/20 hover:bg-sky-500/10'
-                      } focus:bg-sky-900 focus:outline-none`}
-                    >
-                      {navBarLink.svgIcon}
-                      {navBarLink.name}
-                    </Link>
-                  )
-                })}
-              </nav>
-              <div className="flex flex-col gap-y-4">
-                <Messages />
-                <VersionStatus />
-              </div>
-            </div>
-          </div>
+    <header
+      className={`searchbar fixed left-0 right-0 top-0 z-30 shadow-none ${
+        isMediaRoute ? 'overview-nav-pass' : 'top-app-chrome'
+      }`}
+    >
+      <div
+        className={`relative z-10 flex h-full min-w-0 items-center gap-3 px-3 pb-4 pt-1 sm:px-4 ${
+          isMediaRoute ? 'overview-nav-content' : ''
+        }`}
+      >
+        <Link
+          to="/"
+          className="order-2 mx-auto mt-1 flex h-16 w-[10.75rem] flex-shrink-0 items-center justify-center overflow-visible xs:w-[12.5rem] sm:w-[17rem] md:order-none md:mx-0 md:mt-0 md:justify-start"
+        >
+          <img
+            className="block h-[3.55rem] w-auto max-w-full object-contain"
+            src={`${basePath}/logo.svg`}
+            alt="Logo"
+          />
+        </Link>
+        <button
+          className="order-1 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center text-zinc-200 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500/50 md:order-none"
+          aria-label="Open search"
+          onClick={onSearchOpen}
+        >
+          <SearchIcon className="h-5 w-5" />
+        </button>
+        <nav className="hidden min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 md:flex">
+          {navBarItems.map((navBarLink) => {
+            return (
+              <Link
+                key={navBarLink.key}
+                to={navBarLink.href}
+                onClick={() => {
+                  if (navBarLink.href === '/media') {
+                    SearchCtx.removeText()
+                  }
+                }}
+                className={`group inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-md border px-3 text-sm font-medium leading-6 text-white transition duration-150 ease-in-out ${
+                  linkIsActive(navBarLink)
+                    ? 'border-transparent bg-gradient-to-br from-maintainerr-600 to-maintainerrdark-800 hover:from-maintainerr hover:to-maintainerrdark-700'
+                    : 'border-transparent hover:bg-zinc-700'
+                } focus:bg-zinc-800 focus:outline-none`}
+              >
+                {navBarLink.svgIcon}
+                <span className="hidden sm:inline">{navBarLink.name}</span>
+              </Link>
+            )
+          })}
+        </nav>
+        <button
+          className="action-lens-button order-3 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-zinc-600 bg-zinc-800 text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-maintainerr/50 md:order-none md:ml-auto md:hidden"
+          aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          {mobileMenuOpen ? (
+            <XIcon className="h-5 w-5" />
+          ) : (
+            <MenuIcon className="h-5 w-5" />
+          )}
+        </button>
+        <div className="hidden max-w-sm flex-shrink-0 items-center gap-2 xl:flex">
+          <Messages />
+          <VersionStatus />
         </div>
       </div>
-    </div>
+      {mobileMenuOpen ? (
+        <div className="mobile-nav-menu absolute left-0 right-0 top-full border-t border-zinc-700 px-3 py-3 shadow-2xl shadow-black/50 md:hidden">
+          <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
+            {navBarItems.map((navBarLink) => (
+              <Link
+                key={`mobile-${navBarLink.key}`}
+                to={navBarLink.href}
+                onClick={() => {
+                  if (navBarLink.href === '/media') {
+                    SearchCtx.removeText()
+                  }
+                  setMobileMenuOpen(false)
+                }}
+                className={`group inline-flex h-11 items-center gap-3 rounded-md border px-3 text-sm font-medium leading-6 text-white transition duration-150 ease-in-out ${
+                  linkIsActive(navBarLink)
+                    ? 'border-transparent bg-gradient-to-br from-maintainerr-600 to-maintainerrdark-800 text-white'
+                    : 'border-transparent text-slate-300 hover:bg-zinc-700 hover:text-white'
+                } focus:bg-zinc-800 focus:outline-none`}
+              >
+                {navBarLink.svgIcon}
+                <span>{navBarLink.name}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      ) : null}
+    </header>
   )
 }
 

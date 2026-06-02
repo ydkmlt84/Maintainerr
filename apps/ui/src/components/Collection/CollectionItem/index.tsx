@@ -66,7 +66,7 @@ const CollectionItem = (props: ICollectionItem) => {
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Library
               </p>
-              <p className="truncate text-amber-500">
+              <p className="truncate text-maintainerr">
                 {libraries?.find(
                   (lib) =>
                     String(lib.id) === String(props.collection.libraryId),
@@ -79,7 +79,7 @@ const CollectionItem = (props: ICollectionItem) => {
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   Media Type
                 </p>
-                <p className="text-amber-500">
+                <p className="text-maintainerr">
                   {MediaItemTypeLabels[props.collection.type]}
                 </p>
               </div>
@@ -99,7 +99,7 @@ const CollectionItem = (props: ICollectionItem) => {
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Items
               </p>
-              <p className="text-amber-500">
+              <p className="text-maintainerr">
                 {`${props.collection.media ? props.collection.media.length : 0}`}
               </p>
             </div>
@@ -108,7 +108,7 @@ const CollectionItem = (props: ICollectionItem) => {
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Size
               </p>
-              <p className="text-amber-500">
+              <p className="text-maintainerr">
                 {formatSize(props.collection.totalSizeBytes)}
               </p>
             </div>
@@ -117,7 +117,7 @@ const CollectionItem = (props: ICollectionItem) => {
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Delete
               </p>
-              <p className="text-amber-500">
+              <p className="text-maintainerr">
                 {props.collection.deleteAfterDays == null
                   ? 'Never'
                   : `After ${props.collection.deleteAfterDays}d`}

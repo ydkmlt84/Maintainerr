@@ -3,7 +3,7 @@ import { debounce } from 'lodash-es'
 import { useEffect, useRef, useState } from 'react'
 import { ICollection } from '../..'
 import GetApiHandler from '../../../../utils/ApiHandler'
-import OverviewContent from '../../../Overview/Content'
+import MediaContent from '../../../Media/Content'
 
 interface ICollectionExclusions {
   collection: ICollection
@@ -118,7 +118,7 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
   }, [totalSize])
 
   return (
-    <OverviewContent
+    <MediaContent
       dataFinished={true}
       fetchData={() => {}}
       loading={loadingRef.current}

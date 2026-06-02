@@ -106,7 +106,7 @@ const CollectionDetailPage = () => {
           {ruleGroup?.useRules && (
             <div className="flex justify-center sm:justify-start">
               <button
-                className="edit-button mb-4 flex h-9 rounded text-zinc-200 shadow-md"
+                className="mb-4 flex h-9 rounded bg-emerald-700 text-white shadow-md transition hover:bg-emerald-600"
                 onClick={() => setMediaTestModalOpen(true)}
               >
                 {<PlayIcon className="m-auto ml-5 h-5" />}{' '}

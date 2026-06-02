@@ -1,12 +1,10 @@
 import { ICollection } from '..'
 import { useTaskStatusContext } from '../../../contexts/taskstatus-context'
 import ExecuteButton from '../../Common/ExecuteButton'
-import LibrarySwitcher from '../../Common/LibrarySwitcher'
 import CollectionItem from '../CollectionItem'
 
 interface ICollectionOverview {
   collections: ICollection[] | undefined
-  onSwitchLibrary: (id: string) => void
   doActions: () => void
   openDetail: (collection: ICollection) => void
 }
@@ -16,8 +14,6 @@ const CollectionOverview = (props: ICollectionOverview) => {
 
   return (
     <div>
-      <LibrarySwitcher onLibraryChange={props.onSwitchLibrary} />
-
       <div className="m-auto mb-3 flex">
         <div className="m-auto sm:m-0">
           <ExecuteButton

@@ -122,7 +122,7 @@ describe('SettingsController', () => {
   });
 
   it('sets database download headers and returns streamable file', async () => {
-    const fileStream = createReadStream('/etc/hosts');
+    const fileStream = createReadStream(__filename);
     databaseDownloadService.getDatabaseDownload.mockResolvedValue({
       fileStream,
       fileName: 'maintainerr.db',

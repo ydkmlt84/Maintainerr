@@ -169,13 +169,20 @@ export class PlexAdapterService implements IMediaServerService {
     libraryId: string,
     options?: RecentlyAddedOptions,
   ): Promise<MediaItem[]> {
-    // PlexApiService.getRecentlyAdded uses addedAt timestamp, not limit/type
-    // We'll use the default (items added in last hour)
-    const results = await this.plexApi.getRecentlyAdded(libraryId);
+    const response = await this.plexApi.getLibraryContents(
+      libraryId,
+      {
+        offset: 0,
+        size: options?.limit ?? 50,
+        sort: 'addedAt:desc',
+      },
+      undefined,
+      false,
+    );
+    const results = response?.items;
 
     if (!results) return [];
 
-    // Apply limit if provided
     const limited = options?.limit ? results.slice(0, options.limit) : results;
     return limited.map(PlexMapper.toMediaItem);
   }

@@ -1,12 +1,6 @@
 import { type MediaItemType } from '@maintainerr/contracts'
 import { useQuery } from '@tanstack/react-query'
-import {
-  type RefObject,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import GetApiHandler from '../../utils/ApiHandler'
 import type { ICollectionMedia } from '../Collection'
@@ -367,7 +361,9 @@ const getReferencesByCollection = (references: CalendarReference[]) =>
   }, new Map<number, CalendarReference[]>())
 
 const getReferenceDateLookups = (references: CalendarReference[]) => ({
-  addDateByMediaId: new Map(references.map((ref) => [ref.mediaId, ref.addDate])),
+  addDateByMediaId: new Map(
+    references.map((ref) => [ref.mediaId, ref.addDate]),
+  ),
   addDateByMediaServerId: new Map(
     references.map((ref) => [ref.mediaServerId, ref.addDate]),
   ),
@@ -387,7 +383,9 @@ const fetchCalendarModalItems = async (
       const mediaResponse = await GetApiHandler<{
         totalSize: number
         items: ICollectionMedia[]
-      }>(`/collections/media/${collectionId}/content/1?size=${collection?.media.length ?? 25}`)
+      }>(
+        `/collections/media/${collectionId}/content/1?size=${collection?.media.length ?? 25}`,
+      )
 
       const mediaIds = new Set(refs.map((ref) => ref.mediaId))
       const mediaServerIds = new Set(refs.map((ref) => ref.mediaServerId))
@@ -397,8 +395,7 @@ const fetchCalendarModalItems = async (
       return mediaResponse.items
         .filter(
           (media) =>
-            mediaIds.has(media.id) ||
-            mediaServerIds.has(media.mediaServerId),
+            mediaIds.has(media.id) || mediaServerIds.has(media.mediaServerId),
         )
         .map((media) => ({
           mediaTitle: getMediaTitle(media),
@@ -487,7 +484,10 @@ const CalendarPage = () => {
     useState<SelectedCalendarEntry | null>(null)
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null)
   const collectionLookup = useMemo(
-    () => new Map((collections ?? []).map((collection) => [collection.id, collection])),
+    () =>
+      new Map(
+        (collections ?? []).map((collection) => [collection.id, collection]),
+      ),
     [collections],
   )
   const [modalTableBodyRef, modalTableScrollbarWidth] =
@@ -611,7 +611,7 @@ const CalendarPage = () => {
           <div className="hidden items-center gap-2 sm:flex">
             <label className="text-sm text-zinc-300">View</label>
             <select
-              className="h-10 min-w-[7.5rem] rounded-md border border-zinc-700 bg-zinc-900 px-3 pr-9 text-sm text-white shadow-sm outline-none focus:border-amber-500"
+              className="h-10 min-w-[7.5rem] rounded-md border border-zinc-500 bg-zinc-700 px-3 pr-9 text-sm text-white shadow-sm outline-none focus:border-maintainerr-600"
               value={viewMode}
               onChange={(e) => {
                 setViewMode(e.target.value as CalendarViewMode)
@@ -630,7 +630,7 @@ const CalendarPage = () => {
             Prev
           </button>
           <button
-            className="h-10 rounded-md bg-amber-600 px-3 text-sm font-medium text-zinc-900 shadow-md hover:bg-amber-500"
+            className="h-10 rounded-md bg-maintainerr-600 px-3 text-sm font-medium text-white hover:bg-maintainerr"
             type="button"
             onClick={onToday}
           >
@@ -646,8 +646,8 @@ const CalendarPage = () => {
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-zinc-700/60 bg-zinc-700/40 shadow-lg backdrop-blur">
-        <div className="hidden grid-cols-7 border-b border-zinc-700/60 bg-zinc-700/70 sm:grid">
+      <div className="mt-6 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800 shadow-sm">
+        <div className="hidden grid-cols-7 border-b border-zinc-700 bg-zinc-700 sm:grid">
           {DAY_NAMES.map((d) => (
             <div
               key={d}
@@ -701,7 +701,7 @@ const CalendarPage = () => {
                       className={[
                         'flex h-7 min-w-[1.75rem] items-center justify-center rounded-md px-2 text-xs font-semibold',
                         isToday
-                          ? 'bg-amber-500 text-zinc-900'
+                          ? 'bg-maintainerr text-zinc-900'
                           : 'border border-zinc-700/60 bg-zinc-800 text-zinc-100',
                       ].join(' ')}
                       title={date.toDateString()}
@@ -720,7 +720,7 @@ const CalendarPage = () => {
                   </div>
 
                   {totalScheduledCount > 0 && (
-                    <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-200">
+                    <div className="rounded-md border border-maintainerr/20 bg-maintainerr/10 px-2 py-1 text-[10px] font-semibold text-maintainerr-200">
                       {totalScheduledCount} scheduled
                     </div>
                   )}
@@ -735,7 +735,7 @@ const CalendarPage = () => {
                     visibleItems.map((it) => (
                       <button
                         key={it.id}
-                        className="truncate rounded-md border border-zinc-600/60 bg-zinc-700/40 px-2 py-1 text-left text-xs text-zinc-100 hover:border-amber-500/40"
+                        className="truncate rounded-md border border-zinc-600/60 bg-zinc-700/40 px-2 py-1 text-left text-xs text-zinc-100 hover:border-maintainerr/40"
                         title={it.title}
                         type="button"
                         onClick={() => openEntryModal(it, date)}
@@ -747,7 +747,7 @@ const CalendarPage = () => {
 
                   {hiddenCount > 0 && !isExpanded && (
                     <button
-                      className="w-fit text-left text-xs text-amber-300 hover:text-amber-200 hover:underline"
+                      className="w-fit text-left text-xs text-maintainerr-300 hover:text-maintainerr-200 hover:underline"
                       type="button"
                       onClick={() => setExpandedDayKey(dayKey)}
                     >
@@ -757,7 +757,7 @@ const CalendarPage = () => {
 
                   {isExpanded && items.length > defaultVisibleCount && (
                     <button
-                      className="w-fit text-left text-xs text-amber-300 hover:text-amber-200 hover:underline"
+                      className="w-fit text-left text-xs text-maintainerr-300 hover:text-maintainerr-200 hover:underline"
                       type="button"
                       onClick={() => setExpandedDayKey(null)}
                     >
@@ -810,7 +810,7 @@ const CalendarPage = () => {
                       <div className="col-span-2">
                         <div className="text-zinc-400">Collection</div>
                         <Link
-                          className="text-amber-300 hover:text-amber-200 hover:underline"
+                          className="text-maintainerr-300 hover:text-maintainerr-200 hover:underline"
                           to={`/collections/${item.collectionId}`}
                         >
                           {item.collectionTitle}
@@ -878,7 +878,7 @@ const CalendarPage = () => {
                           </td>
                           <td className="border-y border-zinc-600/60 bg-zinc-800/40 px-3 py-2 text-center">
                             <Link
-                              className="text-amber-300 hover:text-amber-200 hover:underline"
+                              className="text-maintainerr-300 hover:text-maintainerr-200 hover:underline"
                               to={`/collections/${item.collectionId}`}
                             >
                               {item.collectionTitle}

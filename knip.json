@@ -1,0 +1,77 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreDependencies": [
+    "@semantic-release/commit-analyzer",
+    "http-terminator"
+  ],
+  "rules": {
+    "exports": "warn",
+    "types": "warn",
+    "enumMembers": "warn",
+    "duplicates": "warn"
+  },
+  "workspaces": {
+    ".": {
+      "entry": ["package.json"],
+      "project": ["package.json", "tools/**/*.mjs"]
+    },
+    "apps/server": {
+      "entry": [
+        "src/main.ts",
+        "src/datasource-config.ts",
+        "src/**/*.spec.ts",
+        "test/**/*.cjs",
+        "package.json"
+      ],
+      "project": ["src/**/*.ts", "test/**/*.{cjs,ts}", "*.mjs", "package.json"],
+      "ignoreFiles": [
+        "src/database/migrations/**/*.ts",
+        "src/modules/api/media-server/index.ts",
+        "src/modules/api/media-server/jellyfin/index.ts",
+        "src/modules/api/media-server/jellyfin/jellyfin.types.ts"
+      ],
+      "ignoreDependencies": [
+        "@nestjs/testing",
+        "@suites/di.nestjs",
+        "globals",
+        "winston-transport",
+        "@nestjs/mapped-types"
+      ]
+    },
+    "apps/ui": {
+      "entry": [
+        "package.json"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "*.{js,ts,mjs}",
+        "styles/**/*.css",
+        "package.json"
+      ],
+      "ignoreFiles": ["styles/Home.module.css"],
+      "ignoreDependencies": [
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "eslint-plugin-react",
+        "eslint-plugin-react-hooks",
+        "globals",
+        "postcss-load-config",
+        "typescript-eslint"
+      ]
+    },
+    "packages/contracts": {
+      "entry": ["package.json"],
+      "project": ["src/**/*.ts", "*.mjs", "package.json"],
+      "ignoreDependencies": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/swagger",
+        "class-transformer",
+        "class-validator",
+        "nestjs-zod",
+        "reflect-metadata",
+        "rxjs"
+      ]
+    }
+  }
+}

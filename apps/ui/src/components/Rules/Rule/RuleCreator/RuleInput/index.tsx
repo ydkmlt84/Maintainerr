@@ -370,7 +370,7 @@ const RuleInput = (props: IRuleInput) => {
     >
       {/* Header Section */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-amber-600">
+        <h3 className="text-lg font-semibold text-maintainerr-600">
           {props.tagId
             ? `Rule #${props.tagId}`
             : props.id
@@ -436,9 +436,9 @@ const RuleInput = (props: IRuleInput) => {
             id="first_val"
             onChange={updateFirstValue}
             value={firstval}
-            className="w-full rounded-lg p-2 text-zinc-100 focus:border-amber-500 focus:ring-amber-500"
+            className="w-full rounded-lg p-2 text-zinc-100 focus:border-maintainerr focus:ring-maintainerr"
           >
-            <option value="" className="text-amber-600">
+            <option value="" className="text-maintainerr-600">
               Select First Value...
             </option>
             {constants.applications
@@ -486,9 +486,9 @@ const RuleInput = (props: IRuleInput) => {
             id="action"
             onChange={updateAction}
             value={action}
-            className="w-full rounded-lg p-2 text-zinc-100 focus:border-amber-500 focus:ring-amber-500"
+            className="w-full rounded-lg p-2 text-zinc-100 focus:border-maintainerr focus:ring-maintainerr"
           >
-            <option value="" className="text-amber-600">
+            <option value="" className="text-maintainerr-600">
               Select Action...
             </option>
             {possibilities.map((action) => (
@@ -512,9 +512,9 @@ const RuleInput = (props: IRuleInput) => {
             id="second_val"
             onChange={updateSecondValue}
             value={secondVal}
-            className="w-full rounded-lg p-2 text-zinc-100 focus:border-amber-500 focus:ring-amber-500"
+            className="w-full rounded-lg p-2 text-zinc-100 focus:border-maintainerr focus:ring-maintainerr"
           >
-            <option value="" className="text-amber-600">
+            <option value="" className="text-maintainerr-600">
               Select Second Value...
             </option>
             <optgroup label="Custom values">

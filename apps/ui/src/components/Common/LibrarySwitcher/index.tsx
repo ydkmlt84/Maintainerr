@@ -66,11 +66,11 @@ const LibrarySwitcher = (props: ILibrarySwitcher) => {
   return (
     <>
       <div className={containerClassName}>
-        <form className={formClassName}>
+        <form className={formClassName ?? 'w-full'}>
           <select
             className={
               selectClassName ??
-              'border-zinc-600 hover:border-zinc-500 focus:border-zinc-500 focus:bg-opacity-100 focus:placeholder-zinc-400 focus:outline-none focus:ring-0'
+              'block w-full rounded-md border border-zinc-600 bg-zinc-700 px-3 py-2 text-white shadow-sm transition duration-150 ease-in-out hover:border-zinc-500 focus:border-zinc-500 focus:bg-opacity-100 focus:placeholder-zinc-400 focus:outline-none focus:ring-0 disabled:opacity-50 sm:text-sm sm:leading-5'
             }
             onChange={onSwitchLibrary}
             value={resolvedSelectedLibraryId}

@@ -5,7 +5,6 @@ import { toast } from 'react-toastify'
 import { useStopAllRuleExecution } from '../api/rules'
 import AddButton from '../components/Common/AddButton'
 import ExecuteButton from '../components/Common/ExecuteButton'
-import LibrarySwitcher from '../components/Common/LibrarySwitcher'
 import LoadingSpinner from '../components/Common/LoadingSpinner'
 import RuleGroup, { IRuleGroup } from '../components/Rules/RuleGroup'
 import { useTaskStatusContext } from '../contexts/taskstatus-context'
@@ -14,7 +13,6 @@ import GetApiHandler, { PostApiHandler } from '../utils/ApiHandler'
 const RulesListPage = () => {
   const navigate = useNavigate()
   const [data, setData] = useState<IRuleGroup[]>()
-  const [selectedLibrary, setSelectedLibrary] = useState<string>('all')
   const [isLoading, setIsLoading] = useState(true)
   const { ruleHandlerRunning } = useTaskStatusContext()
   const { mutate: stopAllExecution } = useStopAllRuleExecution({
@@ -26,10 +24,7 @@ const RulesListPage = () => {
     },
   })
 
-  const fetchData = async () => {
-    if (selectedLibrary === 'all') return await GetApiHandler('/rules')
-    else return await GetApiHandler(`/rules?libraryId=${selectedLibrary}`)
-  }
+  const fetchData = async () => await GetApiHandler('/rules')
 
   useEffect(() => {
     fetchData().then((resp) => {
@@ -37,14 +32,6 @@ const RulesListPage = () => {
       setIsLoading(false)
     })
   }, [])
-
-  useEffect(() => {
-    refreshData()
-  }, [selectedLibrary])
-
-  const onSwitchLibrary = (libraryId: string) => {
-    setSelectedLibrary(libraryId)
-  }
 
   const refreshData = (): void => {
     fetchData().then((resp) => setData(resp))
@@ -82,8 +69,6 @@ const RulesListPage = () => {
     <>
       <title>Rules - Maintainerr</title>
       <div className="w-full">
-        <LibrarySwitcher onLibraryChange={onSwitchLibrary} />
-
         <div className="m-auto mb-3 flex">
           <div className="ml-auto sm:ml-0">
             <AddButton onClick={() => navigate('/rules/new')} text="New Rule" />
