@@ -1,6 +1,6 @@
 import { type MediaItem } from '@maintainerr/contracts'
 import { debounce } from 'lodash-es'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ICollection } from '../..'
 import GetApiHandler from '../../../../utils/ApiHandler'
 import MediaContent from '../../../Media/Content'
@@ -30,12 +30,48 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
   const dataRef = useRef<MediaItem[]>([])
   const loadingRef = useRef<boolean>(true)
   const loadingExtraRef = useRef<boolean>(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingExtra, setIsLoadingExtra] = useState(false)
   const [page, setPage] = useState(0)
+  const [pageDataCount, setPageDataCount] = useState(0)
 
   useEffect(() => {
     // Initial first fetch
-    setPage(1)
+    queueMicrotask(() => setPage(1))
   }, [])
+
+  const fetchData = useCallback(async () => {
+    if (!loadingRef.current) {
+      loadingExtraRef.current = true
+      setIsLoadingExtra(true)
+    }
+    // setLoading(true)
+    const resp: { totalSize: number; items: IExclusionMedia[] } =
+      await GetApiHandler(
+        `/collections/exclusions/${props.collection.id}/content/${pageData.current}?size=${fetchAmount}`,
+      )
+
+    setTotalSize(resp.totalSize)
+    // pageData.current = pageData.current + 1
+
+    setData([
+      ...dataRef.current,
+      ...resp.items.map((el) => {
+        if (el.mediaData) {
+          return {
+            ...el.mediaData,
+            maintainerrExclusionId: el.id,
+            maintainerrExclusionType: el.ruleGroupId ? 'specific' : 'global',
+          } as MediaItem
+        }
+        return {} as MediaItem
+      }),
+    ])
+    loadingRef.current = false
+    loadingExtraRef.current = false
+    setIsLoading(false)
+    setIsLoadingExtra(false)
+  }, [props.collection.id])
 
   const handleScroll = () => {
     if (
@@ -56,9 +92,12 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
     if (page !== 0) {
       // Ignore initial page render
       pageData.current = pageData.current + 1
-      fetchData()
+      queueMicrotask(() => {
+        setPageDataCount(pageData.current)
+        fetchData()
+      })
     }
-  }, [page])
+  }, [fetchData, page])
 
   useEffect(() => {
     const debouncedScroll = debounce(handleScroll, 200)
@@ -68,35 +107,6 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
       debouncedScroll.cancel() // Cancel pending debounced calls
     }
   }, [])
-
-  const fetchData = async () => {
-    if (!loadingRef.current) {
-      loadingExtraRef.current = true
-    }
-    // setLoading(true)
-    const resp: { totalSize: number; items: IExclusionMedia[] } =
-      await GetApiHandler(
-        `/collections/exclusions/${props.collection.id}/content/${pageData.current}?size=${fetchAmount}`,
-      )
-
-    setTotalSize(resp.totalSize)
-    // pageData.current = pageData.current + 1
-
-    setData([
-      ...dataRef.current,
-      ...resp.items.map((el) => {
-        if (el.mediaData) {
-          el.mediaData.maintainerrExclusionId = el.id
-          el.mediaData.maintainerrExclusionType = el.ruleGroupId
-            ? 'specific'
-            : 'global'
-        }
-        return el.mediaData ? el.mediaData : ({} as MediaItem)
-      }),
-    ])
-    loadingRef.current = false
-    loadingExtraRef.current = false
-  }
 
   useEffect(() => {
     dataRef.current = data
@@ -109,7 +119,7 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
         document.documentElement.scrollHeight * 0.9 &&
       !(fetchAmount * (pageData.current - 1) >= totalSizeRef.current)
     ) {
-      setPage(page + 1)
+      queueMicrotask(() => setPage((currentPage) => currentPage + 1))
     }
   }, [data])
 
@@ -121,15 +131,13 @@ const CollectionExcludions = (props: ICollectionExclusions) => {
     <MediaContent
       dataFinished={true}
       fetchData={() => {}}
-      loading={loadingRef.current}
+      loading={isLoading}
       data={data}
       libraryId={props.libraryId}
       collectionPage={true}
       collectionId={props.collection.id}
       extrasLoading={
-        loadingExtraRef &&
-        !loadingRef.current &&
-        totalSize >= pageData.current * fetchAmount
+        isLoadingExtra && !isLoading && totalSize >= pageDataCount * fetchAmount
       }
       onRemove={(id: string) =>
         setTimeout(() => {

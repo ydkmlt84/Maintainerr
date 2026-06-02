@@ -1,12 +1,12 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { SettingsModule } from '../../settings/settings.module';
-import { PlexApiModule } from '../plex-api/plex-api.module';
-import { MediaServerSetupGuard } from './guards/media-server-setup.guard';
-import { JellyfinAdapterService } from './jellyfin/jellyfin-adapter.service';
-import { JellyfinModule } from './jellyfin/jellyfin.module';
-import { MediaServerController } from './media-server.controller';
-import { MediaServerFactory } from './media-server.factory';
-import { PlexAdapterService } from './plex/plex-adapter.service';
+import { forwardRef, Module } from '@nestjs/common'
+import { SettingsModule } from '../../settings/settings.module'
+import { PlexApiModule } from '../plex-api/plex-api.module'
+import { MediaServerSetupGuard } from './guards/media-server-setup.guard'
+import { JellyfinAdapterService } from './jellyfin/jellyfin-adapter.service'
+import { JellyfinModule } from './jellyfin/jellyfin.module'
+import { MediaServerController } from './media-server.controller'
+import { MediaServerFactory } from './media-server.factory'
+import { PlexAdapterService } from './plex/plex-adapter.service'
 
 /**
  * Media Server Module

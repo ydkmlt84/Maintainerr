@@ -1,4 +1,4 @@
-import { MediaItemType, MediaServerType } from '@maintainerr/contracts';
+import { MediaItemType, MediaServerType } from '@maintainerr/contracts'
 import {
   Column,
   Entity,
@@ -7,111 +7,111 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm';
-import { CollectionLog } from '../../collections/entities/collection_log.entities';
-import { RulesDto } from '../../rules/dtos/rules.dto';
-import { RuleGroup } from '../../rules/entities/rule-group.entities';
-import { RadarrSettings } from '../../settings/entities/radarr_settings.entities';
-import { SonarrSettings } from '../../settings/entities/sonarr_settings.entities';
-import { CollectionMedia } from './collection_media.entities';
+} from 'typeorm'
+import { CollectionLog } from '../../collections/entities/collection_log.entities'
+import { RulesDto } from '../../rules/dtos/rules.dto'
+import { RuleGroup } from '../../rules/entities/rule-group.entities'
+import { RadarrSettings } from '../../settings/entities/radarr_settings.entities'
+import { SonarrSettings } from '../../settings/entities/sonarr_settings.entities'
+import { CollectionMedia } from './collection_media.entities'
 
 @Entity()
 export class Collection {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column({ nullable: true })
-  mediaServerId: string;
+  mediaServerId: string
 
   @Column({ type: 'varchar', default: MediaServerType.PLEX })
-  mediaServerType: MediaServerType;
+  mediaServerType: MediaServerType
 
   @Column({ type: 'varchar' })
-  libraryId: string;
+  libraryId: string
 
   @Column()
-  title: string;
+  title: string
 
   @Column({ nullable: true })
-  description: string;
+  description: string
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive: boolean
 
   @Column({ default: 0 })
-  arrAction: number;
+  arrAction: number
 
   @Column({ default: false })
-  visibleOnRecommended: boolean;
+  visibleOnRecommended: boolean
 
   @Column({ default: false })
-  visibleOnHome: boolean;
+  visibleOnHome: boolean
 
   @Column({ nullable: true, default: null })
-  deleteAfterDays: number;
+  deleteAfterDays: number
 
   @Column({ nullable: false, default: false })
-  manualCollection: boolean;
+  manualCollection: boolean
 
   @Column({ nullable: true, default: '' })
-  manualCollectionName: string;
+  manualCollectionName: string
 
   @Column({ nullable: false, default: false })
-  listExclusions: boolean;
+  listExclusions: boolean
 
   @Column({ nullable: false, default: false })
-  forceSeerr: boolean;
+  forceSeerr: boolean
 
   @Column({ nullable: false, default: 'movie' })
-  type: MediaItemType;
+  type: MediaItemType
 
   @Column({ nullable: false, default: 6 })
-  keepLogsForMonths: number;
+  keepLogsForMonths: number
 
   @OneToOne(() => RuleGroup, (rg) => rg.collection)
-  ruleGroup: RulesDto;
+  ruleGroup: RulesDto
 
   @Column({ type: 'date', nullable: true, default: () => 'CURRENT_TIMESTAMP' }) // nullable = true for old collections
-  addDate: Date;
+  addDate: Date
 
   @Column({ nullable: false, default: 0 })
-  handledMediaAmount: number;
+  handledMediaAmount: number
 
   @Column({ nullable: false, default: 0 })
-  lastDurationInSeconds: number;
+  lastDurationInSeconds: number
 
   @Column({ nullable: true, default: null })
-  tautulliWatchedPercentOverride: number;
+  tautulliWatchedPercentOverride: number
 
   @Column({ nullable: true })
-  radarrSettingsId: number;
+  radarrSettingsId: number
 
   @ManyToOne(() => RadarrSettings, { nullable: true })
   @JoinColumn({ name: 'radarrSettingsId', referencedColumnName: 'id' })
-  radarrSettings: RadarrSettings;
+  radarrSettings: RadarrSettings
 
   @Column({ nullable: true })
-  sonarrSettingsId: number;
+  sonarrSettingsId: number
 
   @ManyToOne(() => SonarrSettings, { nullable: true })
   @JoinColumn({ name: 'sonarrSettingsId', referencedColumnName: 'id' })
-  sonarrSettings: SonarrSettings;
+  sonarrSettings: SonarrSettings
 
   @Column({ nullable: true })
-  sortTitle: string;
+  sortTitle: string
 
   @Column({ type: 'bigint', nullable: true, default: null })
-  totalSizeBytes: number | null;
+  totalSizeBytes: number | null
 
   @OneToMany(
     () => CollectionMedia,
     (collectionMedia) => collectionMedia.collectionId,
     { onDelete: 'CASCADE' },
   )
-  collectionMedia: CollectionMedia[];
+  collectionMedia: CollectionMedia[]
 
   @OneToMany(() => CollectionLog, (collectionLog) => collectionLog.collection, {
     onDelete: 'CASCADE',
   })
-  collectionLog: CollectionLog[];
+  collectionLog: CollectionLog[]
 }

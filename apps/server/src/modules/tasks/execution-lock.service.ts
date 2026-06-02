@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common'
 
 /*
  * A lightweight async lock for coordinating exclusive execution between tasks.
@@ -6,34 +6,34 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ExecutionLockService {
-  private readonly locks = new Map<string, Promise<void>>();
+  private readonly locks = new Map<string, Promise<void>>()
 
   public async acquire(key: string): Promise<() => void> {
-    const prior = this.locks.get(key) ?? Promise.resolve();
+    const prior = this.locks.get(key) ?? Promise.resolve()
 
-    let release!: () => void;
+    let release!: () => void
     const current = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+      release = resolve
+    })
 
     // Chain so future acquirers wait for this one to release
     this.locks.set(
       key,
       prior.then(() => current),
-    );
+    )
 
     // Wait for earlier holder, then return releaser
-    await prior;
+    await prior
 
-    let released = false;
+    let released = false
     return () => {
-      if (released) return;
-      released = true;
-      release();
+      if (released) return
+      released = true
+      release()
 
       if (this.locks.get(key) === current) {
-        this.locks.delete(key);
+        this.locks.delete(key)
       }
-    };
+    }
   }
 }

@@ -1,23 +1,23 @@
-import axios, { AxiosError, AxiosInstance, RawAxiosRequestConfig } from 'axios';
-import axiosRetry from 'axios-retry';
-import NodeCache from 'node-cache';
-import { MaintainerrLogger } from '../../logging/logs.service';
+import axios, { AxiosError, AxiosInstance, RawAxiosRequestConfig } from 'axios'
+import axiosRetry from 'axios-retry'
+import NodeCache from 'node-cache'
+import { MaintainerrLogger } from '../../logging/logs.service'
 
 // 20 minute default TTL (in seconds)
-const DEFAULT_TTL = 1200;
+const DEFAULT_TTL = 1200
 
 // 10 seconds default rolling buffer (in ms)
-const DEFAULT_ROLLING_BUFFER = 10000;
+const DEFAULT_ROLLING_BUFFER = 10000
 
 interface ExternalAPIOptions {
-  nodeCache?: NodeCache;
-  headers?: Record<string, unknown>;
+  nodeCache?: NodeCache
+  headers?: Record<string, unknown>
 }
 
 export class ExternalApiService {
-  protected axios: AxiosInstance;
-  private baseUrl: string;
-  private cache?: NodeCache;
+  protected axios: AxiosInstance
+  private baseUrl: string
+  private cache?: NodeCache
 
   constructor(
     baseUrl: string,
@@ -34,19 +34,19 @@ export class ExternalApiService {
         Accept: 'application/json',
         ...options.headers,
       },
-    });
+    })
     axiosRetry(this.axios, {
       retries: 3,
       retryDelay: axiosRetry.exponentialDelay,
       onRetry: (retryCount, error, requestConfig) => {
-        const url = this.axios.getUri(requestConfig);
+        const url = this.axios.getUri(requestConfig)
         this.logger.debug(
           `Retry ${retryCount}/3 ${requestConfig.method.toUpperCase()} ${url}: ${error.message}`,
-        );
+        )
       },
-    });
-    this.baseUrl = baseUrl;
-    this.cache = options.nodeCache;
+    })
+    this.baseUrl = baseUrl
+    this.cache = options.nodeCache
   }
 
   public async get<T>(
@@ -55,22 +55,22 @@ export class ExternalApiService {
     ttl?: number,
   ): Promise<T> {
     try {
-      const cacheKey = this.serializeCacheKey(endpoint, config?.params);
-      const cachedItem = this.cache?.get<T>(cacheKey);
+      const cacheKey = this.serializeCacheKey(endpoint, config?.params)
+      const cachedItem = this.cache?.get<T>(cacheKey)
       if (cachedItem) {
-        return cachedItem;
+        return cachedItem
       }
-      const response = await this.axios.get<T>(endpoint, config);
+      const response = await this.axios.get<T>(endpoint, config)
 
       if (this.cache) {
-        this.cache.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
+        this.cache.set(cacheKey, response.data, ttl ?? DEFAULT_TTL)
       }
 
-      return response.data;
+      return response.data
     } catch (err) {
-      const url = this.axios.getUri({ ...config, url: endpoint });
-      this.logger.debug(`GET ${url} failed: ${err}`);
-      return undefined;
+      const url = this.axios.getUri({ ...config, url: endpoint })
+      this.logger.debug(`GET ${url} failed: ${err}`)
+      return undefined
     }
   }
 
@@ -79,11 +79,11 @@ export class ExternalApiService {
     config?: RawAxiosRequestConfig,
   ): Promise<T> {
     try {
-      return (await this.axios.get<T>(endpoint, config)).data;
+      return (await this.axios.get<T>(endpoint, config)).data
     } catch (err) {
-      const url = this.axios.getUri({ ...config, url: endpoint });
-      this.logger.debug(`GET ${url} failed: ${err}`);
-      return undefined;
+      const url = this.axios.getUri({ ...config, url: endpoint })
+      this.logger.debug(`GET ${url} failed: ${err}`)
+      return undefined
     }
   }
 
@@ -91,7 +91,7 @@ export class ExternalApiService {
     endpoint: string,
     config?: RawAxiosRequestConfig,
   ) {
-    return this.axios.get<T>(endpoint, config);
+    return this.axios.get<T>(endpoint, config)
   }
 
   public async delete<T>(
@@ -99,12 +99,12 @@ export class ExternalApiService {
     config?: RawAxiosRequestConfig,
   ): Promise<T> {
     try {
-      const response = await this.axios.delete<T>(endpoint, config);
-      return response.data;
+      const response = await this.axios.delete<T>(endpoint, config)
+      return response.data
     } catch (err) {
-      const url = this.axios.getUri({ ...config, url: endpoint });
-      this.logger.debug(`DELETE ${url} failed: ${err}`);
-      return undefined;
+      const url = this.axios.getUri({ ...config, url: endpoint })
+      this.logger.debug(`DELETE ${url} failed: ${err}`)
+      return undefined
     }
   }
 
@@ -114,12 +114,12 @@ export class ExternalApiService {
     config?: RawAxiosRequestConfig,
   ): Promise<T> {
     try {
-      const response = await this.axios.put<T>(endpoint, data, config);
-      return response.data;
+      const response = await this.axios.put<T>(endpoint, data, config)
+      return response.data
     } catch (err) {
-      const url = this.axios.getUri({ ...config, url: endpoint });
-      this.logger.debug(`PUT ${url} failed: ${err}`);
-      return undefined;
+      const url = this.axios.getUri({ ...config, url: endpoint })
+      this.logger.debug(`PUT ${url} failed: ${err}`)
+      return undefined
     }
   }
 
@@ -129,12 +129,12 @@ export class ExternalApiService {
     config?: RawAxiosRequestConfig,
   ): Promise<T> {
     try {
-      const response = await this.axios.post<T>(endpoint, data, config);
-      return response.data;
+      const response = await this.axios.post<T>(endpoint, data, config)
+      return response.data
     } catch (err) {
-      const url = this.axios.getUri({ ...config, url: endpoint });
-      this.logger.debug(`POST ${url} failed: ${err}`);
-      return undefined;
+      const url = this.axios.getUri({ ...config, url: endpoint })
+      this.logger.debug(`POST ${url} failed: ${err}`)
+      return undefined
     }
   }
 
@@ -144,11 +144,11 @@ export class ExternalApiService {
     ttl?: number,
   ): Promise<T> {
     try {
-      const cacheKey = this.serializeCacheKey(endpoint, config?.params);
-      const cachedItem = this.cache?.get<T>(cacheKey);
+      const cacheKey = this.serializeCacheKey(endpoint, config?.params)
+      const cachedItem = this.cache?.get<T>(cacheKey)
 
       if (cachedItem) {
-        const keyTtl = this.cache?.getTtl(cacheKey) ?? 0;
+        const keyTtl = this.cache?.getTtl(cacheKey) ?? 0
 
         // If the item has passed our rolling check, fetch again in background
         if (
@@ -156,23 +156,23 @@ export class ExternalApiService {
           Date.now() - DEFAULT_ROLLING_BUFFER
         ) {
           void this.axios.get<T>(endpoint, config).then((response) => {
-            this.cache?.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
-          });
+            this.cache?.set(cacheKey, response.data, ttl ?? DEFAULT_TTL)
+          })
         }
-        return cachedItem;
+        return cachedItem
       }
 
-      const response = await this.axios.get<T>(endpoint, config);
+      const response = await this.axios.get<T>(endpoint, config)
 
       if (this.cache) {
-        this.cache.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
+        this.cache.set(cacheKey, response.data, ttl ?? DEFAULT_TTL)
       }
 
-      return response.data;
+      return response.data
     } catch (err) {
-      const url = this.axios.getUri({ ...config, url: endpoint });
-      this.logger.debug(`GET ${url} failed: ${err}`);
-      return undefined;
+      const url = this.axios.getUri({ ...config, url: endpoint })
+      this.logger.debug(`GET ${url} failed: ${err}`)
+      return undefined
     }
   }
 
@@ -182,65 +182,65 @@ export class ExternalApiService {
     config?: RawAxiosRequestConfig,
     ttl?: number,
   ): Promise<T | undefined> {
-    const url = this.axios.getUri({ ...config, url: endpoint });
+    const url = this.axios.getUri({ ...config, url: endpoint })
 
     try {
       const cacheKey = this.serializeCacheKey(
         endpoint + data ? data.replace(/\s/g, '').trim() : '',
         config?.params,
-      );
-      const cachedItem = this.cache?.get<T>(cacheKey);
+      )
+      const cachedItem = this.cache?.get<T>(cacheKey)
 
       if (cachedItem) {
-        const keyTtl = this.cache?.getTtl(cacheKey) ?? 0;
+        const keyTtl = this.cache?.getTtl(cacheKey) ?? 0
 
         // If the item has passed our rolling check, fetch again in background
         if (keyTtl < Date.now() - DEFAULT_ROLLING_BUFFER) {
           this.axios
             .post<T>(endpoint, data, config)
             .then((response) => {
-              this.cache?.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
+              this.cache?.set(cacheKey, response.data, ttl ?? DEFAULT_TTL)
             })
             .catch((err: AxiosError) => {
               if (err.response?.status === 429) {
                 const retryAfter =
-                  err.response.headers['retry-after'] || 'unknown';
+                  err.response.headers['retry-after'] || 'unknown'
                 this.logger.warn(
                   `${url} Rate limit hit. Retry after: ${retryAfter} seconds.`,
-                );
+                )
               } else {
-                this.logger.warn(`POST ${url} failed: ${err.message}`);
-                this.logger.debug(err);
+                this.logger.warn(`POST ${url} failed: ${err.message}`)
+                this.logger.debug(err)
               }
-            });
+            })
         }
-        return cachedItem;
+        return cachedItem
       }
 
       const response = await this.axios
         .post<T>(endpoint, data, config)
         .catch((err: AxiosError) => {
           if (err.response?.status === 429) {
-            const retryAfter = err.response.headers['retry-after'] || 'unknown';
+            const retryAfter = err.response.headers['retry-after'] || 'unknown'
             this.logger.warn(
               `${url} Rate limit hit. Retry after: ${retryAfter} seconds.`,
-            );
+            )
           } else {
-            this.logger.warn(`POST ${url} failed: ${err.message}`);
-            this.logger.debug(err);
+            this.logger.warn(`POST ${url} failed: ${err.message}`)
+            this.logger.debug(err)
           }
-          return undefined;
-        });
+          return undefined
+        })
 
       if (this.cache) {
-        this.cache.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
+        this.cache.set(cacheKey, response.data, ttl ?? DEFAULT_TTL)
       }
 
-      return response.data;
+      return response.data
     } catch (err: any) {
-      this.logger.warn(`POST ${url} failed: ${err.message}`);
-      this.logger.debug(err);
-      return undefined;
+      this.logger.warn(`POST ${url} failed: ${err.message}`)
+      this.logger.debug(err)
+      return undefined
     }
   }
 
@@ -250,13 +250,13 @@ export class ExternalApiService {
   ) {
     try {
       if (!params) {
-        return `${this.baseUrl}${endpoint}`;
+        return `${this.baseUrl}${endpoint}`
       }
 
-      return `${this.baseUrl}${endpoint}${JSON.stringify(params)}`;
+      return `${this.baseUrl}${endpoint}${JSON.stringify(params)}`
     } catch (err) {
-      this.logger.debug(`Failed serializing cache key: ${err}`);
-      return undefined;
+      this.logger.debug(`Failed serializing cache key: ${err}`)
+      return undefined
     }
   }
 }

@@ -1,7 +1,7 @@
-import { type VersionResponse } from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { GitHubApiService } from '../modules/api/github-api/github-api.service';
-import { MaintainerrLogger } from '../modules/logging/logs.service';
+import { type VersionResponse } from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { GitHubApiService } from '../modules/api/github-api/github-api.service'
+import { MaintainerrLogger } from '../modules/logging/logs.service'
 
 @Injectable()
 export class AppService {
@@ -9,27 +9,27 @@ export class AppService {
     private readonly githubApi: GitHubApiService,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(AppService.name);
+    logger.setContext(AppService.name)
   }
 
   async getAppVersionStatus(): Promise<VersionResponse> {
     try {
       const packageVersion = process.env.npm_package_version
         ? process.env.npm_package_version
-        : '0.0.1';
+        : '0.0.1'
 
       const versionTag = process.env.VERSION_TAG
         ? process.env.VERSION_TAG
-        : 'develop';
+        : 'develop'
 
       const calculatedVersion =
         versionTag !== 'stable'
           ? process.env.GIT_SHA
             ? `${versionTag}-${process.env.GIT_SHA.substring(0, 7)}`
             : `${versionTag}-`
-          : `${packageVersion}`;
+          : `${packageVersion}`
 
-      const local = process.env.NODE_ENV !== 'production';
+      const local = process.env.NODE_ENV !== 'production'
 
       return {
         status: 1,
@@ -39,15 +39,15 @@ export class AppService {
           packageVersion,
           versionTag,
         ),
-      };
+      }
     } catch (err) {
-      this.logger.error(`Couldn't fetch app version status`, err);
+      this.logger.error(`Couldn't fetch app version status`, err)
       return {
         status: 0,
         version: '0.0.1',
         commitTag: '',
         updateAvailable: false,
-      };
+      }
     }
   }
 
@@ -56,20 +56,20 @@ export class AppService {
       const githubResp = await this.githubApi.getLatestRelease(
         'Maintainerr',
         'Maintainerr',
-      );
+      )
       if (githubResp && githubResp.tag_name) {
         const transformedLocalVersion = currentVersion
           .replace('v', '')
-          .replace('.', '');
+          .replace('.', '')
 
         const transformedGithubVersion = githubResp.tag_name
           .replace('v', '')
-          .replace('.', '');
+          .replace('.', '')
 
-        return transformedGithubVersion > transformedLocalVersion;
+        return transformedGithubVersion > transformedLocalVersion
       }
-      this.logger.warn(`Couldn't fetch latest release version from GitHub`);
-      return false;
+      this.logger.warn(`Couldn't fetch latest release version from GitHub`)
+      return false
     } else {
       // in case of develop, compare SHA's
       if (process.env.GIT_SHA) {
@@ -77,12 +77,12 @@ export class AppService {
           'Maintainerr',
           'Maintainerr',
           'main',
-        );
+        )
         if (githubResp && githubResp.sha) {
-          return githubResp.sha !== process.env.GIT_SHA;
+          return githubResp.sha !== process.env.GIT_SHA
         }
       }
     }
-    return false;
+    return false
   }
 }

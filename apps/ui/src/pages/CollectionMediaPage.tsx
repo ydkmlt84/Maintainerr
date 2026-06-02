@@ -1,6 +1,6 @@
 import { type MediaItem } from '@maintainerr/contracts'
 import { debounce } from 'lodash-es'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext, useParams } from 'react-router-dom'
 import { ICollection, ICollectionMedia } from '../components/Collection'
 import MediaContent from '../components/Media/Content'
@@ -25,48 +25,8 @@ const CollectionMediaPage = () => {
   const [page, setPage] = useState(0)
   const [pageDataCount, setPageDataCount] = useState(0)
 
-  const handleScroll = () => {
-    if (
-      window.innerHeight + document.documentElement.scrollTop >=
-      document.documentElement.scrollHeight * 0.9
-    ) {
-      if (
-        !isLoading &&
-        !isLoadingExtra &&
-        !(fetchAmount * (pageData.current - 1) >= totalSize)
-      ) {
-        setPage(pageData.current + 1)
-      }
-    }
-  }
-
-  useEffect(() => {
-    if (page !== 0) {
-      // Ignore initial page render
-      pageData.current = pageData.current + 1
-      setPageDataCount(pageData.current)
-      fetchData()
-    }
-  }, [page])
-
-  useEffect(() => {
-    const debouncedScroll = debounce(handleScroll, 200)
-    window.addEventListener('scroll', debouncedScroll)
-    return () => {
-      window.removeEventListener('scroll', debouncedScroll)
-      debouncedScroll.cancel() // Cancel pending debounced calls
-    }
-  }, [isLoading, isLoadingExtra, totalSize])
-
-  useEffect(() => {
-    // Initial first fetch
-    setPage(1)
-  }, [])
-
-  const fetchData = async () => {
-    if (!isLoading) {
-      setIsLoadingExtra(true)
-    }
+  const fetchData = useCallback(async () => {
+    setIsLoadingExtra(true)
     const resp: { totalSize: number; items: ICollectionMedia[] } =
       await GetApiHandler(
         `/collections/media/${id}/content/${pageData.current}?size=${fetchAmount}`,
@@ -79,14 +39,55 @@ const CollectionMediaPage = () => {
       ...prevData,
       ...resp.items.map((el) => {
         if (el.mediaData) {
-          el.mediaData.maintainerrIsManual = el.isManual ? el.isManual : false
+          return {
+            ...el.mediaData,
+            maintainerrIsManual: el.isManual ? el.isManual : false,
+          }
         }
-        return el.mediaData ? el.mediaData : ({} as MediaItem)
+        return {} as MediaItem
       }),
     ])
     setIsLoading(false)
     setIsLoadingExtra(false)
-  }
+  }, [id])
+
+  const handleScroll = useCallback(() => {
+    if (
+      window.innerHeight + document.documentElement.scrollTop >=
+      document.documentElement.scrollHeight * 0.9
+    ) {
+      if (
+        !isLoading &&
+        !isLoadingExtra &&
+        !(fetchAmount * (pageData.current - 1) >= totalSize)
+      ) {
+        setPage(pageData.current + 1)
+      }
+    }
+  }, [isLoading, isLoadingExtra, totalSize])
+
+  useEffect(() => {
+    if (page !== 0) {
+      // Ignore initial page render
+      pageData.current = pageData.current + 1
+      setPageDataCount(pageData.current)
+      fetchData()
+    }
+  }, [fetchData, page])
+
+  useEffect(() => {
+    const debouncedScroll = debounce(handleScroll, 200)
+    window.addEventListener('scroll', debouncedScroll)
+    return () => {
+      window.removeEventListener('scroll', debouncedScroll)
+      debouncedScroll.cancel() // Cancel pending debounced calls
+    }
+  }, [handleScroll])
+
+  useEffect(() => {
+    // Initial first fetch
+    queueMicrotask(() => setPage(1))
+  }, [])
 
   useEffect(() => {
     // If page is not filled yet, fetch more
@@ -97,9 +98,21 @@ const CollectionMediaPage = () => {
         document.documentElement.scrollHeight * 0.9 &&
       !(fetchAmount * (pageData.current - 1) >= totalSize)
     ) {
-      setPage(page + 1)
+      queueMicrotask(() => setPage((currentPage) => currentPage + 1))
     }
   }, [data, isLoading, isLoadingExtra, totalSize])
+
+  const collectionInfo = useMemo(
+    () =>
+      media.map((el) => ({
+        ...el,
+        collection: {
+          ...collection,
+          media: [],
+        },
+      })),
+    [collection, media],
+  )
 
   return (
     <MediaContent
@@ -120,11 +133,7 @@ const CollectionMediaPage = () => {
           )
         }, 500)
       }
-      collectionInfo={media.map((el) => {
-        collection.media = []
-        el.collection = collection
-        return el
-      })}
+      collectionInfo={collectionInfo}
     />
   )
 }

@@ -1,13 +1,13 @@
-import { MaintainerrEvent, MediaServerType } from '@maintainerr/contracts';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { createMockLogger } from '../../../../test/utils/data';
-import { MediaServerFactory } from '../../api/media-server/media-server.factory';
-import { CollectionsService } from '../../collections/collections.service';
-import { SettingsService } from '../../settings/settings.service';
-import { RuleComparatorServiceFactory } from '../helpers/rule.comparator.service';
-import { RulesService } from '../rules.service';
-import { RuleExecutorProgressService } from './rule-executor-progress.service';
-import { RuleExecutorService } from './rule-executor.service';
+import { MaintainerrEvent, MediaServerType } from '@maintainerr/contracts'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { createMockLogger } from '../../../../test/utils/data'
+import { MediaServerFactory } from '../../api/media-server/media-server.factory'
+import { CollectionsService } from '../../collections/collections.service'
+import { SettingsService } from '../../settings/settings.service'
+import { RuleComparatorServiceFactory } from '../helpers/rule.comparator.service'
+import { RulesService } from '../rules.service'
+import { RuleExecutorProgressService } from './rule-executor-progress.service'
+import { RuleExecutorService } from './rule-executor.service'
 
 describe('RuleExecutorService', () => {
   const createService = (mediaServerType: MediaServerType) => {
@@ -16,16 +16,16 @@ describe('RuleExecutorService', () => {
       getRuleGroupById: jest.fn(),
       resetCacheIfGroupUsesRuleThatRequiresIt: jest.fn(),
       getExclusions: jest.fn().mockResolvedValue([]),
-    } as unknown as jest.Mocked<RulesService>;
+    } as unknown as jest.Mocked<RulesService>
 
     const mediaServer = {
       getCollectionChildren: jest.fn().mockResolvedValue([]),
       getLibraryContentCount: jest.fn().mockResolvedValue(0),
-    };
+    }
 
     const mediaServerFactory = {
       getService: jest.fn().mockResolvedValue(mediaServer),
-    } as unknown as jest.Mocked<MediaServerFactory>;
+    } as unknown as jest.Mocked<MediaServerFactory>
 
     const collectionService = {
       getCollection: jest.fn().mockResolvedValue({
@@ -46,20 +46,20 @@ describe('RuleExecutorService', () => {
           mediaServerId: 'coll-1',
           title: 'Test Collection',
           addedCount: items?.length ?? 0,
-        };
+        }
       }),
       removeFromCollection: jest.fn().mockResolvedValue(undefined),
       saveCollection: jest.fn().mockResolvedValue(undefined),
       checkAutomaticMediaServerLink: jest
         .fn()
         .mockImplementation(async (c) => c),
-    } as unknown as jest.Mocked<CollectionsService>;
+    } as unknown as jest.Mocked<CollectionsService>
 
     const settings = {
       media_server_type: mediaServerType,
       testConnections: jest.fn().mockResolvedValue(true),
       testSetup: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<SettingsService>;
+    } as unknown as jest.Mocked<SettingsService>
 
     const comparatorFactory = {
       create: jest.fn().mockReturnValue({
@@ -67,19 +67,19 @@ describe('RuleExecutorService', () => {
           .fn()
           .mockResolvedValue({ stats: [], data: [] }),
       }),
-    } as unknown as jest.Mocked<RuleComparatorServiceFactory>;
+    } as unknown as jest.Mocked<RuleComparatorServiceFactory>
 
     const eventEmitter = {
       emit: jest.fn(),
-    } as unknown as jest.Mocked<EventEmitter2>;
+    } as unknown as jest.Mocked<EventEmitter2>
 
     const progressManager = {
       initialize: jest.fn(),
       incrementProcessed: jest.fn(),
       reset: jest.fn(),
-    } as unknown as jest.Mocked<RuleExecutorProgressService>;
+    } as unknown as jest.Mocked<RuleExecutorProgressService>
 
-    const logger = createMockLogger();
+    const logger = createMockLogger()
 
     const service = new RuleExecutorService(
       rulesService,
@@ -90,7 +90,7 @@ describe('RuleExecutorService', () => {
       eventEmitter,
       progressManager,
       logger,
-    );
+    )
 
     return {
       service,
@@ -101,53 +101,53 @@ describe('RuleExecutorService', () => {
       settings,
       eventEmitter,
       progressManager,
-    };
-  };
+    }
+  }
 
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
+    jest.clearAllMocks()
+  })
 
   it('does not remove collection items when Jellyfin returns empty children (sync delay workaround)', async () => {
     const { service, collectionService } = createService(
       MediaServerType.JELLYFIN,
-    );
+    )
 
     await (
       service as unknown as {
         syncManualMediaServerToCollectionDB: (
           ruleGroup: {
-            id: number;
-            collectionId: number;
+            id: number
+            collectionId: number
           },
           touchedMediaServerIds: Set<string>,
-        ) => Promise<void>;
+        ) => Promise<void>
       }
     ).syncManualMediaServerToCollectionDB(
       { id: 10, collectionId: 1 },
       new Set(),
-    );
+    )
 
-    expect(collectionService.removeFromCollection).not.toHaveBeenCalled();
-  });
+    expect(collectionService.removeFromCollection).not.toHaveBeenCalled()
+  })
 
   it('removes collection items on Plex when children are empty', async () => {
-    const { service, collectionService } = createService(MediaServerType.PLEX);
+    const { service, collectionService } = createService(MediaServerType.PLEX)
 
     await (
       service as unknown as {
         syncManualMediaServerToCollectionDB: (
           ruleGroup: {
-            id: number;
-            collectionId: number;
+            id: number
+            collectionId: number
           },
           touchedMediaServerIds: Set<string>,
-        ) => Promise<void>;
+        ) => Promise<void>
       }
     ).syncManualMediaServerToCollectionDB(
       { id: 10, collectionId: 1 },
       new Set(),
-    );
+    )
 
     expect(collectionService.removeFromCollection).toHaveBeenCalledWith(
       1,
@@ -157,38 +157,38 @@ describe('RuleExecutorService', () => {
           reason: { type: 'media_removed_manually' },
         }),
       ]),
-    );
-  });
+    )
+  })
 
   it('skips excluded media when syncing manually added children', async () => {
     const { service, mediaServer, rulesService, collectionService } =
-      createService(MediaServerType.JELLYFIN);
+      createService(MediaServerType.JELLYFIN)
 
     mediaServer.getCollectionChildren.mockResolvedValue([
       { id: 'm-excluded' },
       { id: 'm-allowed' },
-    ]);
-    collectionService.getCollectionMedia.mockResolvedValue([]);
+    ])
+    collectionService.getCollectionMedia.mockResolvedValue([])
     rulesService.getExclusions.mockResolvedValue([
       { mediaServerId: 'm-excluded', parent: null },
-    ] as any);
+    ] as any)
 
     await (
       service as unknown as {
         syncManualMediaServerToCollectionDB: (
           ruleGroup: {
-            id: number;
-            collectionId: number;
+            id: number
+            collectionId: number
           },
           touchedMediaServerIds: Set<string>,
-        ) => Promise<void>;
+        ) => Promise<void>
       }
     ).syncManualMediaServerToCollectionDB(
       { id: 10, collectionId: 1 },
       new Set(),
-    );
+    )
 
-    expect(collectionService.addToCollection).toHaveBeenCalledTimes(1);
+    expect(collectionService.addToCollection).toHaveBeenCalledTimes(1)
     expect(collectionService.addToCollection).toHaveBeenCalledWith(
       1,
       [
@@ -198,56 +198,56 @@ describe('RuleExecutorService', () => {
         },
       ],
       true,
-    );
-  });
+    )
+  })
 
   it('does not re-add a rule-removed item as manual when media server returns stale children', async () => {
     const { service, mediaServer, collectionService } = createService(
       MediaServerType.PLEX,
-    );
+    )
 
     // Media server still returns the item as a child (stale / sync delay)
-    mediaServer.getCollectionChildren.mockResolvedValue([{ id: 'm-stale' }]);
+    mediaServer.getCollectionChildren.mockResolvedValue([{ id: 'm-stale' }])
     // DB no longer has the item (rule already removed it)
-    collectionService.getCollectionMedia.mockResolvedValue([]);
+    collectionService.getCollectionMedia.mockResolvedValue([])
 
     await (
       service as unknown as {
         syncManualMediaServerToCollectionDB: (
           ruleGroup: {
-            id: number;
-            collectionId: number;
+            id: number
+            collectionId: number
           },
           touchedMediaServerIds: Set<string>,
-        ) => Promise<void>;
+        ) => Promise<void>
       }
     ).syncManualMediaServerToCollectionDB(
       { id: 10, collectionId: 1 },
       new Set(['m-stale']), // item was touched by rule execution
-    );
+    )
 
     // Should NOT be re-added as manual
-    expect(collectionService.addToCollection).not.toHaveBeenCalled();
-  });
+    expect(collectionService.addToCollection).not.toHaveBeenCalled()
+  })
 
   it('emits failed and skips execution when rule group has no library assigned', async () => {
     const { service, rulesService, eventEmitter, progressManager } =
-      createService(MediaServerType.JELLYFIN);
+      createService(MediaServerType.JELLYFIN)
 
     rulesService.getRuleGroup.mockResolvedValue({
       id: 77,
       name: 'No Library Group',
       isActive: true,
       libraryId: '',
-    } as any);
+    } as any)
 
-    const abortController = new AbortController();
+    const abortController = new AbortController()
 
-    await service.executeForRuleGroups(77, abortController.signal);
+    await service.executeForRuleGroups(77, abortController.signal)
 
     expect(eventEmitter.emit).toHaveBeenCalledWith(
       MaintainerrEvent.RuleHandler_Failed,
-    );
-    expect(progressManager.reset).not.toHaveBeenCalled();
-  });
-});
+    )
+    expect(progressManager.reset).not.toHaveBeenCalled()
+  })
+})

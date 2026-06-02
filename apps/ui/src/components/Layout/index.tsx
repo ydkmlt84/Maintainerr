@@ -74,7 +74,7 @@ const LayoutShell: React.FC<LayoutShellProps> = ({ children }) => {
         {shouldShowStatsDrawer ? <GlobalStatsDrawer /> : undefined}
 
         <main
-          className={`relative min-w-0 w-full focus:outline-none ${
+          className={`relative w-full min-w-0 focus:outline-none ${
             isMediaRoute ? 'top-[6.5rem]' : 'top-[7.5rem]'
           }`}
           tabIndex={0}
@@ -205,7 +205,7 @@ const GlobalStatsDrawer: React.FC = () => {
     }
 
     let active = true
-    setLoading(true)
+    queueMicrotask(() => setLoading(true))
     GetApiHandler<GlobalStats>('/stats')
       .then((statsResponse) => {
         if (active) {
@@ -460,13 +460,15 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
 
     const trimmedQuery = query.trim().toLowerCase()
     if (trimmedQuery.length < 2) {
-      setResults([])
-      setLoading(false)
+      queueMicrotask(() => {
+        setResults([])
+        setLoading(false)
+      })
       return
     }
 
     let active = true
-    setLoading(true)
+    queueMicrotask(() => setLoading(true))
     const searchTimer = setTimeout(() => {
       GetApiHandler(`/media-server/search/${encodeURIComponent(trimmedQuery)}`)
         .then((resp: MediaItem[]) => {

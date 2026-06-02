@@ -15,14 +15,14 @@ import {
   RecentlyAddedOptions,
   UpdateCollectionParams,
   WatchRecord,
-} from '@maintainerr/contracts';
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
-import { EPlexDataType } from '../../plex-api/enums/plex-data-type-enum';
-import { PlexApiService } from '../../plex-api/plex-api.service';
-import { supportsFeature } from '../media-server.constants';
-import { IMediaServerService } from '../media-server.interface';
-import { toPlexSort } from './plex.constants';
-import { PlexMapper } from './plex.mapper';
+} from '@maintainerr/contracts'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
+import { EPlexDataType } from '../../plex-api/enums/plex-data-type-enum'
+import { PlexApiService } from '../../plex-api/plex-api.service'
+import { supportsFeature } from '../media-server.constants'
+import { IMediaServerService } from '../media-server.interface'
+import { toPlexSort } from './plex.constants'
+import { PlexMapper } from './plex.mapper'
 
 /**
  * Adapter that wraps PlexApiService to implement IMediaServerService.
@@ -33,7 +33,7 @@ import { PlexMapper } from './plex.mapper';
  */
 @Injectable()
 export class PlexAdapterService implements IMediaServerService {
-  private readonly logger = new Logger(PlexAdapterService.name);
+  private readonly logger = new Logger(PlexAdapterService.name)
 
   constructor(
     @Inject(forwardRef(() => PlexApiService))
@@ -41,47 +41,47 @@ export class PlexAdapterService implements IMediaServerService {
   ) {}
 
   async initialize(): Promise<void> {
-    await this.plexApi.initialize();
+    await this.plexApi.initialize()
   }
 
   uninitialize(): void {
-    this.plexApi.uninitialize();
+    this.plexApi.uninitialize()
   }
 
   isSetup(): boolean {
-    return this.plexApi.isPlexSetup();
+    return this.plexApi.isPlexSetup()
   }
 
   getServerType(): MediaServerType {
-    return MediaServerType.PLEX;
+    return MediaServerType.PLEX
   }
 
   supportsFeature(feature: MediaServerFeature): boolean {
-    return supportsFeature(MediaServerType.PLEX, feature);
+    return supportsFeature(MediaServerType.PLEX, feature)
   }
 
   async getStatus(): Promise<MediaServerStatus | undefined> {
-    const status = await this.plexApi.getStatus();
-    if (!status) return undefined;
-    return PlexMapper.toMediaServerStatus(status);
+    const status = await this.plexApi.getStatus()
+    if (!status) return undefined
+    return PlexMapper.toMediaServerStatus(status)
   }
 
   async getUsers(): Promise<MediaUser[]> {
-    const users = await this.plexApi.getUsers();
-    if (!users) return [];
-    return users.map(PlexMapper.toMediaUser);
+    const users = await this.plexApi.getUsers()
+    if (!users) return []
+    return users.map(PlexMapper.toMediaUser)
   }
 
   async getUser(id: string): Promise<MediaUser | undefined> {
-    const user = await this.plexApi.getUser(parseInt(id, 10));
-    if (!user) return undefined;
-    return PlexMapper.toMediaUser(user);
+    const user = await this.plexApi.getUser(parseInt(id, 10))
+    if (!user) return undefined
+    return PlexMapper.toMediaUser(user)
   }
 
   async getLibraries(): Promise<MediaLibrary[]> {
-    const libraries = await this.plexApi.getLibraries();
-    if (!libraries) return [];
-    return libraries.map(PlexMapper.toMediaLibrary);
+    const libraries = await this.plexApi.getLibraries()
+    if (!libraries) return []
+    return libraries.map(PlexMapper.toMediaLibrary)
   }
 
   async getLibraryContents(
@@ -90,17 +90,17 @@ export class PlexAdapterService implements IMediaServerService {
   ): Promise<PagedResult<MediaItem>> {
     // Check for migration issue: Jellyfin uses 32-char hex UUIDs, Plex uses numeric IDs
     // TODO: Extract migration ID detection to shared utility (see JellyfinAdapterService.isLikelyMigrationId)
-    const isJellyfinId = /^[a-f0-9]{32}$/i.test(libraryId);
+    const isJellyfinId = /^[a-f0-9]{32}$/i.test(libraryId)
     if (!libraryId || libraryId.trim() === '' || isJellyfinId) {
       this.logger.warn(
         `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
-      );
-      return { items: [], totalSize: 0, offset: 0, limit: 50 };
+      )
+      return { items: [], totalSize: 0, offset: 0, limit: 50 }
     }
 
     const plexType = options?.type
       ? PlexMapper.toPlexDataType(options.type)
-      : undefined;
+      : undefined
 
     const response = await this.plexApi.getLibraryContents(
       libraryId,
@@ -110,30 +110,27 @@ export class PlexAdapterService implements IMediaServerService {
         sort: toPlexSort(options?.sort, options?.sortOrder),
       },
       plexType,
-    );
+    )
 
     const items = response?.items
       ? response.items.map(PlexMapper.toMediaItem)
-      : [];
+      : []
 
     return {
       items,
       totalSize: response?.totalSize ?? items.length,
       offset: options?.offset ?? 0,
       limit: options?.limit ?? 50,
-    };
+    }
   }
 
   async getLibraryContentCount(
     libraryId: string,
     type?: MediaItemType,
   ): Promise<number> {
-    const plexType = type ? PlexMapper.toPlexDataType(type) : undefined;
-    const count = await this.plexApi.getLibraryContentCount(
-      libraryId,
-      plexType,
-    );
-    return count ?? 0;
+    const plexType = type ? PlexMapper.toPlexDataType(type) : undefined
+    const count = await this.plexApi.getLibraryContentCount(libraryId, plexType)
+    return count ?? 0
   }
 
   async searchLibraryContents(
@@ -141,28 +138,28 @@ export class PlexAdapterService implements IMediaServerService {
     query: string,
     type?: MediaItemType,
   ): Promise<MediaItem[]> {
-    const plexType = type ? PlexMapper.toPlexDataType(type) : undefined;
+    const plexType = type ? PlexMapper.toPlexDataType(type) : undefined
     const results = await this.plexApi.searchLibraryContents(
       libraryId,
       query,
       plexType,
-    );
+    )
 
-    if (!results) return [];
+    if (!results) return []
 
-    return results.map(PlexMapper.toMediaItem);
+    return results.map(PlexMapper.toMediaItem)
   }
 
   async getMetadata(itemId: string): Promise<MediaItem | undefined> {
-    const metadata = await this.plexApi.getMetadata(itemId);
-    if (!metadata) return undefined;
-    return PlexMapper.metadataToMediaItem(metadata);
+    const metadata = await this.plexApi.getMetadata(itemId)
+    if (!metadata) return undefined
+    return PlexMapper.metadataToMediaItem(metadata)
   }
 
   async getChildrenMetadata(parentId: string): Promise<MediaItem[]> {
-    const children = await this.plexApi.getChildrenMetadata(parentId);
-    if (!children) return [];
-    return children.map(PlexMapper.metadataToMediaItem);
+    const children = await this.plexApi.getChildrenMetadata(parentId)
+    if (!children) return []
+    return children.map(PlexMapper.metadataToMediaItem)
   }
 
   async getRecentlyAdded(
@@ -178,96 +175,96 @@ export class PlexAdapterService implements IMediaServerService {
       },
       undefined,
       false,
-    );
-    const results = response?.items;
+    )
+    const results = response?.items
 
-    if (!results) return [];
+    if (!results) return []
 
-    const limited = options?.limit ? results.slice(0, options.limit) : results;
-    return limited.map(PlexMapper.toMediaItem);
+    const limited = options?.limit ? results.slice(0, options.limit) : results
+    return limited.map(PlexMapper.toMediaItem)
   }
 
   async searchContent(query: string): Promise<MediaItem[]> {
-    const results = await this.plexApi.searchContent(query);
-    if (!results) return [];
-    return results.map(PlexMapper.metadataToMediaItem);
+    const results = await this.plexApi.searchContent(query)
+    if (!results) return []
+    return results.map(PlexMapper.metadataToMediaItem)
   }
 
   async getWatchHistory(itemId: string): Promise<WatchRecord[]> {
-    const history = await this.plexApi.getWatchHistory(itemId);
-    if (!history) return [];
-    return history.map(PlexMapper.toWatchRecord);
+    const history = await this.plexApi.getWatchHistory(itemId)
+    if (!history) return []
+    return history.map(PlexMapper.toWatchRecord)
   }
 
   async getItemSeenBy(itemId: string): Promise<string[]> {
-    const history = await this.getWatchHistory(itemId);
+    const history = await this.getWatchHistory(itemId)
     // Extract unique user IDs
-    const userIds = new Set(history.map((record) => record.userId));
-    return Array.from(userIds);
+    const userIds = new Set(history.map((record) => record.userId))
+    return Array.from(userIds)
   }
 
   async getCollections(libraryId: string): Promise<MediaCollection[]> {
-    const collections = await this.plexApi.getCollections(libraryId);
-    if (!collections) return [];
-    return collections.map(PlexMapper.toMediaCollection);
+    const collections = await this.plexApi.getCollections(libraryId)
+    if (!collections) return []
+    return collections.map(PlexMapper.toMediaCollection)
   }
 
   async getCollection(
     collectionId: string,
   ): Promise<MediaCollection | undefined> {
-    const collection = await this.plexApi.getCollection(collectionId);
-    if (!collection) return undefined;
-    return PlexMapper.toMediaCollection(collection);
+    const collection = await this.plexApi.getCollection(collectionId)
+    if (!collection) return undefined
+    return PlexMapper.toMediaCollection(collection)
   }
 
   async createCollection(
     params: CreateCollectionParams,
   ): Promise<MediaCollection> {
-    const plexType = PlexMapper.toPlexDataType(params.type);
+    const plexType = PlexMapper.toPlexDataType(params.type)
     const result = await this.plexApi.createCollection({
       libraryId: params.libraryId,
       type: plexType,
       title: params.title,
       summary: params.summary,
       sortTitle: params.sortTitle,
-    });
+    })
 
     if (!result) {
       this.logger.error(
         `Failed to create collection "${params.title}" in library ${params.libraryId}`,
-      );
+      )
       throw new Error(
         `Failed to create collection "${params.title}" in library ${params.libraryId}`,
-      );
+      )
     }
 
-    return PlexMapper.toMediaCollection(result);
+    return PlexMapper.toMediaCollection(result)
   }
 
   async deleteCollection(collectionId: string): Promise<void> {
     try {
-      await this.plexApi.deleteCollection(collectionId);
+      await this.plexApi.deleteCollection(collectionId)
     } catch (error) {
-      this.logger.error(`Failed to delete collection ${collectionId}`, error);
-      throw error;
+      this.logger.error(`Failed to delete collection ${collectionId}`, error)
+      throw error
     }
   }
 
   async getCollectionChildren(collectionId: string): Promise<MediaItem[]> {
-    const children = await this.plexApi.getCollectionChildren(collectionId);
-    if (!children) return [];
-    return children.map(PlexMapper.toMediaItem);
+    const children = await this.plexApi.getCollectionChildren(collectionId)
+    if (!children) return []
+    return children.map(PlexMapper.toMediaItem)
   }
 
   async addToCollection(collectionId: string, itemId: string): Promise<void> {
     try {
-      await this.plexApi.addChildToCollection(collectionId, itemId);
+      await this.plexApi.addChildToCollection(collectionId, itemId)
     } catch (error) {
       this.logger.error(
         `Failed to add item ${itemId} to collection ${collectionId}`,
         error,
-      );
-      throw error;
+      )
+      throw error
     }
   }
 
@@ -276,13 +273,13 @@ export class PlexAdapterService implements IMediaServerService {
     itemId: string,
   ): Promise<void> {
     try {
-      await this.plexApi.deleteChildFromCollection(collectionId, itemId);
+      await this.plexApi.deleteChildFromCollection(collectionId, itemId)
     } catch (error) {
       this.logger.error(
         `Failed to remove item ${itemId} from collection ${collectionId}`,
         error,
-      );
-      throw error;
+      )
+      throw error
     }
   }
 
@@ -298,18 +295,18 @@ export class PlexAdapterService implements IMediaServerService {
       title: params.title,
       summary: params.summary,
       sortTitle: params.sortTitle,
-    });
+    })
 
     if (!result) {
       this.logger.error(
         `Failed to update collection ${params.collectionId} in library ${params.libraryId}`,
-      );
+      )
       throw new Error(
         `Failed to update collection ${params.collectionId} in library ${params.libraryId}`,
-      );
+      )
     }
 
-    return PlexMapper.toMediaCollection(result);
+    return PlexMapper.toMediaCollection(result)
   }
 
   async updateCollectionVisibility(
@@ -322,13 +319,13 @@ export class PlexAdapterService implements IMediaServerService {
         recommended: settings.recommended ?? false,
         ownHome: settings.ownHome ?? false,
         sharedHome: settings.sharedHome ?? false,
-      });
+      })
     } catch (error) {
       this.logger.error(
         `Failed to update visibility for collection ${settings.collectionId}`,
         error,
-      );
-      throw error;
+      )
+      throw error
     }
   }
 
@@ -338,29 +335,29 @@ export class PlexAdapterService implements IMediaServerService {
     // For now, we can't call this without username - log for debugging
     this.logger.debug(
       `getWatchlistForUser called for user ${userId}, but this method requires username which is not available`,
-    );
-    return [];
+    )
+    return []
   }
 
   async getPlaylists(libraryId: string): Promise<MediaPlaylist[]> {
-    const playlists = await this.plexApi.getPlaylists(libraryId);
-    if (!playlists) return [];
-    return playlists.map(PlexMapper.toMediaPlaylist);
+    const playlists = await this.plexApi.getPlaylists(libraryId)
+    if (!playlists) return []
+    return playlists.map(PlexMapper.toMediaPlaylist)
   }
 
   async deleteFromDisk(itemId: string): Promise<void> {
     if (!itemId || itemId.trim() === '') {
       throw new Error(
         'deleteFromDisk called with empty itemId — aborting to prevent unintended deletion',
-      );
+      )
     }
 
     try {
-      await this.plexApi.deleteMediaFromDisk(itemId);
-      this.logger.log(`Successfully deleted Plex item ${itemId} from disk`);
+      await this.plexApi.deleteMediaFromDisk(itemId)
+      this.logger.log(`Successfully deleted Plex item ${itemId} from disk`)
     } catch (error) {
-      this.logger.error(`Failed to delete item ${itemId} from disk`, error);
-      throw error;
+      this.logger.error(`Failed to delete item ${itemId} from disk`, error)
+      throw error
     }
   }
 
@@ -373,13 +370,13 @@ export class PlexAdapterService implements IMediaServerService {
       collectionType ? PlexMapper.toPlexDataType(collectionType) : undefined,
       { type: PlexMapper.toPlexDataType(context.type), id: Number(context.id) },
       { plexId: Number(mediaId) },
-    );
-    return result.map((r) => String(r.plexId));
+    )
+    return result.map((r) => String(r.plexId))
   }
 
   resetMetadataCache(itemId?: string): void {
     if (itemId) {
-      this.plexApi.resetMetadataCache(itemId);
+      this.plexApi.resetMetadataCache(itemId)
     }
     // Note: PlexApiService doesn't support full cache flush through this method
     // Only individual item cache reset is supported

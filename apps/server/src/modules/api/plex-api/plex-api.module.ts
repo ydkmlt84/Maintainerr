@@ -1,8 +1,8 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { SettingsModule } from '../../../modules/settings/settings.module';
-import { MediaServerModule } from '../media-server/media-server.module';
-import { PlexApiLegacyController } from './plex-api-legacy.controller';
-import { PlexApiService } from './plex-api.service';
+import { forwardRef, Module } from '@nestjs/common'
+import { SettingsModule } from '../../../modules/settings/settings.module'
+import { MediaServerModule } from '../media-server/media-server.module'
+import { PlexApiLegacyController } from './plex-api-legacy.controller'
+import { PlexApiService } from './plex-api.service'
 
 /**
  * PlexApiModule

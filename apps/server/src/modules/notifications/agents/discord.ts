@@ -1,13 +1,13 @@
-import axios from 'axios';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { Notification } from '../entities/notification.entities';
+import axios from 'axios'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentDiscord,
   NotificationAgentKey,
   NotificationType,
-} from '../notifications-interfaces';
-import { hasNotificationType } from '../notifications.service';
-import type { NotificationAgent, NotificationPayload } from './agent';
+} from '../notifications-interfaces'
+import { hasNotificationType } from '../notifications.service'
+import type { NotificationAgent, NotificationPayload } from './agent'
 
 enum EmbedColors {
   DEFAULT = 0,
@@ -36,50 +36,50 @@ enum EmbedColors {
 }
 
 interface DiscordImageEmbed {
-  url?: string;
-  proxy_url?: string;
-  height?: number;
-  width?: number;
+  url?: string
+  proxy_url?: string
+  height?: number
+  width?: number
 }
 
 interface Field {
-  name: string;
-  value: string;
-  inline?: boolean;
+  name: string
+  value: string
+  inline?: boolean
 }
 interface DiscordRichEmbed {
-  title?: string;
-  type?: 'rich'; // Always rich for webhooks
-  description?: string;
-  url?: string;
-  timestamp?: string;
-  color?: number;
+  title?: string
+  type?: 'rich' // Always rich for webhooks
+  description?: string
+  url?: string
+  timestamp?: string
+  color?: number
   footer?: {
-    text: string;
-    icon_url?: string;
-    proxy_icon_url?: string;
-  };
-  image?: DiscordImageEmbed;
-  thumbnail?: DiscordImageEmbed;
+    text: string
+    icon_url?: string
+    proxy_icon_url?: string
+  }
+  image?: DiscordImageEmbed
+  thumbnail?: DiscordImageEmbed
   provider?: {
-    name?: string;
-    url?: string;
-  };
+    name?: string
+    url?: string
+  }
   author?: {
-    name?: string;
-    url?: string;
-    icon_url?: string;
-    proxy_icon_url?: string;
-  };
-  fields?: Field[];
+    name?: string
+    url?: string
+    icon_url?: string
+    proxy_icon_url?: string
+  }
+  fields?: Field[]
 }
 
 interface DiscordWebhookPayload {
-  embeds: DiscordRichEmbed[];
-  username?: string;
-  avatar_url?: string;
-  tts: boolean;
-  content?: string;
+  embeds: DiscordRichEmbed[]
+  username?: string
+  avatar_url?: string
+  tts: boolean
+  content?: string
 }
 
 class DiscordAgent implements NotificationAgent {
@@ -88,22 +88,22 @@ class DiscordAgent implements NotificationAgent {
     private readonly logger: MaintainerrLogger,
     readonly notification: Notification,
   ) {
-    logger.setContext(DiscordAgent.name);
-    this.notification = notification;
+    logger.setContext(DiscordAgent.name)
+    this.notification = notification
   }
 
-  getNotification = () => this.notification;
+  getNotification = () => this.notification
 
-  getSettings = () => this.settings;
+  getSettings = () => this.settings
 
-  getIdentifier = () => NotificationAgentKey.DISCORD;
+  getIdentifier = () => NotificationAgentKey.DISCORD
 
   public buildEmbed(
     type: NotificationType,
     payload: NotificationPayload,
   ): DiscordRichEmbed {
-    const color = EmbedColors.DARK_PURPLE;
-    const fields: Field[] = [];
+    const color = EmbedColors.DARK_PURPLE
+    const fields: Field[] = []
 
     // for (const extra of payload.extra ?? []) {
     //   fields.push({
@@ -121,15 +121,15 @@ class DiscordAgent implements NotificationAgent {
       thumbnail: {
         url: payload.image,
       },
-    };
+    }
   }
 
   public shouldSend(): boolean {
     if (this.getSettings().enabled && this.getSettings().options.webhookUrl) {
-      return true;
+      return true
     }
 
-    return false;
+    return false
   }
 
   public async send(
@@ -137,10 +137,10 @@ class DiscordAgent implements NotificationAgent {
     payload: NotificationPayload,
   ): Promise<string> {
     if (!hasNotificationType(type, this.getSettings().types ?? [0])) {
-      return 'Success';
+      return 'Success'
     }
 
-    this.logger.log('Sending Discord notification');
+    this.logger.log('Sending Discord notification')
 
     try {
       await axios.post(this.getSettings().options.webhookUrl, {
@@ -149,9 +149,9 @@ class DiscordAgent implements NotificationAgent {
           : 'Maintainerr',
         avatar_url: this.getSettings().options.botAvatarUrl,
         embeds: [this.buildEmbed(type, payload)],
-      } as DiscordWebhookPayload);
+      } as DiscordWebhookPayload)
 
-      return 'Success';
+      return 'Success'
     } catch (e) {
       this.logger.error(
         `Error sending Discord notification. Details: ${JSON.stringify({
@@ -160,11 +160,11 @@ class DiscordAgent implements NotificationAgent {
           response: e.response?.data,
         })}`,
         e,
-      );
+      )
 
-      return `Failure: ${e.message}`;
+      return `Failure: ${e.message}`
     }
   }
 }
 
-export default DiscordAgent;
+export default DiscordAgent

@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { ExternalApiService } from './external-api.service';
+import { Module } from '@nestjs/common'
+import { ExternalApiService } from './external-api.service'
 
 @Module({
   imports: [],

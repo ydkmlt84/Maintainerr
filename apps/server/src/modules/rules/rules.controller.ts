@@ -1,4 +1,4 @@
-import { MediaItemType, RuleExecuteStatusDto } from '@maintainerr/contracts';
+import { MediaItemType, RuleExecuteStatusDto } from '@maintainerr/contracts'
 import {
   Body,
   ConflictException,
@@ -14,16 +14,16 @@ import {
   Put,
   Query,
   Res,
-} from '@nestjs/common';
-import { ApiResponse } from '@nestjs/swagger';
-import { Response } from 'express';
-import { MaintainerrLogger } from '../logging/logs.service';
-import { CommunityRule } from './dtos/communityRule.dto';
-import { ExclusionAction, ExclusionContextDto } from './dtos/exclusion.dto';
-import { RulesDto } from './dtos/rules.dto';
-import { ReturnStatus, RulesService } from './rules.service';
-import { RuleExecutorJobManagerService } from './tasks/rule-executor-job-manager.service';
-import { RuleExecutorSchedulerService } from './tasks/rule-executor-scheduler.service';
+} from '@nestjs/common'
+import { ApiResponse } from '@nestjs/swagger'
+import { Response } from 'express'
+import { MaintainerrLogger } from '../logging/logs.service'
+import { CommunityRule } from './dtos/communityRule.dto'
+import { ExclusionAction, ExclusionContextDto } from './dtos/exclusion.dto'
+import { RulesDto } from './dtos/rules.dto'
+import { ReturnStatus, RulesService } from './rules.service'
+import { RuleExecutorJobManagerService } from './tasks/rule-executor-job-manager.service'
+import { RuleExecutorSchedulerService } from './tasks/rule-executor-scheduler.service'
 
 @Controller('api/rules')
 export class RulesController {
@@ -33,27 +33,27 @@ export class RulesController {
     private readonly ruleExecutorJobManagerService: RuleExecutorJobManagerService,
     private readonly logger: MaintainerrLogger,
   ) {
-    this.logger.setContext(RulesController.name);
+    this.logger.setContext(RulesController.name)
   }
 
   @Get('/constants')
   async getRuleConstants() {
-    return await this.rulesService.getRuleConstants();
+    return await this.rulesService.getRuleConstants()
   }
 
   @Get('/community')
   async getCommunityRules() {
-    return await this.rulesService.getCommunityRules();
+    return await this.rulesService.getCommunityRules()
   }
 
   @Get('/community/count')
   async getCommunityRuleCount() {
-    return this.rulesService.getCommunityRuleCount();
+    return this.rulesService.getCommunityRuleCount()
   }
 
   @Get('/community/karma/history')
   async getCommunityRuleKarmaHistory() {
-    return await this.rulesService.getCommunityRuleKarmaHistory();
+    return await this.rulesService.getCommunityRuleKarmaHistory()
   }
 
   @Get('/exclusion')
@@ -62,22 +62,22 @@ export class RulesController {
     rulegroupId?: number,
     @Query('mediaServerId') mediaServerId?: string,
   ) {
-    return this.rulesService.getExclusions(rulegroupId, mediaServerId);
+    return this.rulesService.getExclusions(rulegroupId, mediaServerId)
   }
 
   @Get('/count')
   async getRuleGroupCount() {
-    return this.rulesService.getRuleGroupCount();
+    return this.rulesService.getRuleGroupCount()
   }
 
   @Get('/:id/rules')
   getRules(@Param('id', ParseIntPipe) id: number) {
-    return this.rulesService.getRules(id);
+    return this.rulesService.getRules(id)
   }
 
   @Get('/collection/:id')
   getRuleGroupByCollectionId(@Param('id', ParseIntPipe) id: number) {
-    return this.rulesService.getRuleGroupByCollectionId(id);
+    return this.rulesService.getRuleGroupByCollectionId(id)
   }
 
   @Get()
@@ -90,52 +90,52 @@ export class RulesController {
       activeOnly !== undefined ? activeOnly === 'true' : false,
       libraryId ? libraryId : undefined,
       typeId ? typeId : undefined,
-    );
+    )
   }
 
   @Get('/:id')
   getRuleGroup(@Param('id', ParseIntPipe) id: number): Promise<RulesDto> {
-    return this.rulesService.getRuleGroup(id);
+    return this.rulesService.getRuleGroup(id)
   }
 
   @Delete('/:id')
   deleteRuleGroup(@Param('id', ParseIntPipe) id: number) {
-    return this.rulesService.deleteRuleGroup(id);
+    return this.rulesService.deleteRuleGroup(id)
   }
 
   @Post('/execute')
   async executeRules() {
     if (this.ruleExecutorJobManagerService.isProcessing()) {
-      throw new ConflictException('The rule executor is already running');
+      throw new ConflictException('The rule executor is already running')
     }
 
-    const allGroups = await this.rulesService.getRuleGroups();
+    const allGroups = await this.rulesService.getRuleGroups()
 
     if (!allGroups || allGroups.length === 0) {
       throw new ConflictException(
         'No rule groups found. Create a rule group first.',
-      );
+      )
     }
 
-    const activeGroups = allGroups.filter((rg) => rg.isActive);
+    const activeGroups = allGroups.filter((rg) => rg.isActive)
     const anyLibrarySet = allGroups.some(
       (rg) => rg.libraryId && rg.libraryId !== '',
-    );
+    )
 
     if (activeGroups.length === 0) {
       const msg = anyLibrarySet
         ? 'No active rule groups. Activate at least one rule group before running.'
-        : 'No active rule groups and no libraries are set. Please activate your rule groups and assign libraries before running.';
-      throw new ConflictException(msg);
+        : 'No active rule groups and no libraries are set. Please activate your rule groups and assign libraries before running.'
+      throw new ConflictException(msg)
     }
 
     const groupsWithLibrary = activeGroups.filter(
       (rg) => rg.libraryId && rg.libraryId !== '',
-    );
+    )
     if (groupsWithLibrary.length === 0) {
       throw new ConflictException(
         'All active rule groups are missing a library. Please edit your rules and assign libraries before running.',
-      );
+      )
     }
 
     this.ruleExecutorSchedulerService.enqueueAllActiveRuleGroups().catch((e) =>
@@ -146,47 +146,47 @@ export class RulesController {
         },
         e instanceof Error ? e.stack : undefined,
       ),
-    );
+    )
   }
 
   @Post('/:id/execute')
   async executeRule(@Param('id', ParseIntPipe) id: number) {
-    const ruleGroup = await this.rulesService.getRuleGroup(id);
+    const ruleGroup = await this.rulesService.getRuleGroup(id)
     if (!ruleGroup) {
-      throw new NotFoundException('Rule group not found');
+      throw new NotFoundException('Rule group not found')
     }
 
     if (!ruleGroup.isActive) {
-      throw new ConflictException('Rule group is not active');
+      throw new ConflictException('Rule group is not active')
     }
 
     if (!ruleGroup.libraryId || ruleGroup.libraryId === '') {
       throw new ConflictException(
         'Rule group has no library assigned. Please edit the rule and select a library before running.',
-      );
+      )
     }
 
     if (this.ruleExecutorJobManagerService.isRuleGroupProcessingOrQueued(id)) {
       throw new ConflictException(
         'The rule is already being executed or is queued for execution',
-      );
+      )
     }
 
     const result = this.ruleExecutorJobManagerService.enqueue({
       ruleGroupId: id,
-    });
+    })
 
     if (!result) {
       throw new ConflictException(
         'Failed to enqueue the rule group for execution',
-      );
+      )
     }
   }
 
   @Get('/execute/status')
   getExecutionStatus(): RuleExecuteStatusDto {
-    const status = this.ruleExecutorJobManagerService.getStatus();
-    return status;
+    const status = this.ruleExecutorJobManagerService.getStatus()
+    return status
   }
 
   @Post('/execute/stop')
@@ -201,8 +201,8 @@ export class RulesController {
   })
   async stopExecutingRules(@Res() res: Response) {
     if (!this.ruleExecutorJobManagerService.isProcessing()) {
-      res.status(HttpStatus.OK).send();
-      return;
+      res.status(HttpStatus.OK).send()
+      return
     }
 
     this.ruleExecutorJobManagerService.stopProcessing().catch((e) =>
@@ -213,8 +213,8 @@ export class RulesController {
         },
         e instanceof Error ? e.stack : undefined,
       ),
-    );
-    res.status(HttpStatus.ACCEPTED).send();
+    )
+    res.status(HttpStatus.ACCEPTED).send()
   }
 
   @Post('/:id/execute/stop')
@@ -232,25 +232,25 @@ export class RulesController {
     @Res() res: Response,
   ) {
     if (!this.ruleExecutorJobManagerService.isRuleGroupProcessingOrQueued(id)) {
-      res.status(HttpStatus.OK).send();
-      return;
+      res.status(HttpStatus.OK).send()
+      return
     }
 
-    this.ruleExecutorJobManagerService.stopProcessingRuleGroup(id);
-    res.status(HttpStatus.ACCEPTED).send();
+    this.ruleExecutorJobManagerService.stopProcessingRuleGroup(id)
+    res.status(HttpStatus.ACCEPTED).send()
   }
 
   @Post()
   async setRules(@Body() body: RulesDto): Promise<ReturnStatus> {
-    return await this.rulesService.setRules(body);
+    return await this.rulesService.setRules(body)
   }
 
   @Post('/exclusion')
   async setExclusion(@Body() body: ExclusionContextDto): Promise<ReturnStatus> {
     if (body.action === undefined || body.action === ExclusionAction.ADD) {
-      return await this.rulesService.setExclusion(body);
+      return await this.rulesService.setExclusion(body)
     } else {
-      return await this.rulesService.removeExclusionWitData(body);
+      return await this.rulesService.removeExclusionWitData(body)
     }
   }
 
@@ -258,19 +258,19 @@ export class RulesController {
   async removeExclusion(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ReturnStatus> {
-    return await this.rulesService.removeExclusion(id);
+    return await this.rulesService.removeExclusion(id)
   }
 
   @Delete('/exclusions/:mediaServerId')
   async removeAllExclusion(
     @Param('mediaServerId') mediaServerId: string,
   ): Promise<ReturnStatus> {
-    return await this.rulesService.removeAllExclusion(mediaServerId);
+    return await this.rulesService.removeAllExclusion(mediaServerId)
   }
 
   @Put()
   async updateRule(@Body() body: RulesDto): Promise<ReturnStatus> {
-    return await this.rulesService.updateRules(body);
+    return await this.rulesService.updateRules(body)
   }
 
   @Post('/community')
@@ -278,12 +278,12 @@ export class RulesController {
     @Body() body: CommunityRule,
   ): Promise<ReturnStatus> {
     if (body.name && body.description && body.JsonRules) {
-      return await this.rulesService.addToCommunityRules(body);
+      return await this.rulesService.addToCommunityRules(body)
     } else {
       return {
         code: 0,
         result: 'Invalid input',
-      };
+      }
     }
   }
 
@@ -295,12 +295,12 @@ export class RulesController {
       return await this.rulesService.updateCommunityRuleKarma(
         body.id,
         body.karma,
-      );
+      )
     } else {
       return {
         code: 0,
         result: 'Invalid input',
-      };
+      }
     }
   }
 
@@ -318,12 +318,12 @@ export class RulesController {
       return this.rulesService.encodeToYaml(
         JSON.parse(body.rules),
         body.mediaType,
-      );
+      )
     } catch (err) {
       return {
         code: 0,
         result: 'Invalid input',
-      };
+      }
     }
   }
 
@@ -338,12 +338,12 @@ export class RulesController {
     @Body() body: { yaml: string; mediaType: MediaItemType },
   ): Promise<ReturnStatus> {
     try {
-      return this.rulesService.decodeFromYaml(body.yaml, body.mediaType);
+      return this.rulesService.decodeFromYaml(body.yaml, body.mediaType)
     } catch (err) {
       return {
         code: 0,
         result: 'Invalid input',
-      };
+      }
     }
   }
 
@@ -352,7 +352,7 @@ export class RulesController {
     return this.rulesService.testRuleGroupWithData(
       body.rulegroupId,
       body.mediaId,
-    );
+    )
   }
 
   /**
@@ -362,13 +362,13 @@ export class RulesController {
   @Post('/migrate')
   async migrateRules(@Body() body: { rules: string }): Promise<ReturnStatus> {
     try {
-      const rules = JSON.parse(body.rules);
-      return await this.rulesService.migrateRules(rules);
+      const rules = JSON.parse(body.rules)
+      return await this.rulesService.migrateRules(rules)
     } catch (err) {
       return {
         code: 0,
         result: 'Invalid input',
-      };
+      }
     }
   }
 }

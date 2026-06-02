@@ -1,6 +1,6 @@
 import { UploadIcon } from '@heroicons/react/solid'
 import { compareVersions } from 'compare-versions'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import GetApiHandler, { PostApiHandler } from '../../../utils/ApiHandler'
 import { logClientError } from '../../../utils/ClientLogger'
 import { IRule } from '../../Rules/Rule/RuleCreator'
@@ -51,6 +51,28 @@ const CommunityRuleModal = (props: ICommunityRuleModal) => {
   const [searchText, setSearchText] = useState<string>('')
   const itemsPerPage = 5
 
+  const getAppVersion = useCallback(async () => {
+    return GetApiHandler('/settings/version').then((resp: string) => {
+      if (resp) {
+        setAppVersion(resp)
+      } else {
+        throw new Error(`Couldn't fetch app version.`)
+      }
+    })
+  }, [])
+
+  const getKarmaHistory = useCallback(async () => {
+    return GetApiHandler('/rules/community/karma/history').then(
+      (resp: ICommunityRuleKarmaHistory[]) => {
+        if (resp) {
+          setHistory(resp)
+        } else {
+          throw new Error(`Couldn't fetch community rule Karma history.`)
+        }
+      },
+    )
+  }, [])
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -89,29 +111,7 @@ const CommunityRuleModal = (props: ICommunityRuleModal) => {
     }
 
     fetchData()
-  }, [])
-
-  const getAppVersion = async () => {
-    return GetApiHandler('/settings/version').then((resp: string) => {
-      if (resp) {
-        setAppVersion(resp)
-      } else {
-        throw new Error(`Couldn't fetch app version.`)
-      }
-    })
-  }
-
-  const getKarmaHistory = async () => {
-    return GetApiHandler('/rules/community/karma/history').then(
-      (resp: ICommunityRuleKarmaHistory[]) => {
-        if (resp) {
-          setHistory(resp)
-        } else {
-          throw new Error(`Couldn't fetch community rule Karma history.`)
-        }
-      },
-    )
-  }
+  }, [getAppVersion, getKarmaHistory])
 
   const applicableCommunityRules = useMemo(() => {
     return communityRules
@@ -153,9 +153,12 @@ const CommunityRuleModal = (props: ICommunityRuleModal) => {
     1,
     Math.ceil(filteredCommunityRules.length / itemsPerPage),
   )
-  if (currentPage > lastPage) {
-    setCurrentPage(lastPage)
-  }
+
+  useEffect(() => {
+    if (currentPage > lastPage) {
+      queueMicrotask(() => setCurrentPage(lastPage))
+    }
+  }, [currentPage, lastPage])
 
   const paginate = (page: number) => {
     setCurrentPage(page)

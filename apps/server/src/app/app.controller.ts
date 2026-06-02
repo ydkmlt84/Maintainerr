@@ -1,6 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
-import { GitHubApiService } from '../modules/api/github-api/github-api.service';
-import { AppService } from './app.service';
+import { Controller, Get } from '@nestjs/common'
+import { GitHubApiService } from '../modules/api/github-api/github-api.service'
+import { AppService } from './app.service'
 
 @Controller('/api/app')
 export class AppController {
@@ -11,12 +11,12 @@ export class AppController {
 
   @Get('/status')
   async getAppStatus() {
-    return JSON.stringify(await this.appService.getAppVersionStatus());
+    return JSON.stringify(await this.appService.getAppVersionStatus())
   }
 
   @Get('/timezone')
   async getAppTimezone() {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
   }
 
   @Get('/releases')
@@ -25,7 +25,7 @@ export class AppController {
       'maintainerr',
       'maintainerr',
       10,
-    );
-    return releases || [];
+    )
+    return releases || []
   }
 }

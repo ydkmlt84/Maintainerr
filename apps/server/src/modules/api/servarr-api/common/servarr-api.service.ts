@@ -1,7 +1,7 @@
-import { ExternalApiService } from '../../../../modules/api/external-api/external-api.service';
-import { DVRSettings } from '../../../../modules/settings/interfaces/dvr-settings.interface';
-import { MaintainerrLogger } from '../../../logging/logs.service';
-import cacheManager from '../../lib/cache';
+import { ExternalApiService } from '../../../../modules/api/external-api/external-api.service'
+import { DVRSettings } from '../../../../modules/settings/interfaces/dvr-settings.interface'
+import { MaintainerrLogger } from '../../../logging/logs.service'
+import cacheManager from '../../lib/cache'
 import {
   DiskSpaceResource,
   QualityProfile,
@@ -10,14 +10,14 @@ import {
   RootFolder,
   SystemStatus,
   Tag,
-} from '../interfaces/servarr.interface';
+} from '../interfaces/servarr.interface'
 
 export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
   static buildUrl(settings: DVRSettings, path?: string): string {
-    return `${settings.useSsl ? 'https' : 'http'}://${settings.hostname}:${settings.port}${settings.baseUrl ?? ''}${path}`;
+    return `${settings.useSsl ? 'https' : 'http'}://${settings.hostname}:${settings.port}${settings.baseUrl ?? ''}${path}`
   }
 
-  protected apiName: string;
+  protected apiName: string
 
   constructor(
     {
@@ -25,9 +25,9 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
       apiKey,
       cacheName,
     }: {
-      url: string;
-      apiKey: string;
-      cacheName?: string;
+      url: string
+      apiKey: string
+      cacheName?: string
     },
     protected readonly logger: MaintainerrLogger,
   ) {
@@ -40,18 +40,18 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
       cacheName
         ? { nodeCache: cacheManager.getCache(cacheName).data }
         : undefined,
-    );
+    )
   }
 
   public getSystemStatus = async (): Promise<SystemStatus> => {
     try {
-      const response = await this.axios.get<SystemStatus>('/system/status');
+      const response = await this.axios.get<SystemStatus>('/system/status')
 
-      return response.data;
+      return response.data
     } catch (e) {
-      this.logger.warn(`Failed to retrieve system status: ${e.message}`);
+      this.logger.warn(`Failed to retrieve system status: ${e.message}`)
     }
-  };
+  }
 
   public getProfiles = async (): Promise<QualityProfile[]> => {
     try {
@@ -59,13 +59,13 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
         `/qualityProfile`,
         undefined,
         3600,
-      );
+      )
 
-      return data;
+      return data
     } catch (e) {
-      this.logger.warn(`Failed to retrieve profiles: ${e.message}`);
+      this.logger.warn(`Failed to retrieve profiles: ${e.message}`)
     }
-  };
+  }
 
   public getRootFolders = async (): Promise<RootFolder[]> => {
     try {
@@ -73,13 +73,13 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
         `/rootfolder`,
         undefined,
         3600,
-      );
+      )
 
-      return data;
+      return data
     } catch (e) {
-      this.logger.warn(`Failed to retrieve root folders: ${e.message}`);
+      this.logger.warn(`Failed to retrieve root folders: ${e.message}`)
     }
-  };
+  }
 
   public getDiskspace = async (): Promise<DiskSpaceResource[]> => {
     try {
@@ -87,46 +87,46 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
         `/diskspace`,
         undefined,
         3600,
-      );
+      )
 
-      return data;
+      return data
     } catch (e) {
-      this.logger.warn(`Failed to retrieve disk space: ${e.message}`);
+      this.logger.warn(`Failed to retrieve disk space: ${e.message}`)
     }
-  };
+  }
 
   public getQueue = async (): Promise<(QueueItem & QueueItemAppendT)[]> => {
     try {
       const response =
-        await this.axios.get<QueueResponse<QueueItemAppendT>>(`/queue`);
+        await this.axios.get<QueueResponse<QueueItemAppendT>>(`/queue`)
 
-      return response.data.records;
+      return response.data.records
     } catch (e) {
-      this.logger.warn(`Failed to retrieve queue: ${e.message}`);
+      this.logger.warn(`Failed to retrieve queue: ${e.message}`)
     }
-  };
+  }
 
   public getTags = async (): Promise<Tag[]> => {
     try {
-      const response = await this.axios.get<Tag[]>(`/tag`);
+      const response = await this.axios.get<Tag[]>(`/tag`)
 
-      return response.data;
+      return response.data
     } catch (e) {
-      this.logger.warn(`Failed to retrieve tags: ${e.message}`);
+      this.logger.warn(`Failed to retrieve tags: ${e.message}`)
     }
-  };
+  }
 
   public createTag = async ({ label }: { label: string }): Promise<Tag> => {
     try {
       const response = await this.axios.post<Tag>(`/tag`, {
         label,
-      });
+      })
 
-      return response.data;
+      return response.data
     } catch (e) {
-      this.logger.warn(`Failed to create tag: ${e.message}`);
+      this.logger.warn(`Failed to create tag: ${e.message}`)
     }
-  };
+  }
 
   public async runCommand(
     commandName: string,
@@ -137,30 +137,30 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
       const resp = await this.axios.post(`/command`, {
         name: commandName,
         ...options,
-      });
+      })
       if (wait && resp.data) {
         while (resp.data.status !== 'failed' && resp.data.status !== 'finished')
-          resp.data = await this.get('/command/' + resp.data.id);
+          resp.data = await this.get('/command/' + resp.data.id)
       }
-      return resp ? resp.data : undefined;
+      return resp ? resp.data : undefined
     } catch (e) {
-      this.logger.warn(`Failed to run command: ${e.message}`);
+      this.logger.warn(`Failed to run command: ${e.message}`)
     }
   }
 
   protected async runDelete(command: string): Promise<void> {
     try {
-      await this.delete(`/${command}`);
+      await this.delete(`/${command}`)
     } catch (e) {
-      this.logger.warn(`Failed to run DELETE: ${e.message}`);
+      this.logger.warn(`Failed to run DELETE: ${e.message}`)
     }
   }
 
   protected async runPut(command: string, body: string): Promise<void> {
     try {
-      await this.put(`/${command}`, body);
+      await this.put(`/${command}`, body)
     } catch (e) {
-      this.logger.warn(`Failed to run PUT: ${e.message}`);
+      this.logger.warn(`Failed to run PUT: ${e.message}`)
     }
   }
 }

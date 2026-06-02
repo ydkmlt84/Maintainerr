@@ -1,4 +1,4 @@
-import { ECollectionLogType, MediaItemType } from '@maintainerr/contracts';
+import { ECollectionLogType, MediaItemType } from '@maintainerr/contracts'
 import {
   Body,
   Controller,
@@ -11,14 +11,14 @@ import {
   Post,
   Put,
   Query,
-} from '@nestjs/common';
-import { CollectionWorkerService } from './collection-worker.service';
-import { CollectionsService } from './collections.service';
+} from '@nestjs/common'
+import { CollectionWorkerService } from './collection-worker.service'
+import { CollectionsService } from './collections.service'
 import {
   AddRemoveCollectionMedia,
   IAlterableMediaDto,
-} from './interfaces/collection-media.interface';
-import { MaintainerrLogger } from '../logging/logs.service';
+} from './interfaces/collection-media.interface'
+import { MaintainerrLogger } from '../logging/logs.service'
 
 @Controller('api/collections')
 export class CollectionsController {
@@ -27,45 +27,45 @@ export class CollectionsController {
     private readonly collectionWorkerService: CollectionWorkerService,
     private readonly logger: MaintainerrLogger,
   ) {
-    this.logger.setContext(CollectionsController.name);
+    this.logger.setContext(CollectionsController.name)
   }
   @Post()
   async createCollection(@Body() request: any) {
     await this.collectionService.createCollectionWithChildren(
       request.collection,
       request.media,
-    );
+    )
   }
   @Post('/add')
   async addToCollection(
     @Body()
     request: {
-      collectionId: number;
-      media: AddRemoveCollectionMedia[];
-      manual?: boolean;
+      collectionId: number
+      media: AddRemoveCollectionMedia[]
+      manual?: boolean
     },
   ) {
     await this.collectionService.addToCollection(
       request.collectionId,
       request.media,
       request.manual ? request.manual : false,
-    );
+    )
   }
   @Post('/remove')
   async removeFromCollection(@Body() request: any) {
     await this.collectionService.removeFromCollection(
       request.collectionId,
       request.media,
-    );
+    )
   }
   @Post('/removeCollection')
   removeCollection(@Body() request: any) {
-    return this.collectionService.deleteCollection(request.collectionId);
+    return this.collectionService.deleteCollection(request.collectionId)
   }
 
   @Put()
   updateCollection(@Body() request: any) {
-    return this.collectionService.updateCollection(request);
+    return this.collectionService.updateCollection(request)
   }
 
   @Post('/handle')
@@ -74,7 +74,7 @@ export class CollectionsController {
       throw new HttpException(
         'The collection handler is already running',
         HttpStatus.CONFLICT,
-      );
+      )
     }
 
     this.collectionWorkerService.execute().catch((e) =>
@@ -85,22 +85,22 @@ export class CollectionsController {
         },
         e instanceof Error ? e.stack : undefined,
       ),
-    );
+    )
   }
 
   @Put('/schedule/update')
   updateSchedule(@Body() request: { schedule: string }) {
-    return this.collectionWorkerService.updateJob(request.schedule);
+    return this.collectionWorkerService.updateJob(request.schedule)
   }
 
   @Get('/deactivate/:id')
   deactivate(@Param('id', ParseIntPipe) id: number) {
-    return this.collectionService.deactivateCollection(id);
+    return this.collectionService.deactivateCollection(id)
   }
 
   @Get('/activate/:id')
   activate(@Param('id', ParseIntPipe) id: number) {
-    return this.collectionService.activateCollection(id);
+    return this.collectionService.activateCollection(id)
   }
 
   @Get()
@@ -109,11 +109,11 @@ export class CollectionsController {
     @Query('typeId') typeId: MediaItemType,
   ) {
     if (libraryId) {
-      return this.collectionService.getCollections(libraryId, undefined);
+      return this.collectionService.getCollections(libraryId, undefined)
     } else if (typeId) {
-      return this.collectionService.getCollections(undefined, typeId);
+      return this.collectionService.getCollections(undefined, typeId)
     } else {
-      return this.collectionService.getCollections(undefined, undefined);
+      return this.collectionService.getCollections(undefined, undefined)
     }
   }
 
@@ -123,27 +123,27 @@ export class CollectionsController {
     @Query('typeId') typeId: MediaItemType,
   ) {
     if (libraryId) {
-      return this.collectionService.getCalendarData(libraryId, undefined);
+      return this.collectionService.getCalendarData(libraryId, undefined)
     } else if (typeId) {
-      return this.collectionService.getCalendarData(undefined, typeId);
+      return this.collectionService.getCalendarData(undefined, typeId)
     } else {
-      return this.collectionService.getCalendarData(undefined, undefined);
+      return this.collectionService.getCalendarData(undefined, undefined)
     }
   }
 
   @Get('/collection/:id')
   getCollection(@Param('id', ParseIntPipe) collectionId: number) {
-    return this.collectionService.getCollection(collectionId);
+    return this.collectionService.getCollection(collectionId)
   }
 
   @Post('/media/add')
   ManualActionOnCollection(
     @Body()
     request: {
-      mediaId: string;
-      context: IAlterableMediaDto;
-      collectionId: number;
-      action: 0 | 1;
+      mediaId: string
+      context: IAlterableMediaDto
+      collectionId: number
+      action: 0 | 1
     },
   ) {
     return this.collectionService.MediaCollectionActionWithContext(
@@ -151,7 +151,7 @@ export class CollectionsController {
       request.context,
       { mediaServerId: request.mediaId },
       request.action === 0 ? 'add' : 'remove',
-    );
+    )
   }
   @Delete('/media')
   deleteMediaFromCollection(
@@ -162,18 +162,18 @@ export class CollectionsController {
     if (!collectionId) {
       return this.collectionService.removeFromAllCollections([
         { mediaServerId: mediaId },
-      ]);
+      ])
     }
     return this.collectionService.removeFromCollection(collectionId, [
       { mediaServerId: mediaId },
-    ]);
+    ])
   }
 
   @Get('/media/')
   getMediaInCollection(
     @Query('collectionId', ParseIntPipe) collectionId: number,
   ) {
-    return this.collectionService.getCollectionMedia(collectionId);
+    return this.collectionService.getCollectionMedia(collectionId)
   }
 
   @Get('/media/count')
@@ -181,12 +181,12 @@ export class CollectionsController {
     @Query('collectionId', new ParseIntPipe({ optional: true }))
     collectionId?: number,
   ) {
-    return this.collectionService.getCollectionMediaCount(collectionId);
+    return this.collectionService.getCollectionMediaCount(collectionId)
   }
 
   @Get('/storage-summary')
   getStorageSummary() {
-    return this.collectionService.getCollectionStorageSummary();
+    return this.collectionService.getCollectionStorageSummary()
   }
 
   @Get('/media/:id/content/:page')
@@ -195,15 +195,15 @@ export class CollectionsController {
     @Param('page', ParseIntPipe) page: number,
     @Query('size', new ParseIntPipe({ optional: true })) amount?: number,
   ) {
-    const size = amount ?? 25;
-    const offset = (page - 1) * size;
+    const size = amount ?? 25
+    const offset = (page - 1) * size
     return this.collectionService.getCollectionMediaWithServerDataAndPaging(
       id,
       {
         offset: offset,
         size: size,
       },
-    );
+    )
   }
 
   @Get('/exclusions/:id/content/:page')
@@ -212,15 +212,15 @@ export class CollectionsController {
     @Param('page', ParseIntPipe) page: number,
     @Query('size', new ParseIntPipe({ optional: true })) amount?: number,
   ) {
-    const size = amount ?? 25;
-    const offset = (page - 1) * size;
+    const size = amount ?? 25
+    const offset = (page - 1) * size
     return this.collectionService.getCollectionExclusionsWithServerDataAndPaging(
       id,
       {
         offset: offset,
         size: size,
       },
-    );
+    )
   }
 
   @Get('/logs/:id/content/:page')
@@ -232,8 +232,8 @@ export class CollectionsController {
     @Query('filter') filter: ECollectionLogType,
     @Query('size', new ParseIntPipe({ optional: true })) amount?: number,
   ) {
-    const size = amount ?? 25;
-    const offset = (page - 1) * size;
+    const size = amount ?? 25
+    const offset = (page - 1) * size
     return this.collectionService.getCollectionLogsWithPaging(
       id,
       {
@@ -243,6 +243,6 @@ export class CollectionsController {
       search,
       sort,
       filter,
-    );
+    )
   }
 }

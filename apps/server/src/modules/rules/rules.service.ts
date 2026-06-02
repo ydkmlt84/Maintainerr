@@ -3,56 +3,56 @@ import {
   MaintainerrEvent,
   MediaItemType,
   MediaServerType,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import axios from 'axios';
-import _ from 'lodash';
-import { DataSource, Repository } from 'typeorm';
-import cacheManager from '../api/lib/cache';
-import { MediaServerFactory } from '../api/media-server/media-server.factory';
-import { IMediaServerService } from '../api/media-server/media-server.interface';
-import { CollectionsService } from '../collections/collections.service';
-import { Collection } from '../collections/entities/collection.entities';
-import { CollectionMedia } from '../collections/entities/collection_media.entities';
-import { AddRemoveCollectionMedia } from '../collections/interfaces/collection-media.interface';
-import { MaintainerrLogger } from '../logging/logs.service';
-import { Notification } from '../notifications/entities/notification.entities';
-import { RadarrSettings } from '../settings/entities/radarr_settings.entities';
-import { Settings } from '../settings/entities/settings.entities';
-import { SonarrSettings } from '../settings/entities/sonarr_settings.entities';
-import { RuleMigrationService } from '../settings/rule-migration.service';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { InjectRepository } from '@nestjs/typeorm'
+import axios from 'axios'
+import _ from 'lodash'
+import { DataSource, Repository } from 'typeorm'
+import cacheManager from '../api/lib/cache'
+import { MediaServerFactory } from '../api/media-server/media-server.factory'
+import { IMediaServerService } from '../api/media-server/media-server.interface'
+import { CollectionsService } from '../collections/collections.service'
+import { Collection } from '../collections/entities/collection.entities'
+import { CollectionMedia } from '../collections/entities/collection_media.entities'
+import { AddRemoveCollectionMedia } from '../collections/interfaces/collection-media.interface'
+import { MaintainerrLogger } from '../logging/logs.service'
+import { Notification } from '../notifications/entities/notification.entities'
+import { RadarrSettings } from '../settings/entities/radarr_settings.entities'
+import { Settings } from '../settings/entities/settings.entities'
+import { SonarrSettings } from '../settings/entities/sonarr_settings.entities'
+import { RuleMigrationService } from '../settings/rule-migration.service'
 import {
   Application,
   Property,
   RuleConstants,
   RulePossibility,
   RuleType,
-} from './constants/rules.constants';
-import { CommunityRule } from './dtos/communityRule.dto';
-import { ExclusionContextDto } from './dtos/exclusion.dto';
-import { RuleDto } from './dtos/rule.dto';
-import { RuleDbDto } from './dtos/ruleDb.dto';
-import { RulesDto } from './dtos/rules.dto';
-import { CommunityRuleKarma } from './entities/community-rule-karma.entities';
-import { Exclusion } from './entities/exclusion.entities';
-import { RuleGroup } from './entities/rule-group.entities';
-import { Rules } from './entities/rules.entities';
-import { RuleComparatorServiceFactory } from './helpers/rule.comparator.service';
-import { RuleYamlService } from './helpers/yaml.service';
+} from './constants/rules.constants'
+import { CommunityRule } from './dtos/communityRule.dto'
+import { ExclusionContextDto } from './dtos/exclusion.dto'
+import { RuleDto } from './dtos/rule.dto'
+import { RuleDbDto } from './dtos/ruleDb.dto'
+import { RulesDto } from './dtos/rules.dto'
+import { CommunityRuleKarma } from './entities/community-rule-karma.entities'
+import { Exclusion } from './entities/exclusion.entities'
+import { RuleGroup } from './entities/rule-group.entities'
+import { Rules } from './entities/rules.entities'
+import { RuleComparatorServiceFactory } from './helpers/rule.comparator.service'
+import { RuleYamlService } from './helpers/yaml.service'
 
 export interface ReturnStatus {
-  code: 0 | 1;
-  result?: string;
-  message?: string;
+  code: 0 | 1
+  result?: string
+  message?: string
 }
 
 @Injectable()
 export class RulesService {
-  private readonly communityUrl = 'https://community.maintainerr.info';
+  private readonly communityUrl = 'https://community.maintainerr.info'
 
-  ruleConstants: RuleConstants;
+  ruleConstants: RuleConstants
   constructor(
     @InjectRepository(Rules)
     private readonly rulesRepository: Repository<Rules>,
@@ -79,50 +79,50 @@ export class RulesService {
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(RulesService.name);
-    this.ruleConstants = new RuleConstants();
+    logger.setContext(RulesService.name)
+    this.ruleConstants = new RuleConstants()
   }
 
   private async getMediaServer(): Promise<IMediaServerService> {
-    return this.mediaServerFactory.getService();
+    return this.mediaServerFactory.getService()
   }
   async getRuleConstants(): Promise<RuleConstants> {
-    const settings = await this.settingsRepo.findOne({ where: {} });
-    const radarrSettingsExist = await this.radarrSettingsRepo.exists();
-    const sonarrSettingsExist = await this.sonarrSettingsRepo.exists();
+    const settings = await this.settingsRepo.findOne({ where: {} })
+    const radarrSettingsExist = await this.radarrSettingsRepo.exists()
+    const sonarrSettingsExist = await this.sonarrSettingsRepo.exists()
 
-    const localConstants = _.cloneDeep(this.ruleConstants);
+    const localConstants = _.cloneDeep(this.ruleConstants)
     if (settings) {
       // remove seerr if not configured
       if (!settings.seerr_api_key || !settings.seerr_url) {
         localConstants.applications = localConstants.applications.filter(
           (el) => el.id !== Application.SEERR,
-        );
+        )
       }
 
       // remove radarr if not configured
       if (!radarrSettingsExist) {
         localConstants.applications = localConstants.applications.filter(
           (el) => el.id !== Application.RADARR,
-        );
+        )
       }
 
       // remove sonarr if not configured
       if (!sonarrSettingsExist) {
         localConstants.applications = localConstants.applications.filter(
           (el) => el.id !== Application.SONARR,
-        );
+        )
       }
 
       // remove tautulli if not configured
       if (!settings.tautulli_url || !settings.tautulli_api_key) {
         localConstants.applications = localConstants.applications.filter(
           (el) => el.id !== Application.TAUTULLI,
-        );
+        )
       }
     }
 
-    return localConstants;
+    return localConstants
   }
   async getRules(ruleGroupId: number): Promise<Rules[]> {
     try {
@@ -130,11 +130,11 @@ export class RulesService {
         .getRepository(Rules)
         .createQueryBuilder('rules')
         .where('ruleGroupId = :id', { id: ruleGroupId })
-        .getMany();
+        .getMany()
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
@@ -153,34 +153,34 @@ export class RulesService {
         .leftJoinAndSelect('rg.notifications', 'n')
         .where(
           activeOnly ? 'rg.isActive = true' : 'rg.isActive in (true, false)',
-        );
+        )
 
       if (libraryId !== undefined) {
-        queryBuilder.andWhere('rg.libraryId = :libraryId', { libraryId });
+        queryBuilder.andWhere('rg.libraryId = :libraryId', { libraryId })
       } else if (typeId !== undefined) {
-        queryBuilder.andWhere('c.type = :typeId', { typeId });
+        queryBuilder.andWhere('c.type = :typeId', { typeId })
       } else {
-        queryBuilder.andWhere("rg.libraryId != '-1'");
+        queryBuilder.andWhere("rg.libraryId != '-1'")
       }
 
-      const rulegroups = await queryBuilder.orderBy('rg.id, r.id').getMany();
+      const rulegroups = await queryBuilder.orderBy('rg.id, r.id').getMany()
       // Ensure rules is always an array for each group
       for (const group of rulegroups) {
         if (!Array.isArray(group.rules)) {
-          group.rules = [];
+          group.rules = []
         }
       }
-      return rulegroups as RulesDto[];
+      return rulegroups as RulesDto[]
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
   async getRuleGroupsByIds(ids: number[]): Promise<RulesDto[]> {
     if (ids.length === 0) {
-      return [];
+      return []
     }
 
     try {
@@ -193,18 +193,18 @@ export class RulesService {
         .leftJoinAndSelect('rg.notifications', 'n')
         .where('rg.id IN (:...ids)', { ids })
         .orderBy('rg.id, r.id')
-        .getMany();
+        .getMany()
       // Ensure rules is always an array for each group
       for (const group of rulegroups) {
         if (!Array.isArray(group.rules)) {
-          group.rules = [];
+          group.rules = []
         }
       }
-      return rulegroups as RulesDto[];
+      return rulegroups as RulesDto[]
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
@@ -219,21 +219,21 @@ export class RulesService {
         .leftJoinAndSelect('rg.notifications', 'n')
         .andWhere('rg.id = :id', { id })
         .orderBy('r.id')
-        .getOne();
+        .getOne()
       // Ensure rules is always an array
       if (rulegroup && !Array.isArray(rulegroup.rules)) {
-        rulegroup.rules = [];
+        rulegroup.rules = []
       }
-      return rulegroup as RulesDto;
+      return rulegroup as RulesDto
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
   async getRuleGroupCount(): Promise<number> {
-    return this.ruleGroupRepository.count();
+    return this.ruleGroupRepository.count()
   }
 
   async getRuleGroupById(ruleGroupId: number): Promise<RuleGroup> {
@@ -241,11 +241,11 @@ export class RulesService {
       return await this.ruleGroupRepository.findOne({
         where: { id: ruleGroupId },
         relations: ['notifications'],
-      });
+      })
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
@@ -254,11 +254,11 @@ export class RulesService {
       return await this.ruleGroupRepository.findOne({
         where: { collectionId: id },
         relations: ['notifications'],
-      });
+      })
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
@@ -266,57 +266,57 @@ export class RulesService {
     try {
       const group = await this.ruleGroupRepository.findOne({
         where: { id: ruleGroupId },
-      });
+      })
 
-      await this.exclusionRepo.delete({ ruleGroupId: ruleGroupId });
-      await this.ruleGroupRepository.delete(ruleGroupId);
+      await this.exclusionRepo.delete({ ruleGroupId: ruleGroupId })
+      await this.ruleGroupRepository.delete(ruleGroupId)
 
       if (group) {
         this.eventEmitter.emit(MaintainerrEvent.RuleGroup_Deleted, {
           ruleGroup: group,
-        });
+        })
 
         if (group.collectionId) {
           // DB cascade doesn't work.. So do it manually
-          await this.collectionService.deleteCollection(group.collectionId);
+          await this.collectionService.deleteCollection(group.collectionId)
         }
       }
 
       this.logger.log(
         `Removed rulegroup with id ${ruleGroupId} from the database`,
-      );
-      return this.createReturnStatus(true, 'Success');
+      )
+      return this.createReturnStatus(true, 'Success')
     } catch (err) {
-      this.logger.warn('Rulegroup deletion failed');
-      this.logger.debug(err);
-      return this.createReturnStatus(false, 'Delete Failed');
+      this.logger.warn('Rulegroup deletion failed')
+      this.logger.debug(err)
+      return this.createReturnStatus(false, 'Delete Failed')
     }
   }
 
   async setRules(params: RulesDto) {
     try {
-      let state: ReturnStatus = this.createReturnStatus(true, 'Success');
+      let state: ReturnStatus = this.createReturnStatus(true, 'Success')
       params.rules.forEach((rule) => {
         if (state.code === 1) {
-          state = this.validateRule(rule);
+          state = this.validateRule(rule)
         }
         if (state.code === 1) {
           state = this.validateRuleServerSelection(
             rule,
             params.radarrSettingsId,
             params.sonarrSettingsId,
-          );
+          )
         }
-      }, this);
+      }, this)
 
       if (state.code !== 1) {
-        return state;
+        return state
       }
 
-      const mediaServer = await this.getMediaServer();
+      const mediaServer = await this.getMediaServer()
       const lib = (await mediaServer.getLibraries()).find(
         (el) => el.id === params.libraryId,
-      );
+      )
       const collection = (
         await this.collectionService.createCollection({
           libraryId: params.libraryId,
@@ -344,10 +344,10 @@ export class RulesService {
           keepLogsForMonths: +params.collection?.keepLogsForMonths,
           sortTitle: params.collection?.sortTitle,
         })
-      )?.dbCollection;
+      )?.dbCollection
 
       if (!collection) {
-        return undefined;
+        return undefined
       }
 
       const groupId = await this.createOrUpdateGroup(
@@ -361,60 +361,60 @@ export class RulesService {
         undefined,
         params.notifications,
         params.ruleHandlerCronSchedule,
-      );
+      )
 
       if (params.useRules) {
         for (const rule of params.rules) {
-          const ruleJson = JSON.stringify(rule);
+          const ruleJson = JSON.stringify(rule)
           await this.rulesRepository.save([
             {
               ruleJson: ruleJson,
               ruleGroupId: groupId,
               section: (rule as RuleDbDto).section,
             },
-          ]);
+          ])
         }
 
-        return state;
+        return state
       }
 
-      return state;
+      return state
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
   async updateRules(params: RulesDto) {
     try {
-      let state: ReturnStatus = this.createReturnStatus(true, 'Success');
+      let state: ReturnStatus = this.createReturnStatus(true, 'Success')
       params.rules.forEach((rule) => {
         if (state.code === 1) {
-          state = this.validateRule(rule);
+          state = this.validateRule(rule)
         }
         if (state.code === 1) {
           state = this.validateRuleServerSelection(
             rule,
             params.radarrSettingsId,
             params.sonarrSettingsId,
-          );
+          )
         }
-      }, this);
+      }, this)
 
       if (state.code === 1) {
         // get current group
         const group = await this.ruleGroupRepository.findOne({
           where: { id: params.id },
-        });
+        })
 
         if (!group) {
-          return this.createReturnStatus(false, 'Rule group not found');
+          return this.createReturnStatus(false, 'Rule group not found')
         }
 
         const dbCollection = group.collectionId
           ? await this.collectionService.getCollection(group.collectionId)
-          : null;
+          : null
 
         // if datatype or manual collection settings changed then remove the collection media and specific exclusions. The Plex collection will be removed later by updateCollection()
         // Only check if there's an existing collection
@@ -429,43 +429,43 @@ export class RulesService {
         ) {
           this.logger.log(
             `A crucial setting of Rulegroup '${params.name}' was changed. Removed all media & specific exclusions`,
-          );
+          )
           await this.collectionMediaRepository.delete({
             collectionId: group.collectionId,
-          });
+          })
 
           // Delete the media server collection if it exists, then clear mediaServerId.
           // Jellyfin auto-deletes empty collections, but Plex does not.
           if (dbCollection.mediaServerId) {
-            const mediaServer = await this.getMediaServer();
+            const mediaServer = await this.getMediaServer()
             try {
-              await mediaServer.deleteCollection(dbCollection.mediaServerId);
+              await mediaServer.deleteCollection(dbCollection.mediaServerId)
             } catch (e) {
               // Collection may already be deleted, ignore errors
               this.logger.debug(
                 `Failed to delete media server collection: ${e.message}`,
-              );
+              )
             }
           }
           await this.collectionService.saveCollection({
             ...dbCollection,
             mediaServerId: null,
-          });
+          })
 
           await this.collectionService.addLogRecord(
             { id: group.collectionId } as Collection,
             'A crucial setting of the collection was updated. As a result all media and specific exclusions were removed',
             ECollectionLogType.COLLECTION,
-          );
+          )
 
-          await this.exclusionRepo.delete({ ruleGroupId: params.id });
+          await this.exclusionRepo.delete({ ruleGroupId: params.id })
         }
 
         // update or create the collection
-        const mediaServer = await this.getMediaServer();
+        const mediaServer = await this.getMediaServer()
         const lib = (await mediaServer.getLibraries()).find(
           (el) => el.id === params.libraryId,
-        );
+        )
 
         const collectionData = {
           libraryId: params.libraryId,
@@ -492,28 +492,28 @@ export class RulesService {
           manualCollectionName: params.collection?.manualCollectionName,
           keepLogsForMonths: +params.collection?.keepLogsForMonths,
           sortTitle: params.collection?.sortTitle,
-        };
+        }
 
         // If there's no existing collection (e.g., after rule migration), create a new one
         // Otherwise, update the existing collection
-        let collectionId: number | undefined;
+        let collectionId: number | undefined
         if (group.collectionId) {
           const result = await this.collectionService.updateCollection({
             id: group.collectionId,
             ...collectionData,
-          });
-          collectionId = result?.dbCollection?.id;
+          })
+          collectionId = result?.dbCollection?.id
         } else {
           const result =
-            await this.collectionService.createCollection(collectionData);
-          collectionId = result?.dbCollection?.id;
+            await this.collectionService.createCollection(collectionData)
+          collectionId = result?.dbCollection?.id
         }
 
         if (!collectionId) {
           return this.createReturnStatus(
             false,
             'Failed to create/update collection',
-          );
+          )
         }
 
         // update or create group
@@ -528,48 +528,48 @@ export class RulesService {
           group.id,
           params.notifications,
           params.ruleHandlerCronSchedule,
-        );
+        )
 
         // remove previous rules
         await this.rulesRepository.delete({
           ruleGroupId: groupId,
-        });
+        })
 
         // create rules
         if (params.useRules) {
           for (const rule of params.rules) {
-            const ruleJson = JSON.stringify(rule);
+            const ruleJson = JSON.stringify(rule)
             await this.rulesRepository.save([
               {
                 ruleJson: ruleJson,
                 ruleGroupId: groupId,
                 section: (rule as RuleDbDto).section,
               },
-            ]);
+            ])
           }
         }
 
-        this.logger.log(`Successfully updated rulegroup '${params.name}'.`);
-        return state;
+        this.logger.log(`Successfully updated rulegroup '${params.name}'.`)
+        return state
       } else {
-        return state;
+        return state
       }
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
   async setExclusion(data: ExclusionContextDto) {
-    const mediaServer = await this.getMediaServer();
-    let handleMedia: AddRemoveCollectionMedia[] = [];
+    const mediaServer = await this.getMediaServer()
+    let handleMedia: AddRemoveCollectionMedia[] = []
 
     if (data.collectionId) {
       const group = await this.ruleGroupRepository.findOne({
         where: {
           collectionId: data.collectionId,
         },
-      });
+      })
       // get media - traverse show -> seasons -> episodes if needed
       const ids = await mediaServer.getAllIdsForContextAction(
         group?.dataType,
@@ -577,17 +577,17 @@ export class RulesService {
           ? { type: data.context.type, id: String(data.context.id) }
           : { type: group.dataType, id: String(data.mediaId) },
         String(data.mediaId),
-      );
-      handleMedia = ids.map((id) => ({ mediaServerId: id }));
-      data.ruleGroupId = group.id;
+      )
+      handleMedia = ids.map((id) => ({ mediaServerId: id }))
+      data.ruleGroupId = group.id
     } else {
       // get type from metadata
-      const metaData = await mediaServer.getMetadata(String(data.mediaId));
+      const metaData = await mediaServer.getMetadata(String(data.mediaId))
       if (!metaData?.type) {
         this.logger.warn(
           `No metadata found for media ${data.mediaId}, cannot set exclusion`,
-        );
-        return this.createReturnStatus(false, 'Failed - no metadata');
+        )
+        return this.createReturnStatus(false, 'Failed - no metadata')
       }
 
       // get media - traverse show -> seasons -> episodes if needed
@@ -597,13 +597,13 @@ export class RulesService {
           ? { type: data.context.type, id: String(data.context.id) }
           : { type: metaData.type, id: String(data.mediaId) },
         String(data.mediaId),
-      );
-      handleMedia = ids.map((id) => ({ mediaServerId: id }));
+      )
+      handleMedia = ids.map((id) => ({ mediaServerId: id }))
     }
     try {
       // add all items
       for (const media of handleMedia) {
-        const metaData = await mediaServer.getMetadata(media.mediaServerId);
+        const metaData = await mediaServer.getMetadata(media.mediaServerId)
 
         const old = await this.exclusionRepo.findOne({
           where: {
@@ -612,7 +612,7 @@ export class RulesService {
               ? { ruleGroupId: data.ruleGroupId }
               : { ruleGroupId: null }),
           },
-        });
+        })
 
         await this.exclusionRepo.save([
           {
@@ -627,7 +627,7 @@ export class RulesService {
             // set media type
             type: metaData?.type,
           },
-        ]);
+        ])
 
         // add collection log record if needed
         if (data.collectionId) {
@@ -635,7 +635,7 @@ export class RulesService {
             media.mediaServerId,
             data.collectionId,
             'exclude',
-          );
+          )
         }
 
         this.logger.log(
@@ -646,16 +646,16 @@ export class RulesService {
               ? `and rulegroup id ${data.ruleGroupId}`
               : ''
           } `,
-        );
+        )
       }
 
-      return this.createReturnStatus(true, 'Success');
+      return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(
         `Adding exclusion for media ID ${data.mediaId} and rulegroup id ${data.ruleGroupId} failed.`,
-      );
-      this.logger.debug(e);
-      return this.createReturnStatus(false, 'Failed');
+      )
+      this.logger.debug(e)
+      return this.createReturnStatus(false, 'Failed')
     }
   }
 
@@ -665,7 +665,7 @@ export class RulesService {
         where: {
           id: id,
         },
-      });
+      })
 
       // add collection log record if needed
       if (exclcusion.ruleGroupId !== undefined) {
@@ -673,38 +673,38 @@ export class RulesService {
           where: {
             id: exclcusion.ruleGroupId,
           },
-        });
+        })
         // add collection log record
         await this.collectionService.CollectionLogRecordForChild(
           exclcusion.mediaServerId,
           rulegroup.collectionId,
           'include',
-        );
+        )
       }
 
       // do delete
-      await this.exclusionRepo.delete(id);
-      this.logger.log(`Removed exclusion with id ${id}`);
-      return this.createReturnStatus(true, 'Success');
+      await this.exclusionRepo.delete(id)
+      this.logger.log(`Removed exclusion with id ${id}`)
+      return this.createReturnStatus(true, 'Success')
     } catch (e) {
-      this.logger.warn(`Removing exclusion with id ${id} failed.`);
-      this.logger.debug(e);
-      return this.createReturnStatus(false, 'Failed');
+      this.logger.warn(`Removing exclusion with id ${id} failed.`)
+      this.logger.debug(e)
+      return this.createReturnStatus(false, 'Failed')
     }
   }
 
   async removeExclusionWitData(data: ExclusionContextDto) {
-    const mediaServer = await this.getMediaServer();
-    let handleMedia: AddRemoveCollectionMedia[] = [];
+    const mediaServer = await this.getMediaServer()
+    let handleMedia: AddRemoveCollectionMedia[] = []
 
     if (data.collectionId) {
       const group = await this.ruleGroupRepository.findOne({
         where: {
           collectionId: data.collectionId,
         },
-      });
+      })
 
-      data.ruleGroupId = group.id;
+      data.ruleGroupId = group.id
       // get media - traverse show -> seasons -> episodes if needed
       const ids = await mediaServer.getAllIdsForContextAction(
         group?.dataType,
@@ -712,16 +712,16 @@ export class RulesService {
           ? { type: data.context.type, id: String(data.context.id) }
           : { type: group.dataType, id: String(data.mediaId) },
         String(data.mediaId),
-      );
-      handleMedia = ids.map((id) => ({ mediaServerId: id }));
+      )
+      handleMedia = ids.map((id) => ({ mediaServerId: id }))
     } else {
       // get media - traverse show -> seasons -> episodes if needed
       const ids = await mediaServer.getAllIdsForContextAction(
         undefined,
         { type: data.context.type, id: String(data.context.id) },
         String(data.mediaId),
-      );
-      handleMedia = ids.map((id) => ({ mediaServerId: id }));
+      )
+      handleMedia = ids.map((id) => ({ mediaServerId: id }))
     }
 
     try {
@@ -731,7 +731,7 @@ export class RulesService {
           ...(data.ruleGroupId !== undefined
             ? { ruleGroupId: data.ruleGroupId }
             : {}),
-        });
+        })
 
         // add collection log record if needed
         if (data.collectionId) {
@@ -739,7 +739,7 @@ export class RulesService {
             media.mediaServerId,
             data.collectionId,
             'include',
-          );
+          )
         }
         this.logger.log(
           `Removed ${
@@ -749,29 +749,29 @@ export class RulesService {
               ? `and rulegroup id ${data.ruleGroupId}`
               : ''
           } `,
-        );
+        )
       }
-      return this.createReturnStatus(true, 'Success');
+      return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(
         `Removing exclusion for media with id ${data.mediaId} failed.`,
-      );
-      this.logger.debug(e);
-      return this.createReturnStatus(false, 'Failed');
+      )
+      this.logger.debug(e)
+      return this.createReturnStatus(false, 'Failed')
     }
   }
 
   async removeAllExclusion(mediaServerId: string) {
-    const mediaServer = await this.getMediaServer();
+    const mediaServer = await this.getMediaServer()
     // get type from metadata
-    let handleMedia: AddRemoveCollectionMedia[] = [];
+    let handleMedia: AddRemoveCollectionMedia[] = []
 
-    const metaData = await mediaServer.getMetadata(mediaServerId);
+    const metaData = await mediaServer.getMetadata(mediaServerId)
     if (!metaData?.type) {
       this.logger.warn(
         `No metadata found for media ${mediaServerId}, cannot remove exclusions`,
-      );
-      return this.createReturnStatus(false, 'Failed - no metadata');
+      )
+      return this.createReturnStatus(false, 'Failed - no metadata')
     }
 
     // get media - traverse show -> seasons -> episodes if needed
@@ -779,20 +779,20 @@ export class RulesService {
       undefined,
       { type: metaData.type, id: mediaServerId },
       mediaServerId,
-    );
-    handleMedia = ids.map((id) => ({ mediaServerId: id }));
+    )
+    handleMedia = ids.map((id) => ({ mediaServerId: id }))
 
     try {
       for (const media of handleMedia) {
-        await this.exclusionRepo.delete({ mediaServerId: media.mediaServerId });
+        await this.exclusionRepo.delete({ mediaServerId: media.mediaServerId })
       }
-      return this.createReturnStatus(true, 'Success');
+      return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(
         `Removing all exclusions with mediaServerId ${mediaServerId} failed.`,
-      );
-      this.logger.debug(e);
-      return this.createReturnStatus(false, 'Failed');
+      )
+      this.logger.debug(e)
+      return this.createReturnStatus(false, 'Failed')
     }
   }
 
@@ -802,11 +802,11 @@ export class RulesService {
   ): Promise<Exclusion[]> {
     try {
       if (rulegroupId || mediaServerId) {
-        let exclusions: Exclusion[] = [];
+        let exclusions: Exclusion[] = []
         if (rulegroupId) {
           exclusions = await this.exclusionRepo.find({
             where: { ruleGroupId: rulegroupId },
-          });
+          })
         } else {
           exclusions = await this.exclusionRepo
             .createQueryBuilder('exclusion')
@@ -816,7 +816,7 @@ export class RulesService {
                 mediaServerId,
               },
             )
-            .getMany();
+            .getMany()
         }
 
         return rulegroupId
@@ -827,23 +827,23 @@ export class RulesService {
                 },
               }),
             )
-          : exclusions;
+          : exclusions
       }
-      return [];
+      return []
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
   async getAllExclusions(): Promise<Exclusion[]> {
     try {
-      return await this.exclusionRepo.find();
+      return await this.exclusionRepo.find()
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return [];
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return []
     }
   }
 
@@ -851,26 +851,26 @@ export class RulesService {
     try {
       const val1: Property = this.ruleConstants.applications
         .find((el) => el.id === rule.firstVal[0])
-        .props.find((el) => el.id === rule.firstVal[1]);
+        .props.find((el) => el.id === rule.firstVal[1])
       if (rule.lastVal) {
         const val2: Property = this.ruleConstants.applications
           .find((el) => el.id === rule.lastVal[0])
-          .props.find((el) => el.id === rule.lastVal[1]);
+          .props.find((el) => el.id === rule.lastVal[1])
         if (
           val1.type === val2.type ||
           ([RuleType.TEXT_LIST, RuleType.TEXT].includes(val1.type) &&
             [RuleType.TEXT_LIST, RuleType.TEXT].includes(val2.type))
         ) {
           if (val1.type.possibilities.includes(+rule.action)) {
-            return this.createReturnStatus(true, 'Success');
+            return this.createReturnStatus(true, 'Success')
           } else {
             return this.createReturnStatus(
               false,
               'Action is not supported on type',
-            );
+            )
           }
         } else {
-          return this.createReturnStatus(false, "Types don't match");
+          return this.createReturnStatus(false, "Types don't match")
         }
       } else if (rule.customVal) {
         if (
@@ -879,12 +879,12 @@ export class RulesService {
             rule.customVal.ruleTypeId.toString() == RuleType.TEXT.toString())
         ) {
           if (val1.type.possibilities.includes(+rule.action)) {
-            return this.createReturnStatus(true, 'Success');
+            return this.createReturnStatus(true, 'Success')
           } else {
             return this.createReturnStatus(
               false,
               'Action is not supported on type',
-            );
+            )
           }
         }
         if (
@@ -892,16 +892,16 @@ export class RulesService {
             RulePossibility.IN_NEXT) &&
           rule.customVal.ruleTypeId === 0
         ) {
-          return this.createReturnStatus(true, 'Success');
+          return this.createReturnStatus(true, 'Success')
         } else {
-          return this.createReturnStatus(false, 'Validation failed');
+          return this.createReturnStatus(false, 'Validation failed')
         }
       } else {
-        return this.createReturnStatus(false, 'No second value found');
+        return this.createReturnStatus(false, 'No second value found')
       }
     } catch (e) {
-      this.logger.debug(e);
-      return this.createReturnStatus(false, 'Unexpected error occurred');
+      this.logger.debug(e)
+      return this.createReturnStatus(false, 'Unexpected error occurred')
     }
   }
 
@@ -918,7 +918,7 @@ export class RulesService {
       return this.createReturnStatus(
         false,
         'Radarr rules require a Radarr server to be selected',
-      );
+      )
     }
 
     // Check if rule references Sonarr without a server
@@ -929,10 +929,10 @@ export class RulesService {
       return this.createReturnStatus(
         false,
         'Sonarr rules require a Sonarr server to be selected',
-      );
+      )
     }
 
-    return null;
+    return null
   }
 
   private validateRuleServerSelection(
@@ -945,9 +945,9 @@ export class RulesService {
       rule.firstVal[0],
       radarrSettingsId,
       sonarrSettingsId,
-    );
+    )
     if (firstValResult) {
-      return firstValResult;
+      return firstValResult
     }
 
     // Check second value if it exists
@@ -956,17 +956,17 @@ export class RulesService {
         rule.lastVal[0],
         radarrSettingsId,
         sonarrSettingsId,
-      );
+      )
       if (lastValResult) {
-        return lastValResult;
+        return lastValResult
       }
     }
 
-    return this.createReturnStatus(true, 'Success');
+    return this.createReturnStatus(true, 'Success')
   }
 
   private createReturnStatus(success: boolean, result: string): ReturnStatus {
-    return { code: success ? 1 : 0, result: result, message: result };
+    return { code: success ? 1 : 0, result: result, message: result }
   }
 
   private async createOrUpdateGroup(
@@ -991,32 +991,32 @@ export class RulesService {
         useRules: useRules,
         dataType: dataType,
         ruleHandlerCronSchedule: ruleHandlerCronSchedule,
-      };
-      const connection = this.connection.createQueryBuilder();
+      }
+      const connection = this.connection.createQueryBuilder()
 
       if (!id) {
         const groupId = await connection
           .insert()
           .into(RuleGroup)
           .values(values)
-          .execute();
+          .execute()
 
-        id = groupId.identifiers[0].id;
+        id = groupId.identifiers[0].id
 
         this.eventEmitter.emit(MaintainerrEvent.RuleGroup_Created, {
           ruleGroup: {
             id: id,
             ...values,
           },
-        });
+        })
       } else {
-        const oldRuleGroup = await this.getRuleGroupById(id);
+        const oldRuleGroup = await this.getRuleGroupById(id)
 
         await connection
           .update(RuleGroup)
           .set(values)
           .where({ id: id })
-          .execute();
+          .execute()
 
         this.eventEmitter.emit(MaintainerrEvent.RuleGroup_Updated, {
           oldRuleGroup,
@@ -1024,7 +1024,7 @@ export class RulesService {
             id: id,
             ...values,
           },
-        });
+        })
       }
 
       // Remove all existing notifications from the RuleGroup
@@ -1036,19 +1036,19 @@ export class RulesService {
             .relation(RuleGroup, 'notifications')
             .of(id)
             .loadMany(),
-        );
+        )
 
       // Associate new notifications to the RuleGroup
       await connection
         .relation(RuleGroup, 'notifications')
         .of(id)
-        .add(notifications?.map((notification) => notification.id));
+        .add(notifications?.map((notification) => notification.id))
 
-      return id;
+      return id
     } catch (e) {
-      this.logger.warn(`Rules - Action failed : ${e.message}`);
-      this.logger.debug(e);
-      return undefined;
+      this.logger.warn(`Rules - Action failed : ${e.message}`)
+      this.logger.debug(e)
+      return undefined
     }
   }
 
@@ -1056,37 +1056,37 @@ export class RulesService {
     return await axios
       .get<{ rules: CommunityRule[] }>(this.communityUrl)
       .then((response) => {
-        return response.data.rules as CommunityRule[];
+        return response.data.rules as CommunityRule[]
       })
       .catch((e) => {
-        this.logger.warn(`Loading community rules failed : ${e.message}`);
-        this.logger.debug(e);
-        return this.createReturnStatus(false, 'Failed');
-      });
+        this.logger.warn(`Loading community rules failed : ${e.message}`)
+        this.logger.debug(e)
+        return this.createReturnStatus(false, 'Failed')
+      })
   }
 
   public async getCommunityRuleCount(): Promise<number> {
-    const response = await this.getCommunityRules();
+    const response = await this.getCommunityRules()
 
-    return Array.isArray(response) ? response.length : 0;
+    return Array.isArray(response) ? response.length : 0
   }
 
   public async addToCommunityRules(rule: CommunityRule): Promise<ReturnStatus> {
-    const rules = await this.getCommunityRules();
+    const rules = await this.getCommunityRules()
     const appVersion = process.env.npm_package_version
       ? process.env.npm_package_version
-      : '0.0.0';
+      : '0.0.0'
 
     if (!Array.isArray(rules)) {
-      this.logger.warn(`Unable to get community rules before adding a new one`);
-      return this.createReturnStatus(false, 'Connection failed');
+      this.logger.warn(`Unable to get community rules before adding a new one`)
+      return this.createReturnStatus(false, 'Connection failed')
     }
 
     if (rules.find((r) => r.name === rule.name)) {
-      this.logger.log(`Duplicate rule name detected. This is not allowed.`);
-      return this.createReturnStatus(false, 'Name already exists');
+      this.logger.log(`Duplicate rule name detected. This is not allowed.`)
+      return this.createReturnStatus(false, 'Name already exists')
     }
-    const hasRules = Array.isArray(rule.JsonRules) && rule.JsonRules.length > 0;
+    const hasRules = Array.isArray(rule.JsonRules) && rule.JsonRules.length > 0
 
     return axios
       .patch(this.communityUrl, [
@@ -1103,55 +1103,55 @@ export class RulesService {
         },
       ])
       .then(() => {
-        this.logger.log(`Successfully saved community rule`);
-        return this.createReturnStatus(true, 'Success');
+        this.logger.log(`Successfully saved community rule`)
+        return this.createReturnStatus(true, 'Success')
       })
       .catch((e) => {
-        this.logger.warn(`Saving community rule failed: ${e.message}`);
-        return this.createReturnStatus(false, 'Saving community rule failed');
-      });
+        this.logger.warn(`Saving community rule failed: ${e.message}`)
+        return this.createReturnStatus(false, 'Saving community rule failed')
+      })
   }
 
   public async getCommunityRuleKarmaHistory(): Promise<CommunityRuleKarma[]> {
-    return await this.communityRuleKarmaRepository.find();
+    return await this.communityRuleKarmaRepository.find()
   }
 
   public async updateCommunityRuleKarma(
     id: number,
     karma: number,
   ): Promise<ReturnStatus> {
-    const rules = await this.getCommunityRules();
+    const rules = await this.getCommunityRules()
     if (!Array.isArray(rules)) {
-      this.logger.warn(`Unable to get community rules before adding karma`);
-      return this.createReturnStatus(false, 'Connection failed');
+      this.logger.warn(`Unable to get community rules before adding karma`)
+      return this.createReturnStatus(false, 'Connection failed')
     }
 
-    const ruleIndex = rules.findIndex((r) => r.id === id);
+    const ruleIndex = rules.findIndex((r) => r.id === id)
     if (ruleIndex === -1) {
-      this.logger.log(`Rule with ID ${id} not found`);
-      return this.createReturnStatus(false, 'Rule not found');
+      this.logger.log(`Rule with ID ${id} not found`)
+      return this.createReturnStatus(false, 'Rule not found')
     }
 
     // Check karma history to prevent multiple updates
     const history = await this.communityRuleKarmaRepository.find({
       where: { community_rule_id: id },
-    });
+    })
 
     if (history.length > 0) {
-      this.logger.log(`You can only update Karma of a rule once`);
+      this.logger.log(`You can only update Karma of a rule once`)
       return this.createReturnStatus(
         false,
         'Already updated Karma for this rule',
-      );
+      )
     }
 
     // Ensure the karma value doesn't exceed max limit
     if (karma > 990) {
-      this.logger.log(`Max Karma reached (990) for rule with id: ${id}`);
+      this.logger.log(`Max Karma reached (990) for rule with id: ${id}`)
       return this.createReturnStatus(
         true,
         'Success, but Max Karma reached for this rule.',
-      );
+      )
     }
 
     // Update the rule's karma
@@ -1164,48 +1164,48 @@ export class RulesService {
         },
       ])
       .then(async () => {
-        this.logger.log(`Successfully updated community rule karma`);
+        this.logger.log(`Successfully updated community rule karma`)
 
         // Save to karma history to prevent multiple updates
         await this.communityRuleKarmaRepository.save([
           { community_rule_id: id },
-        ]);
+        ])
 
-        return this.createReturnStatus(true, 'Success');
+        return this.createReturnStatus(true, 'Success')
       })
       .catch((e) => {
-        this.logger.warn(`Updating community rule karma failed: ${e.message}`);
+        this.logger.warn(`Updating community rule karma failed: ${e.message}`)
         return this.createReturnStatus(
           false,
           'Updating community rule karma failed',
-        );
-      });
+        )
+      })
   }
 
   public encodeToYaml(
     rules: RuleDto[],
     mediaType: MediaItemType,
   ): ReturnStatus {
-    return this.ruleYamlService.encode(rules, mediaType);
+    return this.ruleYamlService.encode(rules, mediaType)
   }
 
   public async decodeFromYaml(
     yaml: string,
     mediaType: MediaItemType,
   ): Promise<ReturnStatus> {
-    const result = this.ruleYamlService.decode(yaml, mediaType);
+    const result = this.ruleYamlService.decode(yaml, mediaType)
 
     // Migrate decoded rules to the configured media server
     if (result.code === 1 && result.result) {
-      const parsed = JSON.parse(result.result);
-      const migrationResult = await this.migrateRules(parsed.rules);
+      const parsed = JSON.parse(result.result)
+      const migrationResult = await this.migrateRules(parsed.rules)
       if (migrationResult.code === 1 && migrationResult.result) {
-        parsed.rules = JSON.parse(migrationResult.result);
-        result.result = JSON.stringify(parsed);
+        parsed.rules = JSON.parse(migrationResult.result)
+        result.result = JSON.stringify(parsed)
       }
     }
 
-    return result;
+    return result
   }
 
   /**
@@ -1213,78 +1213,78 @@ export class RulesService {
    * Used for community and YAML rule imports to convert Plex ↔ Jellyfin rules.
    */
   public async migrateRules(rules: RuleDto[]): Promise<ReturnStatus> {
-    const serverType = await this.mediaServerFactory.getConfiguredServerType();
+    const serverType = await this.mediaServerFactory.getConfiguredServerType()
 
     if (!serverType) {
       return {
         code: 1,
         result: JSON.stringify(rules),
         message: 'No migration needed - no media server configured',
-      };
+      }
     }
 
     const migration = this.ruleMigrationService.migrateImportedRuleDtos(
       rules,
       serverType,
-    );
+    )
 
     if (migration.migratedRules > 0) {
       this.logger.log(
         `Migrated ${migration.migratedRules} rule(s) to ${serverType}`,
-      );
+      )
     }
 
     return {
       code: 1,
       result: JSON.stringify(migration.rules),
       message: `Migrated ${migration.migratedRules} rules, skipped ${migration.skippedRules}`,
-    };
+    }
   }
 
   public async testRuleGroupWithData(
     rulegroupId: number,
     mediaId: string,
   ): Promise<any> {
-    const group = await this.getRuleGroupById(rulegroupId);
+    const group = await this.getRuleGroupById(rulegroupId)
 
     if (!group) {
-      return { code: 0, result: 'Rule group not found' };
+      return { code: 0, result: 'Rule group not found' }
     }
 
     if (!group.useRules) {
-      return { code: 0, result: 'Rule group does not use rules' };
+      return { code: 0, result: 'Rule group does not use rules' }
     }
 
     // flush caches
-    const mediaServer = await this.getMediaServer();
-    mediaServer.resetMetadataCache(mediaId);
-    cacheManager.getCache('seerr').data.flushAll();
-    cacheManager.getCache('tautulli').data.flushAll();
+    const mediaServer = await this.getMediaServer()
+    mediaServer.resetMetadataCache(mediaId)
+    cacheManager.getCache('seerr').data.flushAll()
+    cacheManager.getCache('tautulli').data.flushAll()
     cacheManager
       .getCachesByType('radarr')
-      .forEach((cache) => cache.data.flushAll());
+      .forEach((cache) => cache.data.flushAll())
     cacheManager
       .getCachesByType('sonarr')
-      .forEach((cache) => cache.data.flushAll());
+      .forEach((cache) => cache.data.flushAll())
 
-    const mediaResp = await mediaServer.getMetadata(mediaId);
+    const mediaResp = await mediaServer.getMetadata(mediaId)
 
     if (mediaResp) {
-      group.rules = await this.getRules(group.id);
-      const ruleComparator = this.ruleComparatorServiceFactory.create();
+      group.rules = await this.getRules(group.id)
+      const ruleComparator = this.ruleComparatorServiceFactory.create()
       const result = await ruleComparator.executeRulesWithData(
         group as RulesDto,
         [mediaResp],
-      );
+      )
 
       if (result) {
-        return { code: 1, result: result.stats };
+        return { code: 1, result: result.stats }
       } else {
-        return { code: 0, result: 'An error occurred executing rules' };
+        return { code: 0, result: 'An error occurred executing rules' }
       }
     }
 
-    return { code: 0, result: 'Invalid input' };
+    return { code: 0, result: 'Invalid input' }
   }
 
   /**
@@ -1297,62 +1297,62 @@ export class RulesService {
     rulegroup: RulesDto,
   ): Promise<boolean> {
     try {
-      let result = false;
-      const constant = await this.getRuleConstants();
+      let result = false
+      const constant = await this.getRuleConstants()
 
       // for all rules in group
       for (const rule of rulegroup.rules) {
-        const parsedRule = JSON.parse((rule as RuleDbDto).ruleJson) as RuleDto;
+        const parsedRule = JSON.parse((rule as RuleDbDto).ruleJson) as RuleDto
 
         const firstValApplication = constant.applications.find(
           (x) => x.id === parsedRule.firstVal[0],
-        );
+        )
 
         //test first value
         const first = firstValApplication.props.find(
           (x) => x.id == parsedRule.firstVal[1],
-        );
+        )
 
-        result = first.cacheReset ? true : result;
+        result = first.cacheReset ? true : result
 
         const secondValApplication = parsedRule.lastVal
           ? constant.applications.find((x) => x.id === parsedRule.lastVal[0])
-          : undefined;
+          : undefined
 
         // test second value
         const second = secondValApplication?.props.find(
           (x) => x.id == parsedRule.lastVal[1],
-        );
+        )
 
-        result = second?.cacheReset ? true : result;
+        result = second?.cacheReset ? true : result
       }
 
       // if any rule requires a cache reset
       if (result) {
         const serverType =
-          await this.mediaServerFactory.getConfiguredServerType();
+          await this.mediaServerFactory.getConfiguredServerType()
 
         if (serverType === MediaServerType.JELLYFIN) {
-          cacheManager.getCache('jellyfin').flush();
+          cacheManager.getCache('jellyfin').flush()
           this.logger.log(
             `Flushed Jellyfin cache because a rule in the group required it`,
-          );
+          )
         } else if (serverType === MediaServerType.PLEX) {
-          cacheManager.getCache('plextv').flush();
-          cacheManager.getCache('plexguid').flush();
+          cacheManager.getCache('plextv').flush()
+          cacheManager.getCache('plexguid').flush()
           this.logger.log(
             `Flushed Plex cache because a rule in the group required it`,
-          );
+          )
         }
       }
 
-      return result;
+      return result
     } catch (e) {
       this.logger.warn(
         `Couldn't determine if rulegroup with id ${rulegroup.id} requires a cache reset`,
-      );
-      this.logger.debug(e);
-      return false;
+      )
+      this.logger.debug(e)
+      return false
     }
   }
 }

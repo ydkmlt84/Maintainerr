@@ -53,6 +53,14 @@ function extractTmdbId(
 }
 
 const MediaContent = (props: IMediaContent) => {
+  const {
+    collectionInfo,
+    data,
+    dataFinished,
+    extrasLoading,
+    fetchData,
+    loading,
+  } = props
   const latestPropsRef = useRef(props)
 
   const isNearBottom = () =>
@@ -83,19 +91,14 @@ const MediaContent = (props: IMediaContent) => {
   }, [])
 
   useEffect(() => {
-    if (
-      isNearBottom() &&
-      !props.loading &&
-      !props.extrasLoading &&
-      !props.dataFinished
-    ) {
-      props.fetchData()
+    if (isNearBottom() && !loading && !extrasLoading && !dataFinished) {
+      fetchData()
     }
-  }, [props.data])
+  }, [data, dataFinished, extrasLoading, fetchData, loading])
 
   const getDaysLeft = (mediaId: string) => {
-    if (props.collectionInfo) {
-      const collectionData = props.collectionInfo.find(
+    if (collectionInfo) {
+      const collectionData = collectionInfo.find(
         (colEl) => colEl.mediaServerId === mediaId,
       )
       if (collectionData && collectionData.collection) {

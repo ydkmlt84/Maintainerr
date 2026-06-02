@@ -1,40 +1,40 @@
-import { MediaItem } from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { ServarrService } from '../../api/servarr-api/servarr.service';
-import { TmdbIdService } from '../../api/tmdb-api/tmdb-id.service';
-import { MaintainerrLogger } from '../../logging/logs.service';
+import { MediaItem } from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { ServarrService } from '../../api/servarr-api/servarr.service'
+import { TmdbIdService } from '../../api/tmdb-api/tmdb-id.service'
+import { MaintainerrLogger } from '../../logging/logs.service'
 import {
   Application,
   Property,
   RuleConstants,
-} from '../constants/rules.constants';
-import { RulesDto } from '../dtos/rules.dto';
+} from '../constants/rules.constants'
+import { RulesDto } from '../dtos/rules.dto'
 
 @Injectable()
 export class RadarrGetterService {
-  plexProperties: Property[];
+  plexProperties: Property[]
   constructor(
     private readonly servarrService: ServarrService,
     private readonly tmdbIdHelper: TmdbIdService,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(RadarrGetterService.name);
-    const ruleConstanst = new RuleConstants();
+    logger.setContext(RadarrGetterService.name)
+    const ruleConstanst = new RuleConstants()
     this.plexProperties = ruleConstanst.applications.find(
       (el) => el.id === Application.RADARR,
-    ).props;
+    ).props
   }
 
   async get(id: number, libItem: MediaItem, ruleGroup?: RulesDto) {
     if (!ruleGroup.collection?.radarrSettingsId) {
       this.logger.error(
         `No Radarr server configured for ${ruleGroup.collection?.title}`,
-      );
-      return null;
+      )
+      return null
     }
 
     try {
-      const prop = this.plexProperties.find((el) => el.id === id);
+      const prop = this.plexProperties.find((el) => el.id === id)
 
       // ARR diskspace check doesn't require a movie lookup - handle early
       if (
@@ -43,41 +43,41 @@ export class RadarrGetterService {
       ) {
         const radarrApiClient = await this.servarrService.getRadarrApiClient(
           ruleGroup.collection.radarrSettingsId,
-        );
-        const diskspace = await radarrApiClient.getDiskspace();
-        if (!diskspace || diskspace.length === 0) return null;
+        )
+        const diskspace = await radarrApiClient.getDiskspace()
+        if (!diskspace || diskspace.length === 0) return null
         const totalFree = diskspace.reduce(
           (acc, d) => acc + (d.freeSpace ?? 0),
           0,
-        );
+        )
         const totalSpace = diskspace.reduce(
           (acc, d) => acc + (d.totalSpace ?? 0),
           0,
-        );
+        )
         // 1 GiB = 1073741824 bytes (1024^3)
         return prop.name === 'diskspace_remaining_gb'
           ? parseFloat((totalFree / 1073741824).toFixed(1))
-          : parseFloat((totalSpace / 1073741824).toFixed(1));
+          : parseFloat((totalSpace / 1073741824).toFixed(1))
       }
 
-      const tmdbIds = libItem.providerIds?.tmdb || [];
+      const tmdbIds = libItem.providerIds?.tmdb || []
 
       if (tmdbIds.length === 0) {
-        this.logger.warn(`[TMDb] No TMDb IDs found for '${libItem.title}'`);
-        return null;
+        this.logger.warn(`[TMDb] No TMDb IDs found for '${libItem.title}'`)
+        return null
       }
 
       const radarrApiClient = await this.servarrService.getRadarrApiClient(
         ruleGroup.collection.radarrSettingsId,
-      );
+      )
 
-      let movieResponse;
+      let movieResponse
       for (const tmdbIdStr of tmdbIds) {
-        const tmdbId = Number(tmdbIdStr);
+        const tmdbId = Number(tmdbIdStr)
         if (tmdbId) {
-          movieResponse = await radarrApiClient.getMovieByTmdbId(tmdbId);
+          movieResponse = await radarrApiClient.getMovieByTmdbId(tmdbId)
           if (movieResponse) {
-            break;
+            break
           }
         }
       }
@@ -85,65 +85,65 @@ export class RadarrGetterService {
       if (!movieResponse) {
         this.logger.warn(
           `[TMDb] None of the TMDB IDs [${tmdbIds.join(', ')}] for '${libItem.title}' matched a movie in Radarr.`,
-        );
-        return null;
+        )
+        return null
       }
 
       if (movieResponse) {
         switch (prop.name) {
           case 'addDate': {
-            return movieResponse.added ? new Date(movieResponse.added) : null;
+            return movieResponse.added ? new Date(movieResponse.added) : null
           }
           case 'fileDate': {
             return movieResponse.movieFile?.dateAdded
               ? new Date(movieResponse.movieFile.dateAdded)
-              : null;
+              : null
           }
           case 'filePath': {
             return movieResponse.movieFile?.path
               ? movieResponse.movieFile.path
-              : null;
+              : null
           }
           case 'fileQuality': {
             return movieResponse.movieFile?.quality?.quality?.resolution
               ? movieResponse.movieFile.quality.quality.resolution
-              : null;
+              : null
           }
           case 'fileAudioChannels': {
             return movieResponse.movieFile
               ? movieResponse.movieFile.mediaInfo?.audioChannels
-              : null;
+              : null
           }
           case 'runTime': {
             if (movieResponse.movieFile?.mediaInfo?.runTime) {
-              const hms = movieResponse.movieFile.mediaInfo.runTime;
-              const splitted = hms.split(':');
-              return +splitted[0] * 60 + +splitted[1];
+              const hms = movieResponse.movieFile.mediaInfo.runTime
+              const splitted = hms.split(':')
+              return +splitted[0] * 60 + +splitted[1]
             }
-            return null;
+            return null
           }
           case 'monitored': {
-            return movieResponse.monitored ? 1 : 0;
+            return movieResponse.monitored ? 1 : 0
           }
           case 'tags': {
-            const movieTags = movieResponse.tags;
+            const movieTags = movieResponse.tags
             return (await radarrApiClient.getTags())
               ?.filter((el) => movieTags.includes(el.id))
-              .map((el) => el.label);
+              .map((el) => el.label)
           }
           case 'profile': {
-            const movieProfile = movieResponse.qualityProfileId;
+            const movieProfile = movieResponse.qualityProfileId
 
             return (await radarrApiClient.getProfiles())?.find(
               (el) => el.id === movieProfile,
-            ).name;
+            ).name
           }
           case 'fileSize': {
             return movieResponse.sizeOnDisk
               ? Math.round(movieResponse.sizeOnDisk / 1048576)
               : movieResponse.movieFile?.size
                 ? Math.round(movieResponse.movieFile.size / 1048576)
-                : null;
+                : null
           }
           case 'releaseDate': {
             return movieResponse.physicalRelease && movieResponse.digitalRelease
@@ -155,60 +155,60 @@ export class RadarrGetterService {
                 ? new Date(movieResponse.physicalRelease)
                 : movieResponse.digitalRelease
                   ? new Date(movieResponse.digitalRelease)
-                  : null;
+                  : null
           }
           case 'inCinemas': {
             return movieResponse.inCinemas
               ? new Date(movieResponse.inCinemas)
-              : null;
+              : null
           }
           case 'originalLanguage': {
             return movieResponse.originalLanguage?.name
               ? movieResponse.originalLanguage.name
-              : null;
+              : null
           }
           case 'rottenTomatoesRating': {
-            return movieResponse.ratings.rottenTomatoes?.value ?? null;
+            return movieResponse.ratings.rottenTomatoes?.value ?? null
           }
           case 'rottenTomatoesRatingVotes': {
-            return movieResponse.ratings.rottenTomatoes?.votes ?? null;
+            return movieResponse.ratings.rottenTomatoes?.votes ?? null
           }
           case 'traktRating': {
-            return movieResponse.ratings.trakt?.value ?? null;
+            return movieResponse.ratings.trakt?.value ?? null
           }
           case 'traktRatingVotes': {
-            return movieResponse.ratings.trakt?.votes ?? null;
+            return movieResponse.ratings.trakt?.votes ?? null
           }
           case 'imdbRating': {
-            return movieResponse.ratings.imdb?.value ?? null;
+            return movieResponse.ratings.imdb?.value ?? null
           }
           case 'imdbRatingVotes': {
-            return movieResponse.ratings.imdb?.votes ?? null;
+            return movieResponse.ratings.imdb?.votes ?? null
           }
           case 'fileQualityCutoffMet': {
             return movieResponse.movieFile?.qualityCutoffNotMet != null
               ? !movieResponse.movieFile.qualityCutoffNotMet
-              : false;
+              : false
           }
           case 'fileQualityName': {
-            return movieResponse.movieFile?.quality?.quality?.name ?? null;
+            return movieResponse.movieFile?.quality?.quality?.name ?? null
           }
           case 'fileAudioLanguages': {
-            return movieResponse.movieFile?.mediaInfo?.audioLanguages ?? null;
+            return movieResponse.movieFile?.mediaInfo?.audioLanguages ?? null
           }
         }
       } else {
         this.logger.debug(
           `Couldn't fetch Radarr metadata for media '${libItem.title}' with id '${libItem.id}'. As a result, no Radarr query could be made.`,
-        );
-        return null;
+        )
+        return null
       }
     } catch (e) {
       this.logger.warn(
         `Radarr-Getter - Action failed for '${libItem.title}' with id '${libItem.id}': ${e.message}`,
-      );
-      this.logger.debug(e);
-      return undefined;
+      )
+      this.logger.debug(e)
+      return undefined
     }
   }
 }

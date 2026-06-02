@@ -1,1 +1,1 @@
-export { EPlexDataType } from '@maintainerr/contracts';
+export { EPlexDataType } from '@maintainerr/contracts'

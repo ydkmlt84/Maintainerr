@@ -1,43 +1,43 @@
-import { ICollection } from '../../collections/interfaces/collection.interface';
+import { ICollection } from '../../collections/interfaces/collection.interface'
 
 export type RadarrSettingDto = {
-  id: number;
+  id: number
 
-  serverName: string;
+  serverName: string
 
-  url: string;
+  url: string
 
-  apiKey: string;
-};
+  apiKey: string
+}
 
-export type RadarrSettingRawDto = Omit<RadarrSettingDto, 'id'>;
+export type RadarrSettingRawDto = Omit<RadarrSettingDto, 'id'>
 
 export type RadarrSettingResponseDto =
   | {
-      status: 'OK';
-      code: 1;
-      message: string;
-      data: RadarrSettingDto;
+      status: 'OK'
+      code: 1
+      message: string
+      data: RadarrSettingDto
     }
   | {
-      status: 'NOK';
-      code: 0;
-      message: string;
-      data?: never;
-    };
+      status: 'NOK'
+      code: 0
+      message: string
+      data?: never
+    }
 
 export type DeleteRadarrSettingResponseDto =
   | {
-      status: 'OK';
-      code: 1;
-      message: string;
-      data?: never;
+      status: 'OK'
+      code: 1
+      message: string
+      data?: never
     }
   | {
-      status: 'NOK';
-      code: 0;
-      message: string;
+      status: 'NOK'
+      code: 0
+      message: string
       data: {
-        collectionsInUse: ICollection[];
-      } | null;
-    };
+        collectionsInUse: ICollection[]
+      } | null
+    }

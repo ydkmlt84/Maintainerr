@@ -14,7 +14,7 @@ import {
 } from '@maintainerr/contracts'
 import { Editor } from '@monaco-editor/react'
 import { debounce } from 'lodash-es'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import YAML from 'yaml'
 import { ICollection } from '../..'
 import useDebouncedState from '../../../..//hooks/useDebouncedState'
@@ -45,6 +45,8 @@ const CollectionInfo = (props: ICollectionInfo) => {
   const dataRef = useRef<CollectionLogDto[]>([])
   const loadingRef = useRef<boolean>(true)
   const loadingExtraRef = useRef<boolean>(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingExtra, setIsLoadingExtra] = useState(false)
   const [searchFilter, debouncedSearchFilter, setSearchFilter] =
     useDebouncedState('')
   const [currentSort, setCurrentSort] = useState<'ASC' | 'DESC'>('DESC')
@@ -56,65 +58,26 @@ const CollectionInfo = (props: ICollectionInfo) => {
 
   const fetchAmount = 25
 
-  useEffect(() => {
-    // Initial first fetch
-    setPage(1)
+  const resetAll = useCallback(() => {
+    // set loading
+    loadingRef.current = true
+    loadingExtraRef.current = false
+    setIsLoading(true)
+    setIsLoadingExtra(false)
 
-    // Cleanup on unmount
-    return () => {
-      // Clear all data to prevent memory leaks
-      setData([])
-      dataRef.current = []
-      totalSizeRef.current = 999
-      pageData.current = 0
-    }
+    // reset all
+    pageData.current = 0
+    setPage(0)
+    totalSizeRef.current = 999
+    setTotalSize(999)
+    dataRef.current = []
+    setData([])
   }, [])
 
-  useEffect(() => {
-    // reset state
-    resetAll()
-
-    // wait 500ms and then refetch
-    setTimeout(() => {
-      setPage(1)
-    }, 500)
-  }, [debouncedSearchFilter, currentSort, currentFilter])
-
-  useEffect(() => {
-    if (page !== 0) {
-      // Ignore initial page render
-      pageData.current = pageData.current + 1
-      fetchData()
-    }
-  }, [page])
-
-  const handleScroll = () => {
-    if (
-      window.innerHeight + document.documentElement.scrollTop >=
-      document.documentElement.scrollHeight * 0.9
-    ) {
-      if (
-        !loadingRef.current &&
-        !loadingExtraRef.current &&
-        !(fetchAmount * (pageData.current - 1) >= totalSizeRef.current)
-      ) {
-        setPage(pageData.current + 1)
-      }
-    }
-  }
-
-  useEffect(() => {
-    const debouncedScroll = debounce(handleScroll, 200)
-    window.addEventListener('scroll', debouncedScroll)
-    return () => {
-      window.removeEventListener('scroll', debouncedScroll)
-      debouncedScroll.cancel() // Cancel pending debounced calls
-    }
-  }, [])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!loadingRef.current) {
       loadingExtraRef.current = true
+      setIsLoadingExtra(true)
     }
 
     const resp = await GetApiHandler<ICollectionInfoLogApiResponse>(
@@ -128,7 +91,67 @@ const CollectionInfo = (props: ICollectionInfo) => {
     setData([...dataRef.current, ...resp.items])
     loadingRef.current = false
     loadingExtraRef.current = false
-  }
+    setIsLoading(false)
+    setIsLoadingExtra(false)
+  }, [currentFilter, currentSort, debouncedSearchFilter, props.collection.id])
+
+  useEffect(() => {
+    // Initial first fetch
+    queueMicrotask(() => setPage(1))
+
+    // Cleanup on unmount
+    return () => {
+      // Clear all data to prevent memory leaks
+      setData([])
+      dataRef.current = []
+      totalSizeRef.current = 999
+      pageData.current = 0
+    }
+  }, [])
+
+  useEffect(() => {
+    // reset state
+    queueMicrotask(() => resetAll())
+
+    // wait 500ms and then refetch
+    setTimeout(() => {
+      setPage(1)
+    }, 500)
+  }, [currentFilter, currentSort, debouncedSearchFilter, resetAll])
+
+  useEffect(() => {
+    if (page !== 0) {
+      // Ignore initial page render
+      pageData.current = pageData.current + 1
+      queueMicrotask(() => {
+        fetchData()
+      })
+    }
+  }, [fetchData, page])
+
+  const handleScroll = useCallback(() => {
+    if (
+      window.innerHeight + document.documentElement.scrollTop >=
+      document.documentElement.scrollHeight * 0.9
+    ) {
+      if (
+        !loadingRef.current &&
+        !loadingExtraRef.current &&
+        !(fetchAmount * (pageData.current - 1) >= totalSizeRef.current)
+      ) {
+        setPage(pageData.current + 1)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const debouncedScroll = debounce(handleScroll, 200)
+    window.addEventListener('scroll', debouncedScroll)
+    return () => {
+      window.removeEventListener('scroll', debouncedScroll)
+      debouncedScroll.cancel() // Cancel pending debounced calls
+    }
+  }, [handleScroll])
 
   useEffect(() => {
     dataRef.current = data
@@ -141,27 +164,13 @@ const CollectionInfo = (props: ICollectionInfo) => {
         document.documentElement.scrollHeight * 0.9 &&
       !(fetchAmount * (pageData.current - 1) >= totalSizeRef.current)
     ) {
-      setPage(page + 1)
+      queueMicrotask(() => setPage((currentPage) => currentPage + 1))
     }
   }, [data])
 
   useEffect(() => {
     totalSizeRef.current = totalSize
   }, [totalSize])
-
-  const resetAll = () => {
-    // set loading
-    loadingRef.current = true
-    loadingExtraRef.current = false
-
-    // reset all
-    pageData.current = 0
-    setPage(0)
-    totalSizeRef.current = 999
-    setTotalSize(999)
-    dataRef.current = []
-    setData([])
-  }
 
   return (
     <>
@@ -279,7 +288,7 @@ const CollectionInfo = (props: ICollectionInfo) => {
               </tr>
             </thead>
             <Table.TBody>
-              {loadingRef.current ? (
+              {isLoading ? (
                 <tr>
                   <Table.TD colSpan={4} noPadding>
                     <LoadingSpinner />
@@ -352,7 +361,7 @@ const CollectionInfo = (props: ICollectionInfo) => {
                     )
                   })}
 
-                  {loadingExtraRef.current ? (
+                  {isLoadingExtra ? (
                     <tr>
                       <Table.TD colSpan={2} noPadding>
                         <SmallLoadingSpinner className="m-auto mb-2 mt-2 w-8" />

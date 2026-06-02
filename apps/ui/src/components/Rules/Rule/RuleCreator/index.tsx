@@ -97,8 +97,11 @@ const RuleCreator = (props: iRuleCreator) => {
     calculateRuleAmountArr(initialRuleAmount),
   )
   const rulesCreated = useRef<IRulesToCreate[]>([])
-  const deleted = useRef<number>(0)
-  const added = useRef<number[]>(initialSections ? [] : [1])
+  const [deletedVersion, setDeletedVersion] = useState(0)
+  const [addedRules, setAddedRules] = useState<number[]>(
+    initialSections ? [] : [1],
+  )
+  const [committedRuleCount, setCommittedRuleCount] = useState(0)
 
   const ruleCommited = (id: number, rule: IRule) => {
     if (rulesCreated) {
@@ -107,8 +110,11 @@ const RuleCreator = (props: iRuleCreator) => {
         (a, b) => a.id - b.id,
       )
       rulesCreated.current = toCommit
+      setCommittedRuleCount(rulesCreated.current.length)
       props.onUpdate(rulesCreated.current.map((el) => el.rule))
-      added.current = added.current.filter((e) => e !== id)
+      setAddedRules((currentAddedRules) =>
+        currentAddedRules.filter((e) => e !== id),
+      )
     }
   }
 
@@ -116,6 +122,7 @@ const RuleCreator = (props: iRuleCreator) => {
     if (rulesCreated) {
       const rules = rulesCreated.current?.filter((el) => el.id !== id)
       rulesCreated.current = [...rules]
+      setCommittedRuleCount(rulesCreated.current.length)
       props.onUpdate(rulesCreated.current.map((el) => el.rule))
     }
   }
@@ -135,14 +142,17 @@ const RuleCreator = (props: iRuleCreator) => {
         return e
       })
       rulesCreated.current = [...rules]
+      setCommittedRuleCount(rulesCreated.current.length)
       props.onUpdate(rulesCreated.current.map((el) => el.rule))
     }
 
-    added.current = added.current
-      .filter((e) => e !== id)
-      .map((e) => {
-        return (e = e > id ? e - 1 : e)
-      })
+    setAddedRules((currentAddedRules) =>
+      currentAddedRules
+        .filter((e) => e !== id)
+        .map((e) => {
+          return (e = e > id ? e - 1 : e)
+        }),
+    )
     setEditData({ rules: rulesCreated.current.map((el) => el.rule) })
 
     const rules = [...ruleAmount[1]]
@@ -157,7 +167,7 @@ const RuleCreator = (props: iRuleCreator) => {
       nonEmptySections.length > 0 ? nonEmptySections : [1],
     ])
 
-    deleted.current = deleted.current + 1
+    setDeletedVersion((currentVersion) => currentVersion + 1)
   }
 
   const RuleAdded = (section: number) => {
@@ -166,7 +176,7 @@ const RuleCreator = (props: iRuleCreator) => {
         idx + 1 <= section ? prev + cur : prev,
       ) + 1
 
-    added.current = [...added.current, ruleId]
+    setAddedRules((currentAddedRules) => [...currentAddedRules, ruleId])
 
     rulesCreated.current.map((e) => {
       if (e.id >= ruleId) {
@@ -189,7 +199,7 @@ const RuleCreator = (props: iRuleCreator) => {
       ruleAmount[1].reduce((prev, cur, idx) =>
         idx + 1 <= ruleAmount[0] + 1 ? prev + cur : prev,
       ) + 1
-    added.current = [...added.current, ruleId]
+    setAddedRules((currentAddedRules) => [...currentAddedRules, ruleId])
 
     updateRuleAmount([ruleAmount[0] + 1, rules])
   }
@@ -203,7 +213,7 @@ const RuleCreator = (props: iRuleCreator) => {
     <div className="text-zinc-100">
       {ruleAmountArr[0].map((sid) => {
         return (
-          <div key={`${sid}-${deleted.current}`} className="mb-4">
+          <div key={`${sid}-${deletedVersion}`} className="mb-4">
             <div className="rounded-lg bg-zinc-700 px-6 py-0.5 shadow-md">
               <SectionHeading id={sid} name={'Section'} />
               <div className="flex flex-col space-y-2">
@@ -250,7 +260,7 @@ const RuleCreator = (props: iRuleCreator) => {
                             : undefined
                         }
                         section={sid}
-                        newlyAdded={added.current}
+                        newlyAdded={addedRules}
                         mediaType={props.mediaType}
                         dataType={props.dataType}
                         radarrSettingsId={props.radarrSettingsId}
@@ -267,7 +277,7 @@ const RuleCreator = (props: iRuleCreator) => {
                 ))}
               </div>
 
-              {added.current.length <= 0 ? (
+              {addedRules.length <= 0 ? (
                 <div className="mb-2 flex w-full justify-end">
                   <button
                     type="button"
@@ -287,7 +297,7 @@ const RuleCreator = (props: iRuleCreator) => {
         )
       })}
 
-      {added.current.length <= 0 ? (
+      {addedRules.length <= 0 ? (
         <div className="mb-3 mt-3 flex w-full">
           <div className="m-auto xl:m-0">
             <button
@@ -305,8 +315,7 @@ const RuleCreator = (props: iRuleCreator) => {
         </div>
       ) : undefined}
 
-      {rulesCreated.current.length !==
-      ruleAmount[1].reduce((pv, cv) => pv + cv) ? (
+      {committedRuleCount !== ruleAmount[1].reduce((pv, cv) => pv + cv) ? (
         <div className="max-width-form-head mt-5">
           <Alert>{`Some incomplete rules won't be saved`} </Alert>
         </div>

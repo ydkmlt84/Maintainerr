@@ -1,20 +1,20 @@
-import axios from 'axios';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { SettingsService } from '../../settings/settings.service';
-import { Notification } from '../entities/notification.entities';
+import axios from 'axios'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { SettingsService } from '../../settings/settings.service'
+import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentGotify,
   NotificationAgentKey,
   NotificationType,
-} from '../notifications-interfaces';
-import { hasNotificationType } from '../notifications.service';
-import type { NotificationAgent, NotificationPayload } from './agent';
+} from '../notifications-interfaces'
+import { hasNotificationType } from '../notifications.service'
+import type { NotificationAgent, NotificationPayload } from './agent'
 
 interface GotifyPayload {
-  title: string;
-  message: string;
-  priority: number;
-  extras: Record<string, unknown>;
+  title: string
+  message: string
+  priority: number
+  extras: Record<string, unknown>
 }
 
 class GotifyAgent implements NotificationAgent {
@@ -24,34 +24,34 @@ class GotifyAgent implements NotificationAgent {
     private readonly logger: MaintainerrLogger,
     readonly notification: Notification,
   ) {
-    logger.setContext(GotifyAgent.name);
-    this.notification = notification;
+    logger.setContext(GotifyAgent.name)
+    this.notification = notification
   }
 
-  getNotification = () => this.notification;
+  getNotification = () => this.notification
 
-  getSettings = () => this.settings;
+  getSettings = () => this.settings
 
-  getIdentifier = () => NotificationAgentKey.GOTIFY;
+  getIdentifier = () => NotificationAgentKey.GOTIFY
 
   public shouldSend(): boolean {
-    const settings = this.getSettings();
+    const settings = this.getSettings()
 
     if (settings.enabled && settings.options.url && settings.options.token) {
-      return true;
+      return true
     }
 
-    return false;
+    return false
   }
 
   private getNotificationPayload(
     type: NotificationType,
     payload: NotificationPayload,
   ): GotifyPayload {
-    const priority = 0;
+    const priority = 0
 
-    const title = payload.subject;
-    const message = payload.message ?? '';
+    const title = payload.subject
+    const message = payload.message ?? ''
 
     // for (const extra of payload.extra ?? []) {
     //   message += `\n\n**${extra.name}**\n${extra.value}`;
@@ -66,27 +66,27 @@ class GotifyAgent implements NotificationAgent {
       title,
       message,
       priority,
-    };
+    }
   }
 
   public async send(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<string> {
-    const settings = this.getSettings();
+    const settings = this.getSettings()
 
     if (!hasNotificationType(type, settings.types ?? [0])) {
-      return 'Success';
+      return 'Success'
     }
 
-    this.logger.log('Sending Gotify notification');
+    this.logger.log('Sending Gotify notification')
     try {
-      const endpoint = `${settings.options.url}/message?token=${settings.options.token}`;
-      const notificationPayload = this.getNotificationPayload(type, payload);
+      const endpoint = `${settings.options.url}/message?token=${settings.options.token}`
+      const notificationPayload = this.getNotificationPayload(type, payload)
 
-      await axios.post(endpoint, notificationPayload);
+      await axios.post(endpoint, notificationPayload)
 
-      return 'Success';
+      return 'Success'
     } catch (e) {
       this.logger.error(
         `Error sending Gotify notification. Details: ${JSON.stringify({
@@ -95,11 +95,11 @@ class GotifyAgent implements NotificationAgent {
           response: e.response?.data,
         })}`,
         e,
-      );
+      )
 
-      return `Failure: ${e.message}`;
+      return `Failure: ${e.message}`
     }
   }
 }
 
-export default GotifyAgent;
+export default GotifyAgent

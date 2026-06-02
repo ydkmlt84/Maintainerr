@@ -1,37 +1,37 @@
-import { CollectionLogMeta, ECollectionLogType } from '@maintainerr/contracts';
+import { CollectionLogMeta, ECollectionLogType } from '@maintainerr/contracts'
 import {
   Column,
   Entity,
   Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Collection } from '../../collections/entities/collection.entities';
+} from 'typeorm'
+import { Collection } from '../../collections/entities/collection.entities'
 
 @Entity()
 @Index('idx_collection_log_collection_id', ['collection'])
 export class CollectionLog {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @ManyToOne(() => Collection, (collection) => collection.collectionLog, {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  collection: Collection;
+  collection: Collection
 
   @Column({
     type: 'datetime',
     nullable: false,
   })
-  timestamp: Date;
+  timestamp: Date
 
   @Column()
-  message: string;
+  message: string
 
   @Column({ nullable: false })
-  type: ECollectionLogType;
+  type: ECollectionLogType
 
   @Column('simple-json', { nullable: true })
-  meta: CollectionLogMeta;
+  meta: CollectionLogMeta
 }

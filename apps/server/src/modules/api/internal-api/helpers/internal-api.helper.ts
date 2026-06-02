@@ -1,5 +1,5 @@
-import { MaintainerrLogger } from '../../../logging/logs.service';
-import { ExternalApiService } from '../../external-api/external-api.service';
+import { MaintainerrLogger } from '../../../logging/logs.service'
+import { ExternalApiService } from '../../external-api/external-api.service'
 
 export class InternalApi extends ExternalApiService {
   constructor(
@@ -7,12 +7,12 @@ export class InternalApi extends ExternalApiService {
       url,
       apiKey,
     }: {
-      url: string;
-      apiKey: string;
+      url: string
+      apiKey: string
     },
     protected readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(InternalApi.name);
+    logger.setContext(InternalApi.name)
     super(
       url,
       {
@@ -21,6 +21,6 @@ export class InternalApi extends ExternalApiService {
         },
       },
       logger,
-    );
+    )
   }
 }

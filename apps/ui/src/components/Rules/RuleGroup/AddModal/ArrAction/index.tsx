@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import GetApiHandler from '../../../../../utils/ApiHandler'
 import { IRadarrSetting } from '../../../../Settings/Radarr'
 import { ISonarrSetting } from '../../../../Settings/Sonarr'
@@ -30,36 +30,46 @@ const ArrAction = (props: ArrActionProps) => {
   const [loading, setLoading] = useState<boolean>(true)
   const action = props.arrAction ?? 0
 
-  const handleSelectedSettingIdChange = (id?: number | null) => {
-    const actionUpdate = id == null ? 0 : action
-    props.onUpdate(actionUpdate, id)
-  }
+  const handleSelectedSettingIdChange = useCallback(
+    (id?: number | null) => {
+      const actionUpdate = id == null ? 0 : action
+      props.onUpdate(actionUpdate, id)
+    },
+    [action, props],
+  )
 
   const handleActionChange = (value: number) => {
     props.onUpdate(value, props.settingId)
   }
 
-  const loadArrSettings = async (type: ArrType) => {
-    setLoading(true)
-    setSettings([])
-    const settingsResponse = await GetApiHandler<IRadarrSetting[]>(
-      `/settings/${type.toLowerCase()}`,
-    )
-    setSettings(settingsResponse)
-    setLoading(false)
+  const loadArrSettings = useCallback(
+    async (type: ArrType) => {
+      queueMicrotask(() => {
+        setLoading(true)
+        setSettings([])
+      })
+      const settingsResponse = await GetApiHandler<IRadarrSetting[]>(
+        `/settings/${type.toLowerCase()}`,
+      )
+      setSettings(settingsResponse)
+      setLoading(false)
 
-    // The selected server does not exist anymore (old client data potentially) so deselect
-    if (
-      props.settingId &&
-      settingsResponse.find((x) => x.id === props.settingId) == null
-    ) {
-      handleSelectedSettingIdChange(undefined)
-    }
-  }
+      // The selected server does not exist anymore (old client data potentially) so deselect
+      if (
+        props.settingId &&
+        settingsResponse.find((x) => x.id === props.settingId) == null
+      ) {
+        handleSelectedSettingIdChange(undefined)
+      }
+    },
+    [handleSelectedSettingIdChange, props.settingId],
+  )
 
   useEffect(() => {
-    loadArrSettings(props.type)
-  }, [props.type])
+    queueMicrotask(() => {
+      loadArrSettings(props.type)
+    })
+  }, [loadArrSettings, props.type])
 
   const noneServerSelected = selectedSetting === ''
 

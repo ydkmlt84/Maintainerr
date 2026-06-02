@@ -1,20 +1,20 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Collection } from '../../collections/entities/collection.entities';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { Collection } from '../../collections/entities/collection.entities'
 
 @Entity()
 export class SonarrSettings {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  serverName: string;
+  serverName: string
 
   @Column({ nullable: true })
-  url: string;
+  url: string
 
   @Column({ nullable: true })
-  apiKey: string;
+  apiKey: string
 
   @OneToMany(() => Collection, (collection) => collection.sonarrSettings)
-  collections: Collection[];
+  collections: Collection[]
 }

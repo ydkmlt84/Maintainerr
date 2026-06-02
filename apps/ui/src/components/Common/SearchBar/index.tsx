@@ -7,18 +7,19 @@ interface ISearchBar {
 }
 
 const SearchBar = (props: ISearchBar) => {
+  const { onSearch, placeholder } = props
   const [text, setText] = useState<string>('')
   const SearchCtx = useContext(SearchContext)
 
   useEffect(() => {
     if (SearchCtx.search.text === '') {
-      setText('')
+      queueMicrotask(() => setText(''))
     }
   }, [SearchCtx.search.text])
 
   useEffect(() => {
-    props.onSearch(text)
-  }, [text])
+    onSearch(text)
+  }, [text, onSearch])
 
   const inputHandler = (e: ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value.toLowerCase())
@@ -43,7 +44,7 @@ const SearchBar = (props: ISearchBar) => {
       <input
         type="search"
         onChange={(e) => inputHandler(e)}
-        placeholder={props.placeholder ? props.placeholder : 'Search'}
+        placeholder={placeholder ? placeholder : 'Search'}
         value={text}
         className="block w-full rounded-full border border-zinc-500 bg-zinc-700 py-2 pl-10 text-white placeholder-zinc-400 shadow-sm hover:border-zinc-400 focus:border-maintainerr-600 focus:placeholder-zinc-300 focus:outline-none focus:ring-0 sm:text-base"
       />

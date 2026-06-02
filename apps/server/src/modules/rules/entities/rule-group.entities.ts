@@ -1,4 +1,4 @@
-import { MediaItemType } from '@maintainerr/contracts';
+import { MediaItemType } from '@maintainerr/contracts'
 import {
   Column,
   Entity,
@@ -8,45 +8,45 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Collection } from '../../collections/entities/collection.entities';
-import { ICollection } from '../../collections/interfaces/collection.interface';
-import { Notification } from '../../notifications/entities/notification.entities';
-import { Rules } from './rules.entities';
+} from 'typeorm'
+import { Collection } from '../../collections/entities/collection.entities'
+import { ICollection } from '../../collections/interfaces/collection.interface'
+import { Notification } from '../../notifications/entities/notification.entities'
+import { Rules } from './rules.entities'
 
 @Entity('rule_group')
 export class RuleGroup {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  name: string;
+  name: string
 
   @Column({ nullable: true })
-  description: string;
+  description: string
 
   @Column({ type: 'varchar' })
-  libraryId: string;
+  libraryId: string
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive: boolean
 
   @Column({ nullable: true })
-  collectionId: number;
+  collectionId: number
 
   @Column({ nullable: false, default: true })
-  useRules: boolean;
+  useRules: boolean
 
   @Column({ nullable: true })
-  dataType: MediaItemType | null;
+  dataType: MediaItemType | null
 
   @Column({ nullable: true, default: null })
-  ruleHandlerCronSchedule: string | null;
+  ruleHandlerCronSchedule: string | null
 
   @OneToMany(() => Rules, (rules) => rules.ruleGroup, {
     onDelete: 'CASCADE',
   })
-  rules: Rules[];
+  rules: Rules[]
 
   @ManyToMany(() => Notification, {
     eager: true,
@@ -63,12 +63,12 @@ export class RuleGroup {
       referencedColumnName: 'id',
     },
   })
-  notifications: Notification[];
+  notifications: Notification[]
 
   @OneToOne(() => Collection, (c) => c.ruleGroup, {
     eager: true,
     onDelete: 'CASCADE',
   })
   @JoinColumn()
-  collection: ICollection;
+  collection: ICollection
 }

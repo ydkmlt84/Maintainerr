@@ -4,23 +4,23 @@ import {
   MediaItem,
   MediaItemType,
   RuleValueType,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { RuleConstanstService } from '../constants/constants.service';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { RuleConstanstService } from '../constants/constants.service'
 import {
   RuleOperators,
   RulePossibility,
   RuleType,
-} from '../constants/rules.constants';
-import { RuleDto } from '../dtos/rule.dto';
-import { RuleDbDto } from '../dtos/ruleDb.dto';
-import { RulesDto } from '../dtos/rules.dto';
-import { ValueGetterService } from '../getter/getter.service';
+} from '../constants/rules.constants'
+import { RuleDto } from '../dtos/rule.dto'
+import { RuleDbDto } from '../dtos/ruleDb.dto'
+import { RulesDto } from '../dtos/rules.dto'
+import { ValueGetterService } from '../getter/getter.service'
 
 interface IComparatorReturnValue {
-  stats: IComparisonStatistics[];
-  data: MediaItem[];
+  stats: IComparisonStatistics[]
+  data: MediaItem[]
 }
 
 @Injectable()
@@ -36,30 +36,30 @@ export class RuleComparatorServiceFactory {
       this.valueGetter,
       this.ruleConstanstService,
       this.logger,
-    );
+    )
   }
 }
 
 @Injectable()
 export class RuleComparatorService {
-  workerData: MediaItem[];
-  resultData: MediaItem[];
-  plexData: MediaItem[];
-  plexDataType: MediaItemType;
-  statistics: IComparisonStatistics[];
-  statisticWorker: IRuleComparisonResult[];
-  abortSignal?: AbortSignal;
+  workerData: MediaItem[]
+  resultData: MediaItem[]
+  plexData: MediaItem[]
+  plexDataType: MediaItemType
+  statistics: IComparisonStatistics[]
+  statisticWorker: IRuleComparisonResult[]
+  abortSignal?: AbortSignal
 
-  private workerIds: Set<string>;
-  private resultIds: Set<string>;
-  private statsById: Map<string, IComparisonStatistics>;
+  private workerIds: Set<string>
+  private resultIds: Set<string>
+  private statsById: Map<string, IComparisonStatistics>
 
   constructor(
     private readonly valueGetter: ValueGetterService,
     private readonly ruleConstanstService: RuleConstanstService,
     private readonly logger: MaintainerrLogger,
   ) {
-    logger.setContext(RuleComparatorService.name);
+    logger.setContext(RuleComparatorService.name)
   }
 
   public async executeRulesWithData(
@@ -70,100 +70,100 @@ export class RuleComparatorService {
   ): Promise<IComparatorReturnValue> {
     try {
       // prepare
-      this.plexData = plexData;
-      this.plexDataType = rulegroup.dataType ? rulegroup.dataType : undefined;
-      this.workerData = [];
-      this.resultData = [];
-      this.statistics = [];
-      this.statisticWorker = [];
-      this.abortSignal = abortSignal;
+      this.plexData = plexData
+      this.plexDataType = rulegroup.dataType ? rulegroup.dataType : undefined
+      this.workerData = []
+      this.resultData = []
+      this.statistics = []
+      this.statisticWorker = []
+      this.abortSignal = abortSignal
 
-      this.workerIds = new Set<string>();
-      this.resultIds = new Set<string>();
-      this.statsById = new Map<string, IComparisonStatistics>();
+      this.workerIds = new Set<string>()
+      this.resultIds = new Set<string>()
+      this.statsById = new Map<string, IComparisonStatistics>()
 
       // run rules
-      let currentSection = 0;
-      let sectionActionAnd = false;
+      let currentSection = 0
+      let sectionActionAnd = false
 
-      this.prepareStatistics();
+      this.prepareStatistics()
 
-      let ruleNumber = 0;
+      let ruleNumber = 0
 
       for (const rule of rulegroup.rules) {
-        ruleNumber++;
-        onRuleProgress?.(ruleNumber);
+        ruleNumber++
+        onRuleProgress?.(ruleNumber)
 
-        const parsedRule = JSON.parse((rule as RuleDbDto).ruleJson) as RuleDto;
+        const parsedRule = JSON.parse((rule as RuleDbDto).ruleJson) as RuleDto
 
         // force operator of very first rule to null, otherwise this might cause corruption
         if ((rule as RuleDbDto)?.id === (rulegroup.rules[0] as RuleDbDto)?.id) {
-          parsedRule.operator = null;
+          parsedRule.operator = null
         }
 
         if (currentSection === (rule as RuleDbDto).section) {
           // if section didn't change
           // execute and store in work array
-          await this.executeRule(parsedRule, rulegroup);
+          await this.executeRule(parsedRule, rulegroup)
         } else {
           // set the stat results of the completed section
-          this.setStatisticSectionResults();
+          this.setStatisticSectionResults()
 
           // handle section action
-          this.handleSectionAction(sectionActionAnd);
+          this.handleSectionAction(sectionActionAnd)
 
           // save new section action
-          sectionActionAnd = +parsedRule.operator === 0;
+          sectionActionAnd = +parsedRule.operator === 0
           // reset first operator of new section
-          parsedRule.operator = null;
+          parsedRule.operator = null
           // add new section to stats
           this.addSectionToStatistics(
             (rule as RuleDbDto).section,
             sectionActionAnd,
-          );
+          )
           // Execute the rule and set the new section
-          await this.executeRule(parsedRule, rulegroup);
-          currentSection = (rule as RuleDbDto).section;
+          await this.executeRule(parsedRule, rulegroup)
+          currentSection = (rule as RuleDbDto).section
         }
       }
       // set the stat results of the last section
-      this.setStatisticSectionResults();
+      this.setStatisticSectionResults()
 
       // handle last section
-      this.handleSectionAction(sectionActionAnd);
+      this.handleSectionAction(sectionActionAnd)
 
       // update result for matched media
-      this.updateStatisticResults();
+      this.updateStatisticResults()
 
       // return comparatorReturnValue
-      return { stats: this.statistics, data: this.resultData };
+      return { stats: this.statistics, data: this.resultData }
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') {
-        throw e;
+        throw e
       }
 
       this.logger.log(
         `Something went wrong while running rule ${rulegroup.name}`,
-      );
-      this.logger.debug(e);
+      )
+      this.logger.debug(e)
     }
   }
 
   private updateStatisticResults() {
     this.statistics.forEach((el) => {
-      el.result = this.resultIds.has(el.mediaServerId);
-    });
+      el.result = this.resultIds.has(el.mediaServerId)
+    })
   }
 
   private setStatisticSectionResults() {
     // add the result of the last section. If media is in workerData, section = true.
     this.statistics.forEach((stat) => {
       if (this.workerIds.has(stat.mediaServerId)) {
-        stat.sectionResults[stat.sectionResults.length - 1].result = true;
+        stat.sectionResults[stat.sectionResults.length - 1].result = true
       } else {
-        stat.sectionResults[stat.sectionResults.length - 1].result = false;
+        stat.sectionResults[stat.sectionResults.length - 1].result = false
       }
-    });
+    })
   }
 
   private addSectionToStatistics(id: number, isAND: boolean) {
@@ -173,41 +173,41 @@ export class RuleComparatorService {
         result: undefined,
         operator: isAND ? 'AND' : 'OR',
         ruleResults: [],
-      });
-    });
+      })
+    })
   }
 
   private async executeRule(rule: RuleDto, ruleGroup: RulesDto) {
-    let data: MediaItem[];
-    let firstVal: RuleValueType;
-    let secondVal: RuleValueType;
+    let data: MediaItem[]
+    let firstVal: RuleValueType
+    let secondVal: RuleValueType
 
     if (rule.operator === null || +rule.operator === +RuleOperators.OR) {
-      data = this.plexData;
+      data = this.plexData
     } else {
-      data = this.workerData;
+      data = this.workerData
     }
 
     // loop media items
     for (let i = data.length - 1; i >= 0; i--) {
       // fetch values
-      const mediaItem = data[i];
-      const mediaId = mediaItem.id;
+      const mediaItem = data[i]
+      const mediaId = mediaItem.id
       firstVal = await this.valueGetter.get(
         rule.firstVal,
         mediaItem,
         ruleGroup,
         this.plexDataType,
-      );
-      this.abortSignal?.throwIfAborted();
+      )
+      this.abortSignal?.throwIfAborted()
 
       secondVal = await this.getSecondValue(
         rule,
         mediaItem,
         ruleGroup,
         firstVal,
-      );
-      this.abortSignal?.throwIfAborted();
+      )
+      this.abortSignal?.throwIfAborted()
 
       if (
         (firstVal !== undefined || null) &&
@@ -218,7 +218,7 @@ export class RuleComparatorService {
           firstVal,
           secondVal,
           rule.action,
-        );
+        )
 
         // add stats if enabled
         this.addStatistictoParent(
@@ -227,22 +227,22 @@ export class RuleComparatorService {
           secondVal,
           mediaId,
           comparisonResult,
-        );
+        )
 
         // alter workerData
         if (rule.operator === null || +rule.operator === +RuleOperators.OR) {
           if (comparisonResult) {
             // add to workerdata if not yet available
             if (!this.workerIds.has(mediaId)) {
-              this.workerIds.add(mediaId);
-              this.workerData.push(mediaItem);
+              this.workerIds.add(mediaId)
+              this.workerData.push(mediaItem)
             }
           }
         } else {
           if (!comparisonResult) {
             // remove from workerdata
-            this.workerData.splice(i, 1);
-            this.workerIds.delete(mediaId);
+            this.workerData.splice(i, 1)
+            this.workerIds.delete(mediaId)
           }
         }
       }
@@ -255,14 +255,14 @@ export class RuleComparatorService {
     rulegroup: RulesDto,
     firstVal: RuleValueType,
   ): Promise<RuleValueType> {
-    let secondVal: RuleValueType;
+    let secondVal: RuleValueType
     if (rule.lastVal) {
       secondVal = await this.valueGetter.get(
         rule.lastVal,
         data,
         rulegroup,
         this.plexDataType,
-      );
+      )
     } else {
       secondVal =
         rule.customVal.ruleTypeId === +RuleType.DATE
@@ -275,7 +275,7 @@ export class RuleComparatorService {
             : rule.customVal.ruleTypeId === +RuleType.NUMBER ||
                 rule.customVal.ruleTypeId === +RuleType.BOOL
               ? +rule.customVal.value
-              : null;
+              : null
       if (
         firstVal instanceof Date &&
         rule.customVal.ruleTypeId === +RuleType.NUMBER
@@ -285,15 +285,15 @@ export class RuleComparatorService {
             rule.action,
           )
         ) {
-          secondVal = new Date(new Date().getTime() - +secondVal * 1000);
+          secondVal = new Date(new Date().getTime() - +secondVal * 1000)
         } else {
-          secondVal = new Date(new Date().getTime() + +secondVal * 1000);
+          secondVal = new Date(new Date().getTime() + +secondVal * 1000)
         }
       } else if (
         firstVal instanceof Date &&
         rule.customVal.ruleTypeId === +RuleType.DATE
       ) {
-        secondVal = new Date(+secondVal);
+        secondVal = new Date(+secondVal)
       }
       if (
         // if custom secondval is text or text list, check if it's parsable as an array
@@ -303,15 +303,15 @@ export class RuleComparatorService {
         typeof secondVal === 'string' &&
         this.isStringParsableToArray(secondVal)
       ) {
-        secondVal = JSON.parse(secondVal);
+        secondVal = JSON.parse(secondVal)
       }
     }
-    return secondVal;
+    return secondVal
   }
 
   private prepareStatistics() {
     this.plexData.forEach((data) => {
-      const mediaId = data.id;
+      const mediaId = data.id
       const stat: IComparisonStatistics = {
         mediaServerId: mediaId,
         result: false,
@@ -322,11 +322,11 @@ export class RuleComparatorService {
             ruleResults: [],
           },
         ],
-      };
+      }
 
-      this.statistics.push(stat);
-      this.statsById.set(mediaId, stat);
-    });
+      this.statistics.push(stat)
+      this.statsById.set(mediaId, stat)
+    })
   }
 
   private addStatistictoParent(
@@ -336,11 +336,11 @@ export class RuleComparatorService {
     mediaId: string,
     result: boolean,
   ) {
-    const stat = this.statsById.get(mediaId);
+    const stat = this.statsById.get(mediaId)
     if (!stat) {
-      return;
+      return
     }
-    const lastSectionIndex = stat.sectionResults.length - 1;
+    const lastSectionIndex = stat.sectionResults.length - 1
 
     // push result to currently last section
     stat.sectionResults[lastSectionIndex].ruleResults.push({
@@ -358,47 +358,47 @@ export class RuleComparatorService {
             .type,
       secondValue: secondVal,
       result: result,
-    });
+    })
   }
 
   private handleSectionAction(sectionActionAnd: boolean) {
     if (!sectionActionAnd) {
       // section action is OR, then push in result array
       for (const item of this.workerData) {
-        const mediaId = item.id;
+        const mediaId = item.id
         if (!this.resultIds.has(mediaId)) {
-          this.resultIds.add(mediaId);
-          this.resultData.push(item);
+          this.resultIds.add(mediaId)
+          this.resultData.push(item)
         }
       }
     } else {
       // section action is AND, then filter media not in work array out of result array
       const idsInCurrentData = new Set<string>(
         this.plexData.map((mediaItem) => {
-          return mediaItem.id;
+          return mediaItem.id
         }),
-      );
+      )
 
       this.resultData = this.resultData.filter((el) => {
-        const mediaId = el.id;
+        const mediaId = el.id
         // If in current data.. Otherwise we're removing previously added media
         if (idsInCurrentData.has(mediaId)) {
-          return this.workerIds.has(mediaId);
+          return this.workerIds.has(mediaId)
         } else {
           // If not in current data, skip check
-          return true;
+          return true
         }
-      });
+      })
 
       this.resultIds = new Set<string>(
         this.resultData.map((el) => {
-          return el.id;
+          return el.id
         }),
-      );
+      )
     }
     // empty workerdata. prepare for execution of new section
-    this.workerData = [];
-    this.workerIds.clear();
+    this.workerData = []
+    this.workerIds.clear()
   }
 
   private doRuleAction(
@@ -407,27 +407,27 @@ export class RuleComparatorService {
     action: RulePossibility,
   ): boolean {
     if (typeof val1 === 'string') {
-      val1 = val1.toLowerCase();
+      val1 = val1.toLowerCase()
     }
 
     if (typeof val2 === 'string') {
-      val2 = val2.toLowerCase();
+      val2 = val2.toLowerCase()
     }
 
     if (Array.isArray(val1)) {
-      val1 = val1.map((el) => (typeof el == 'string' ? el.toLowerCase() : el));
+      val1 = val1.map((el) => (typeof el == 'string' ? el.toLowerCase() : el))
     }
 
     if (Array.isArray(val2)) {
-      val2 = val2.map((el) => (typeof el == 'string' ? el.toLowerCase() : el));
+      val2 = val2.map((el) => (typeof el == 'string' ? el.toLowerCase() : el))
     }
 
     if (action === RulePossibility.BIGGER) {
-      return val1 > val2;
+      return val1 > val2
     }
 
     if (action === RulePossibility.SMALLER) {
-      return val1 < val2;
+      return val1 < val2
     }
 
     if (action === RulePossibility.EQUALS) {
@@ -436,46 +436,46 @@ export class RuleComparatorService {
           return (
             new Date(val1.toDateString()).valueOf() ===
             new Date(val2.toDateString()).valueOf()
-          );
+          )
         }
 
         if (typeof val1 === 'boolean') {
-          return val1 == val2;
+          return val1 == val2
         }
 
-        return val1 === val2;
+        return val1 === val2
       } else {
-        const val2Array = Array.isArray(val2) ? val2 : [val2];
+        const val2Array = Array.isArray(val2) ? val2 : [val2]
 
         if (val1.length === val2Array.length) {
-          const set1 = new Set<RuleValueType>(val1);
-          const set2 = new Set<RuleValueType>(val2Array);
-          return [...set1].every((value) => set2.has(value));
+          const set1 = new Set<RuleValueType>(val1)
+          const set2 = new Set<RuleValueType>(val2Array)
+          return [...set1].every((value) => set2.has(value))
         } else {
-          return false;
+          return false
         }
       }
     }
 
     if (action === RulePossibility.NOT_EQUALS) {
-      return !this.doRuleAction(val1, val2, RulePossibility.EQUALS);
+      return !this.doRuleAction(val1, val2, RulePossibility.EQUALS)
     }
 
     if (action === RulePossibility.CONTAINS) {
       try {
         if (!Array.isArray(val2)) {
-          return (val1 as unknown[])?.includes(val2);
+          return (val1 as unknown[])?.includes(val2)
         } else {
           if (val2.length > 0) {
             return val2.some((el) => {
-              return (val1 as unknown[])?.includes(el);
-            });
+              return (val1 as unknown[])?.includes(el)
+            })
           } else {
-            return false;
+            return false
           }
         }
       } catch (_err) {
-        return null;
+        return null
       }
     }
 
@@ -491,10 +491,10 @@ export class RuleComparatorService {
                   ? line.includes(String(val2))
                   : line == val2
                     ? true
-                    : false;
+                    : false
               },
             ) || false
-          );
+          )
         } else {
           if (val2.length > 0) {
             return val2.some((el) => {
@@ -506,79 +506,79 @@ export class RuleComparatorService {
                     ? line.includes(String(el))
                     : line == el
                       ? true
-                      : false;
+                      : false
                 }) || false
-              );
-            });
+              )
+            })
           } else {
-            return false;
+            return false
           }
         }
       } catch (_err) {
-        return null;
+        return null
       }
     }
 
     if (action === RulePossibility.CONTAINS_ALL) {
       try {
         if (!Array.isArray(val2)) {
-          return (val1 as unknown[])?.includes(val2);
+          return (val1 as unknown[])?.includes(val2)
         } else {
           if (val2.length > 0) {
             return val2.every((el) => {
-              return (val1 as unknown[])?.includes(el);
-            });
+              return (val1 as unknown[])?.includes(el)
+            })
           } else {
-            return false;
+            return false
           }
         }
       } catch (_err) {
-        return null;
+        return null
       }
     }
 
     if (action === RulePossibility.NOT_CONTAINS) {
-      return !this.doRuleAction(val1, val2, RulePossibility.CONTAINS);
+      return !this.doRuleAction(val1, val2, RulePossibility.CONTAINS)
     }
 
     if (action === RulePossibility.NOT_CONTAINS_PARTIAL) {
-      return !this.doRuleAction(val1, val2, RulePossibility.CONTAINS_PARTIAL);
+      return !this.doRuleAction(val1, val2, RulePossibility.CONTAINS_PARTIAL)
     }
 
     if (action === RulePossibility.NOT_CONTAINS_ALL) {
-      return !this.doRuleAction(val1, val2, RulePossibility.CONTAINS_ALL);
+      return !this.doRuleAction(val1, val2, RulePossibility.CONTAINS_ALL)
     }
 
     if (action === RulePossibility.BEFORE) {
       if (!(val1 instanceof Date) || !(val2 instanceof Date)) {
-        return false;
+        return false
       }
-      return val1 && val2 ? val1 <= val2 : false;
+      return val1 && val2 ? val1 <= val2 : false
     }
 
     if (action === RulePossibility.AFTER) {
       if (!(val1 instanceof Date) || !(val2 instanceof Date)) {
-        return false;
+        return false
       }
-      return val1 && val2 ? val1 >= val2 : false;
+      return val1 && val2 ? val1 >= val2 : false
     }
 
     if (action === RulePossibility.IN_LAST) {
       return (
         (val1 as Date) >= val2 && // time in s
         (val1 as unknown as Date) <= new Date()
-      );
+      )
     }
 
     if (action === RulePossibility.IN_NEXT) {
       return (
         (val1 as Date) <= val2 && //  time in s
         (val1 as unknown as Date) >= new Date()
-      );
+      )
     }
 
     if (action === RulePossibility.COUNT_NOT_EQUALS) {
-      return !this.doRuleAction(val1, val2, RulePossibility.COUNT_EQUALS);
+      return !this.doRuleAction(val1, val2, RulePossibility.COUNT_EQUALS)
     }
     if (
       [
@@ -588,28 +588,28 @@ export class RuleComparatorService {
       ].includes(action)
     ) {
       if (!Array.isArray(val1)) {
-        return false;
+        return false
       }
       if (!Array.isArray(val2) && typeof val2 !== 'number') {
-        return false;
+        return false
       }
-      const val2Length = Array.isArray(val2) ? val2.length : val2;
+      const val2Length = Array.isArray(val2) ? val2.length : val2
       if (action === RulePossibility.COUNT_EQUALS) {
-        return val1.length === val2Length;
+        return val1.length === val2Length
       } else if (action === RulePossibility.COUNT_BIGGER) {
-        return val1.length > val2Length;
+        return val1.length > val2Length
       } else if (action === RulePossibility.COUNT_SMALLER) {
-        return val1.length < val2Length;
+        return val1.length < val2Length
       }
     }
   }
 
   private isStringParsableToArray(str: string) {
     try {
-      const array = JSON.parse(str);
-      return Array.isArray(array);
+      const array = JSON.parse(str)
+      return Array.isArray(array)
     } catch (error) {
-      return false;
+      return false
     }
   }
 }

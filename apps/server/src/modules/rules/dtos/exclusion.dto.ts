@@ -1,18 +1,18 @@
-import { IAlterableMediaDto } from '../../collections/interfaces/collection-media.interface';
+import { IAlterableMediaDto } from '../../collections/interfaces/collection-media.interface'
 
 export class ExclusionDto {
-  mediaServerId: string;
-  ruleGroupId?: number;
-  collectionId?: number;
-  action?: ExclusionAction;
+  mediaServerId: string
+  ruleGroupId?: number
+  collectionId?: number
+  action?: ExclusionAction
 }
 
 export interface ExclusionContextDto {
-  mediaId: string;
-  context: IAlterableMediaDto;
-  collectionId: number;
-  ruleGroupId: number;
-  action: 0 | 1;
+  mediaId: string
+  context: IAlterableMediaDto
+  collectionId: number
+  ruleGroupId: number
+  action: 0 | 1
 }
 export enum ExclusionAction {
   ADD,

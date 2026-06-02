@@ -3,17 +3,17 @@ import {
   MediaItemType,
   MediaServerType,
   RuleValueType,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { MediaServerFactory } from '../../api/media-server/media-server.factory';
-import { Application } from '../constants/rules.constants';
-import { RulesDto } from '../dtos/rules.dto';
-import { JellyfinGetterService } from './jellyfin-getter.service';
-import { PlexGetterService } from './plex-getter.service';
-import { RadarrGetterService } from './radarr-getter.service';
-import { SeerrGetterService } from './seerr-getter.service';
-import { SonarrGetterService } from './sonarr-getter.service';
-import { TautulliGetterService } from './tautulli-getter.service';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { MediaServerFactory } from '../../api/media-server/media-server.factory'
+import { Application } from '../constants/rules.constants'
+import { RulesDto } from '../dtos/rules.dto'
+import { JellyfinGetterService } from './jellyfin-getter.service'
+import { PlexGetterService } from './plex-getter.service'
+import { RadarrGetterService } from './radarr-getter.service'
+import { SeerrGetterService } from './seerr-getter.service'
+import { SonarrGetterService } from './sonarr-getter.service'
+import { TautulliGetterService } from './tautulli-getter.service'
 
 @Injectable()
 export class ValueGetterService {
@@ -39,36 +39,31 @@ export class ValueGetterService {
       case Application.PLEX:
       case Application.JELLYFIN: {
         const serverType =
-          await this.mediaServerFactory.getConfiguredServerType();
+          await this.mediaServerFactory.getConfiguredServerType()
 
         const getter =
           serverType === MediaServerType.JELLYFIN
             ? this.jellyfinGetter
             : serverType === MediaServerType.PLEX
               ? this.plexGetter
-              : null;
+              : null
 
-        return getter?.get(val2, libItem, dataType, ruleGroup) ?? null;
+        return getter?.get(val2, libItem, dataType, ruleGroup) ?? null
       }
       case Application.RADARR: {
-        return await this.radarrGetter.get(val2, libItem, ruleGroup);
+        return await this.radarrGetter.get(val2, libItem, ruleGroup)
       }
       case Application.SONARR: {
-        return await this.sonarrGetter.get(val2, libItem, dataType, ruleGroup);
+        return await this.sonarrGetter.get(val2, libItem, dataType, ruleGroup)
       }
       case Application.SEERR: {
-        return await this.seerrGetter.get(val2, libItem, dataType);
+        return await this.seerrGetter.get(val2, libItem, dataType)
       }
       case Application.TAUTULLI: {
-        return await this.tautulliGetter.get(
-          val2,
-          libItem,
-          dataType,
-          ruleGroup,
-        );
+        return await this.tautulliGetter.get(val2, libItem, dataType, ruleGroup)
       }
       default: {
-        return null;
+        return null
       }
     }
   }

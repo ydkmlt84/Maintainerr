@@ -1,46 +1,46 @@
-import { MediaItemWithParent } from '@maintainerr/contracts';
+import { MediaItemWithParent } from '@maintainerr/contracts'
 import {
   Column,
   Entity,
   Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Collection } from './collection.entities';
+} from 'typeorm'
+import { Collection } from './collection.entities'
 
 @Entity()
 @Index('idx_collection_media_collection_id', ['collectionId'])
 export class CollectionMedia {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  collectionId: number;
+  collectionId: number
 
   @Column()
-  mediaServerId: string;
+  mediaServerId: string
 
   @Column({ nullable: true })
-  tmdbId: number;
+  tmdbId: number
 
   @Column()
-  addDate: Date;
+  addDate: Date
 
   @Column({ nullable: true })
-  image_path: string;
+  image_path: string
 
   @Column({ default: false, nullable: true })
-  isManual: boolean;
+  isManual: boolean
 
   @ManyToOne(() => Collection, (collection) => collection.collectionMedia, {
     onDelete: 'CASCADE',
   })
-  collection: Collection;
+  collection: Collection
 }
 
 /**
  * Collection media with server-agnostic metadata.
  */
 export class CollectionMediaWithMetadata extends CollectionMedia {
-  mediaData: MediaItemWithParent;
+  mediaData: MediaItemWithParent
 }

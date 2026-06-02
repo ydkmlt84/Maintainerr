@@ -1,23 +1,23 @@
-import { MediaServerType } from '@maintainerr/contracts';
+import { MediaServerType } from '@maintainerr/contracts'
 import {
   forwardRef,
   Inject,
   Injectable,
   Logger,
   ServiceUnavailableException,
-} from '@nestjs/common';
-import { Settings } from '../../settings/entities/settings.entities';
-import { MediaServerSwitchService } from '../../settings/media-server-switch.service';
-import { SettingsService } from '../../settings/settings.service';
-import { JellyfinAdapterService } from './jellyfin/jellyfin-adapter.service';
-import { IMediaServerService } from './media-server.interface';
-import { PlexAdapterService } from './plex/plex-adapter.service';
+} from '@nestjs/common'
+import { Settings } from '../../settings/entities/settings.entities'
+import { MediaServerSwitchService } from '../../settings/media-server-switch.service'
+import { SettingsService } from '../../settings/settings.service'
+import { JellyfinAdapterService } from './jellyfin/jellyfin-adapter.service'
+import { IMediaServerService } from './media-server.interface'
+import { PlexAdapterService } from './plex/plex-adapter.service'
 
 /**
  * Type guard to check if settings response is a Settings object
  */
 function isSettings(obj: unknown): obj is Settings {
-  return obj !== null && typeof obj === 'object' && 'media_server_type' in obj;
+  return obj !== null && typeof obj === 'object' && 'media_server_type' in obj
 }
 
 /**
@@ -31,7 +31,7 @@ function isSettings(obj: unknown): obj is Settings {
  */
 @Injectable()
 export class MediaServerFactory {
-  private readonly logger = new Logger(MediaServerFactory.name);
+  private readonly logger = new Logger(MediaServerFactory.name)
 
   constructor(
     @Inject(forwardRef(() => SettingsService))
@@ -48,18 +48,18 @@ export class MediaServerFactory {
    */
   async initialize(): Promise<void> {
     try {
-      await this.getService();
+      await this.getService()
     } catch (err) {
-      const message = err instanceof Error ? err.message : '';
+      const message = err instanceof Error ? err.message : ''
       if (message === 'No media server type configured') {
         this.logger.log(
           'No media server configured yet - skipping initialization',
-        );
+        )
       } else {
         // Log the actual error for debugging, but don't crash the app
         this.logger.warn(
           `Media server could not be initialized during startup: ${message}`,
-        );
+        )
       }
     }
   }
@@ -72,15 +72,15 @@ export class MediaServerFactory {
     if (this.mediaServerSwitchService.isSwitching()) {
       throw new ServiceUnavailableException(
         'Media server switch is in progress. Please try again shortly.',
-      );
+      )
     }
 
-    const serverType = await this.getConfiguredServerType();
+    const serverType = await this.getConfiguredServerType()
     if (!serverType) {
-      throw new Error('No media server type configured');
+      throw new Error('No media server type configured')
     }
 
-    return await this.getServiceByType(serverType);
+    return await this.getServiceByType(serverType)
   }
 
   /**
@@ -94,18 +94,18 @@ export class MediaServerFactory {
     switch (serverType) {
       case MediaServerType.JELLYFIN:
         if (!this.jellyfinAdapter.isSetup()) {
-          await this.jellyfinAdapter.initialize();
+          await this.jellyfinAdapter.initialize()
         }
-        return this.jellyfinAdapter;
+        return this.jellyfinAdapter
 
       case MediaServerType.PLEX:
         if (!this.plexAdapter.isSetup()) {
-          await this.plexAdapter.initialize();
+          await this.plexAdapter.initialize()
         }
-        return this.plexAdapter;
+        return this.plexAdapter
 
       default:
-        throw new Error(`Unsupported media server type: ${serverType}`);
+        throw new Error(`Unsupported media server type: ${serverType}`)
     }
   }
 
@@ -113,29 +113,29 @@ export class MediaServerFactory {
    * Get the currently configured media server type.
    */
   async getConfiguredServerType(): Promise<MediaServerType | null> {
-    const settings = await this.settingsService.getSettings();
+    const settings = await this.settingsService.getSettings()
 
     if (!isSettings(settings)) {
-      return null;
+      return null
     }
 
-    const configuredType = settings.media_server_type as MediaServerType | null;
+    const configuredType = settings.media_server_type as MediaServerType | null
     const jellyfinConfigured = Boolean(
       settings.jellyfin_url && settings.jellyfin_api_key,
-    );
+    )
     const plexConfigured = Boolean(
       settings.plex_hostname &&
       settings.plex_name &&
       settings.plex_port &&
       settings.plex_auth_token,
-    );
+    )
     const inferredType = this.resolveServerType(
       plexConfigured,
       jellyfinConfigured,
-    );
+    )
 
     if (!configuredType) {
-      return inferredType;
+      return inferredType
     }
 
     // Always respect the user's explicitly configured server type.
@@ -143,10 +143,10 @@ export class MediaServerFactory {
     if (inferredType && configuredType !== inferredType) {
       this.logger.warn(
         `Configured server type '${configuredType}' differs from inferred type '${inferredType}'. Using configured type.`,
-      );
+      )
     }
 
-    return configuredType;
+    return configuredType
   }
 
   /**
@@ -156,13 +156,13 @@ export class MediaServerFactory {
   uninitializeServer(serverType: MediaServerType): void {
     switch (serverType) {
       case MediaServerType.PLEX:
-        this.plexAdapter.uninitialize();
-        break;
+        this.plexAdapter.uninitialize()
+        break
       case MediaServerType.JELLYFIN:
-        this.jellyfinAdapter.uninitialize();
-        break;
+        this.jellyfinAdapter.uninitialize()
+        break
       default:
-        throw new Error(`Unsupported media server type: ${serverType}`);
+        throw new Error(`Unsupported media server type: ${serverType}`)
     }
   }
 
@@ -174,13 +174,13 @@ export class MediaServerFactory {
     url: string,
     apiKey: string,
   ): Promise<{
-    success: boolean;
-    serverName?: string;
-    version?: string;
-    error?: string;
-    users?: Array<{ id: string; name: string }>;
+    success: boolean
+    serverName?: string
+    version?: string
+    error?: string
+    users?: Array<{ id: string; name: string }>
   }> {
-    return this.jellyfinAdapter.testConnection(url, apiKey);
+    return this.jellyfinAdapter.testConnection(url, apiKey)
   }
 
   private resolveServerType(
@@ -188,14 +188,14 @@ export class MediaServerFactory {
     jellyfinConfigured: boolean,
   ): MediaServerType | null {
     if (jellyfinConfigured && !plexConfigured) {
-      return MediaServerType.JELLYFIN;
+      return MediaServerType.JELLYFIN
     }
 
     if (plexConfigured && !jellyfinConfigured) {
-      return MediaServerType.PLEX;
+      return MediaServerType.PLEX
     }
 
     // Both configured or neither configured - can't infer
-    return null;
+    return null
   }
 }

@@ -4,130 +4,132 @@ import {
   MediaItem,
   MediaItemType,
   MediaItemWithParent,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { CronTime } from 'cron';
-import { Repository } from 'typeorm';
-import { MediaServerFactory } from '../api/media-server/media-server.factory';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { SchedulerRegistry } from '@nestjs/schedule'
+import { InjectRepository } from '@nestjs/typeorm'
+import { CronTime } from 'cron'
+import { Repository } from 'typeorm'
+import { MediaServerFactory } from '../api/media-server/media-server.factory'
 import {
   DiskSpaceResource,
   RootFolder,
-} from '../api/servarr-api/interfaces/servarr.interface';
-import { ServarrService } from '../api/servarr-api/servarr.service';
-import { CollectionsService } from '../collections/collections.service';
-import { CollectionLog } from '../collections/entities/collection_log.entities';
-import { RuleGroup } from '../rules/entities/rule-group.entities';
-import { SonarrSettings } from '../settings/entities/sonarr_settings.entities';
-import { SettingsService } from '../settings/settings.service';
+} from '../api/servarr-api/interfaces/servarr.interface'
+import { ServarrService } from '../api/servarr-api/servarr.service'
+import { CollectionsService } from '../collections/collections.service'
+import { CollectionLog } from '../collections/entities/collection_log.entities'
+import { CollectionMedia } from '../collections/entities/collection_media.entities'
+import { RuleGroup } from '../rules/entities/rule-group.entities'
+import { SonarrSettings } from '../settings/entities/sonarr_settings.entities'
+import { SettingsService } from '../settings/settings.service'
 
 export interface AppStatsResponse {
-  rules: number;
-  storage: AppStorageStats;
-  choppingBlock: AppChoppingBlockStats;
-  libraries: AppLibraryStats[];
-  recentlyAdded: MediaItem[];
-  collections: AppCollectionPreview[];
-  leavingSoon: AppLeavingSoonItem[];
-  tasks: AppTaskStats[];
-  configuredServices: AppConfiguredService[];
-  recentActivity: AppRecentActivityItem[];
+  rules: number
+  storage: AppStorageStats
+  choppingBlock: AppChoppingBlockStats
+  libraries: AppLibraryStats[]
+  recentlyAdded: MediaItem[]
+  collections: AppCollectionPreview[]
+  leavingSoon: AppLeavingSoonItem[]
+  tasks: AppTaskStats[]
+  configuredServices: AppConfiguredService[]
+  recentActivity: AppRecentActivityItem[]
 }
 
 interface AppStorageStats {
-  totalSpace: number;
-  usedSpace: number;
-  freeSpace: number;
-  sourceCount: number;
+  totalSpace: number
+  usedSpace: number
+  freeSpace: number
+  sourceCount: number
 }
 
 interface AppLibraryStats {
-  id: string;
-  title: string;
-  type: 'movie' | 'show';
-  itemCount: number;
-  seasonCount?: number;
-  episodeCount?: number;
+  id: string
+  title: string
+  type: 'movie' | 'show'
+  itemCount: number
+  seasonCount?: number
+  episodeCount?: number
 }
 
 interface AppChoppingBlockStats {
-  totalSizeBytes: number;
-  collections: AppChoppingBlockCollectionStats[];
+  totalSizeBytes: number
+  collections: AppChoppingBlockCollectionStats[]
 }
 
 interface AppChoppingBlockCollectionStats {
-  id: number;
-  title: string;
-  totalSizeBytes: number;
-  mediaCount: number;
+  id: number
+  title: string
+  totalSizeBytes: number
+  mediaCount: number
 }
 
 interface AppCollectionPreview {
-  id: number;
-  title: string;
-  description?: string;
-  type: MediaItemType;
-  libraryId: string;
-  mediaCount: number;
-  totalSizeBytes?: number | null;
-  deleteAfterDays?: number | null;
-  isActive: boolean;
-  media: AppCollectionPreviewMedia[];
+  id: number
+  title: string
+  description?: string
+  type: MediaItemType
+  libraryId: string
+  mediaCount: number
+  totalSizeBytes?: number | null
+  deleteAfterDays?: number | null
+  isActive: boolean
+  media: AppCollectionPreviewMedia[]
 }
 
 interface AppCollectionPreviewMedia {
-  image_path?: string;
+  image_path?: string
 }
 
 interface AppLeavingSoonItem {
-  media: MediaItem | MediaItemWithParent;
-  collectionId: number;
-  collectionTitle: string;
-  deleteDate: string;
-  daysLeft: number;
+  media: MediaItem | MediaItemWithParent
+  collectionId: number
+  collectionTitle: string
+  deleteDate: string
+  daysLeft: number
 }
 
 interface AppTaskStats {
-  name: string;
-  nextRun?: string;
-  lastRun?: string;
+  name: string
+  nextRun?: string
+  lastRun?: string
 }
 
 interface AppConfiguredService {
-  name: string;
-  status: 'Connected' | 'Disconnected';
+  name: string
+  status: 'Connected' | 'Disconnected'
 }
 
 interface AppRecentActivityItem {
-  id: number;
-  collectionId: number;
-  collectionTitle: string;
-  posterTmdbId?: string;
-  posterType?: 'movie' | 'show';
-  timestamp: string;
-  message: string;
-  type: ECollectionLogType;
-  meta?: CollectionLogMeta;
+  id: number
+  collectionId: number
+  collectionTitle: string
+  posterTmdbId?: string
+  posterType?: 'movie' | 'show'
+  posterPath?: string
+  timestamp: string
+  message: string
+  type: ECollectionLogType
+  meta?: CollectionLogMeta
 }
 
 function normalizeDiskPath(path: string): string {
-  return path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() || '/';
+  return path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() || '/'
 }
 
 function isPathPrefix(parent: string, child: string): boolean {
-  if (parent === child) return true;
-  if (parent === '/') return child.startsWith('/');
-  return child.startsWith(`${parent}/`);
+  if (parent === child) return true
+  if (parent === '/') return child.startsWith('/')
+  return child.startsWith(`${parent}/`)
 }
 
 @Injectable()
 export class StatsService {
-  private readonly serviceStatusCacheMs = 5 * 60 * 1000;
+  private readonly serviceStatusCacheMs = 5 * 60 * 1000
   private serviceStatusCache:
     | { timestamp: number; services: AppConfiguredService[] }
-    | undefined;
-  private serviceStatusRefresh: Promise<void> | undefined;
+    | undefined
+  private serviceStatusRefresh: Promise<void> | undefined
 
   constructor(
     private readonly mediaServerFactory: MediaServerFactory,
@@ -141,6 +143,8 @@ export class StatsService {
     private readonly sonarrSettingsRepository: Repository<SonarrSettings>,
     @InjectRepository(CollectionLog)
     private readonly collectionLogRepository: Repository<CollectionLog>,
+    @InjectRepository(CollectionMedia)
+    private readonly collectionMediaRepository: Repository<CollectionMedia>,
   ) {}
 
   async getStats(): Promise<AppStatsResponse> {
@@ -151,14 +155,14 @@ export class StatsService {
         this.getChoppingBlockStats(),
         this.getLibraryStats(),
         this.getCollectionPreviews(),
-      ]);
+      ])
     const [recentlyAdded, leavingSoon, recentActivity, tasks] =
       await Promise.all([
         this.getRecentlyAdded(libraries),
         this.getLeavingSoon(),
         this.getRecentActivity(),
         this.getTaskStats(),
-      ]);
+      ])
 
     return {
       rules,
@@ -171,19 +175,19 @@ export class StatsService {
       tasks,
       configuredServices: await this.getConfiguredServices(),
       recentActivity,
-    };
+    }
   }
 
   private async getTaskStats(): Promise<AppTaskStats[]> {
-    const settings = await this.settingsService.getSettings();
+    const settings = await this.settingsService.getSettings()
     const collectionSchedule =
       settings && 'collection_handler_job_cron' in settings
         ? settings.collection_handler_job_cron
-        : this.settingsService.collection_handler_job_cron;
+        : this.settingsService.collection_handler_job_cron
     const rulesSchedule =
       settings && 'rules_handler_job_cron' in settings
         ? settings.rules_handler_job_cron
-        : this.settingsService.rules_handler_job_cron;
+        : this.settingsService.rules_handler_job_cron
 
     return [
       this.getTaskStat('Collection Handler', collectionSchedule),
@@ -192,7 +196,7 @@ export class StatsService {
         rulesSchedule,
         'execute-global-schedule-rules',
       ),
-    ];
+    ]
   }
 
   private getTaskStat(
@@ -200,19 +204,19 @@ export class StatsService {
     schedule: string,
     jobName: string = name,
   ): AppTaskStats {
-    const job = this.schedulerRegistry.getCronJobs().get(jobName);
-    const lastRun = job?.lastDate()?.toISOString();
-    const now = Date.now();
+    const job = this.schedulerRegistry.getCronJobs().get(jobName)
+    const lastRun = job?.lastDate()?.toISOString()
+    const now = Date.now()
 
     if (!schedule) {
-      return { name, lastRun };
+      return { name, lastRun }
     }
 
-    const nextRun = this.getNextRunFromSchedule(schedule, now);
+    const nextRun = this.getNextRunFromSchedule(schedule, now)
 
     return nextRun
       ? { name, nextRun: nextRun.toISOString(), lastRun }
-      : { name, lastRun };
+      : { name, lastRun }
   }
 
   private getNextRunFromSchedule(
@@ -220,75 +224,75 @@ export class StatsService {
     now: number,
   ): Date | undefined {
     try {
-      const cronTime = new CronTime(schedule);
-      const candidates = cronTime.sendAt(10);
+      const cronTime = new CronTime(schedule)
+      const candidates = cronTime.sendAt(10)
 
       return candidates
         .map((candidate) => candidate.toJSDate())
-        .find((date) => date.getTime() > now);
+        .find((date) => date.getTime() > now)
     } catch {
-      return undefined;
+      return undefined
     }
   }
 
   private async getConfiguredServices(): Promise<AppConfiguredService[]> {
-    const now = Date.now();
+    const now = Date.now()
 
     if (
       this.serviceStatusCache &&
       now - this.serviceStatusCache.timestamp < this.serviceStatusCacheMs
     ) {
-      return this.serviceStatusCache.services;
+      return this.serviceStatusCache.services
     }
 
-    const serviceNames = await this.getConfiguredServiceNames();
+    const serviceNames = await this.getConfiguredServiceNames()
     const cachedServicesByName = new Map(
       this.serviceStatusCache?.services.map((service) => [
         service.name,
         service,
       ]) ?? [],
-    );
+    )
 
-    this.refreshConfiguredServiceStatus();
+    this.refreshConfiguredServiceStatus()
 
     return serviceNames.map((name) => ({
       name,
       status: cachedServicesByName.get(name)?.status ?? 'Connected',
-    }));
+    }))
   }
 
   private async getConfiguredServiceNames(): Promise<string[]> {
-    const services: string[] = [];
-    const mediaServerType = this.settingsService.getMediaServerType();
+    const services: string[] = []
+    const mediaServerType = this.settingsService.getMediaServerType()
 
     if (mediaServerType) {
-      services.push(mediaServerType === 'jellyfin' ? 'Jellyfin' : 'Plex');
+      services.push(mediaServerType === 'jellyfin' ? 'Jellyfin' : 'Plex')
     }
 
-    const sonarrSettings = await this.settingsService.getSonarrSettings();
+    const sonarrSettings = await this.settingsService.getSonarrSettings()
     if (Array.isArray(sonarrSettings) && sonarrSettings.length > 0) {
-      services.push('Sonarr');
+      services.push('Sonarr')
     }
 
-    const radarrSettings = await this.settingsService.getRadarrSettings();
+    const radarrSettings = await this.settingsService.getRadarrSettings()
     if (Array.isArray(radarrSettings) && radarrSettings.length > 0) {
-      services.push('Radarr');
+      services.push('Radarr')
     }
 
     if (this.settingsService.tautulliConfigured()) {
-      services.push('Tautulli');
+      services.push('Tautulli')
     }
 
     if (this.settingsService.seerrConfigured()) {
-      services.push('Seerr');
+      services.push('Seerr')
     }
 
-    return services;
+    return services
   }
 
   private refreshConfiguredServiceStatus(): void {
-    if (this.serviceStatusRefresh) {
-      return;
+    if (this.serviceStatusRefresh !== undefined) {
+      return
     }
 
     this.serviceStatusRefresh = this.buildConfiguredServiceStatuses()
@@ -296,21 +300,21 @@ export class StatsService {
         this.serviceStatusCache = {
           timestamp: Date.now(),
           services,
-        };
+        }
       })
       .catch(() => undefined)
       .finally(() => {
-        this.serviceStatusRefresh = undefined;
-      });
+        this.serviceStatusRefresh = undefined
+      })
   }
 
   private async buildConfiguredServiceStatuses(): Promise<
     AppConfiguredService[]
   > {
-    const services: AppConfiguredService[] = [];
-    const mediaServerType = this.settingsService.getMediaServerType();
+    const services: AppConfiguredService[] = []
+    const mediaServerType = this.settingsService.getMediaServerType()
     const getStatus = async (isConnected: Promise<boolean> | boolean) =>
-      (await isConnected) ? 'Connected' : 'Disconnected';
+      (await isConnected) ? 'Connected' : 'Disconnected'
 
     if (mediaServerType) {
       services.push({
@@ -318,37 +322,37 @@ export class StatsService {
         status: await getStatus(
           this.settingsService.testMediaServerConnection(),
         ),
-      });
+      })
     }
 
-    const sonarrSettings = await this.settingsService.getSonarrSettings();
+    const sonarrSettings = await this.settingsService.getSonarrSettings()
     if (Array.isArray(sonarrSettings) && sonarrSettings.length > 0) {
       const statuses = await Promise.all(
         sonarrSettings.map((setting) =>
           this.settingsService.testSonarr(setting.id),
         ),
-      );
+      )
       services.push({
         name: 'Sonarr',
         status: statuses.every((status) => status.status === 'OK')
           ? 'Connected'
           : 'Disconnected',
-      });
+      })
     }
 
-    const radarrSettings = await this.settingsService.getRadarrSettings();
+    const radarrSettings = await this.settingsService.getRadarrSettings()
     if (Array.isArray(radarrSettings) && radarrSettings.length > 0) {
       const statuses = await Promise.all(
         radarrSettings.map((setting) =>
           this.settingsService.testRadarr(setting.id),
         ),
-      );
+      )
       services.push({
         name: 'Radarr',
         status: statuses.every((status) => status.status === 'OK')
           ? 'Connected'
           : 'Disconnected',
-      });
+      })
     }
 
     if (this.settingsService.tautulliConfigured()) {
@@ -359,7 +363,7 @@ export class StatsService {
             .testTautulli()
             .then((result) => result.status === 'OK'),
         ),
-      });
+      })
     }
 
     if (this.settingsService.seerrConfigured()) {
@@ -370,10 +374,10 @@ export class StatsService {
             .testSeerr()
             .then((result) => result.status === 'OK'),
         ),
-      });
+      })
     }
 
-    return services;
+    return services
   }
 
   private async getRecentActivity(): Promise<AppRecentActivityItem[]> {
@@ -381,28 +385,34 @@ export class StatsService {
       relations: ['collection'],
       order: { id: 'DESC' },
       take: 20,
-    });
-    return logs
-      .filter((log) => log.collection)
-      .map((log) => {
-        const thumbnail = this.getRecentActivityThumbnail(log.meta);
+    })
+    return Promise.all(
+      logs
+        .filter((log) => log.collection)
+        .map(async (log) => {
+          const thumbnail = this.getRecentActivityThumbnail(log.meta)
+          const resolvedThumbnail =
+            thumbnail.posterTmdbId || thumbnail.posterPath
+              ? thumbnail
+              : await this.getRecentActivityCollectionMediaThumbnail(log)
 
-        return {
-          id: log.id,
-          collectionId: log.collection.id,
-          collectionTitle: log.collection.title,
-          ...thumbnail,
-          timestamp: log.timestamp.toISOString(),
-          message: log.message,
-          type: log.type,
-          meta: log.meta,
-        };
-      });
+          return {
+            id: log.id,
+            collectionId: log.collection.id,
+            collectionTitle: log.collection.title,
+            ...resolvedThumbnail,
+            timestamp: log.timestamp.toISOString(),
+            message: log.message,
+            type: log.type,
+            meta: log.meta,
+          }
+        }),
+    )
   }
 
   private getRecentActivityThumbnail(
     meta: CollectionLogMeta | undefined,
-  ): Pick<AppRecentActivityItem, 'posterTmdbId' | 'posterType'> {
+  ): Pick<AppRecentActivityItem, 'posterTmdbId' | 'posterType' | 'posterPath'> {
     try {
       if (
         meta &&
@@ -413,17 +423,49 @@ export class StatsService {
         return {
           posterTmdbId: meta.media.tmdbId,
           posterType: meta.media.posterType,
-        };
+        }
       }
     } catch {
-      return {};
+      return {}
     }
 
-    return {};
+    return {}
+  }
+
+  private async getRecentActivityCollectionMediaThumbnail(
+    log: CollectionLog,
+  ): Promise<
+    Pick<AppRecentActivityItem, 'posterTmdbId' | 'posterType' | 'posterPath'>
+  > {
+    const mediaServerId =
+      log.meta && 'media' in log.meta
+        ? log.meta.media?.mediaServerId
+        : undefined
+
+    if (!mediaServerId) {
+      return {}
+    }
+
+    const collectionMedia = await this.collectionMediaRepository.findOne({
+      where: {
+        collectionId: log.collection.id,
+        mediaServerId,
+      },
+    })
+
+    if (!collectionMedia) {
+      return {}
+    }
+
+    return {
+      posterTmdbId: collectionMedia.tmdbId?.toString(),
+      posterType: log.collection.type === 'movie' ? 'movie' : 'show',
+      posterPath: collectionMedia.image_path,
+    }
   }
 
   private async getChoppingBlockStats(): Promise<AppChoppingBlockStats> {
-    const collections = await this.collectionsService.getAllCollections();
+    const collections = await this.collectionsService.getAllCollections()
     const sizedCollections = (
       await Promise.all(
         collections.map(async (collection) => ({
@@ -441,7 +483,7 @@ export class StatsService {
           Number.isFinite(collection.totalSizeBytes) &&
           collection.totalSizeBytes > 0,
       )
-      .sort((a, b) => b.totalSizeBytes - a.totalSizeBytes);
+      .sort((a, b) => b.totalSizeBytes - a.totalSizeBytes)
 
     return {
       totalSizeBytes: sizedCollections.reduce(
@@ -449,19 +491,19 @@ export class StatsService {
         0,
       ),
       collections: sizedCollections,
-    };
+    }
   }
 
   private async getLibraryStats(): Promise<AppLibraryStats[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
-    const libraries = await mediaServer.getLibraries();
+    const mediaServer = await this.mediaServerFactory.getService()
+    const libraries = await mediaServer.getLibraries()
 
     return Promise.all(
       libraries.map(async (library) => {
         const itemCount = await mediaServer.getLibraryContentCount(
           library.id,
           library.type,
-        );
+        )
 
         if (library.type !== 'show') {
           return {
@@ -469,13 +511,13 @@ export class StatsService {
             title: library.title,
             type: library.type,
             itemCount,
-          };
+          }
         }
 
         const [seasonCount, episodeCount] = await Promise.all([
           mediaServer.getLibraryContentCount(library.id, 'season'),
           mediaServer.getLibraryContentCount(library.id, 'episode'),
-        ]);
+        ])
 
         return {
           id: library.id,
@@ -484,15 +526,15 @@ export class StatsService {
           itemCount,
           seasonCount,
           episodeCount,
-        };
+        }
       }),
-    );
+    )
   }
 
   private async getRecentlyAdded(
     libraries: AppLibraryStats[],
   ): Promise<MediaItem[]> {
-    const mediaServer = await this.mediaServerFactory.getService();
+    const mediaServer = await this.mediaServerFactory.getService()
     const recentItems = (
       await Promise.all(
         libraries.map(async (library) => {
@@ -500,23 +542,23 @@ export class StatsService {
             return await mediaServer.getRecentlyAdded(library.id, {
               limit: 10,
               type: library.type,
-            });
+            })
           } catch {
-            return [];
+            return []
           }
         }),
       )
-    ).flat();
+    ).flat()
 
     return recentItems
       .sort(
         (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       )
-      .slice(0, 12);
+      .slice(0, 12)
   }
 
   private async getCollectionPreviews(): Promise<AppCollectionPreview[]> {
-    const collections = await this.collectionsService.getCollections();
+    const collections = await this.collectionsService.getCollections()
 
     return (collections ?? [])
       .map((collection) => ({
@@ -538,37 +580,37 @@ export class StatsService {
           .map((media) => ({ image_path: media.image_path })),
       }))
       .sort((a, b) => b.mediaCount - a.mediaCount)
-      .slice(0, 12);
+      .slice(0, 12)
   }
 
   private async getLeavingSoon(): Promise<AppLeavingSoonItem[]> {
-    const collections = (await this.collectionsService.getCalendarData()) ?? [];
-    const mediaServer = await this.mediaServerFactory.getService();
+    const collections = (await this.collectionsService.getCalendarData()) ?? []
+    const mediaServer = await this.mediaServerFactory.getService()
     const candidates = collections
       .flatMap((collection) =>
         collection.media.map((media) => {
-          const deleteDate = new Date(media.addDate);
-          deleteDate.setDate(deleteDate.getDate() + collection.deleteAfterDays);
+          const deleteDate = new Date(media.addDate)
+          deleteDate.setDate(deleteDate.getDate() + collection.deleteAfterDays)
 
           return {
             mediaServerId: media.mediaServerId,
             collectionId: collection.id,
             collectionTitle: collection.title,
             deleteDate,
-          };
+          }
         }),
       )
       .filter((item) => Number.isFinite(item.deleteDate.getTime()))
-      .sort((a, b) => a.deleteDate.getTime() - b.deleteDate.getTime());
-    const selectedCandidates = this.pickLeavingSoonCandidates(candidates, 24);
+      .sort((a, b) => a.deleteDate.getTime() - b.deleteDate.getTime())
+    const selectedCandidates = this.pickLeavingSoonCandidates(candidates, 24)
 
     return (
       await Promise.all(
         selectedCandidates.map(async (item) => {
-          const media = await mediaServer.getMetadata(item.mediaServerId);
+          const media = await mediaServer.getMetadata(item.mediaServerId)
 
           if (!media) {
-            return undefined;
+            return undefined
           }
 
           const parentId =
@@ -576,17 +618,17 @@ export class StatsService {
               ? media.grandparentId
               : media.type === 'season'
                 ? media.parentId
-                : undefined;
+                : undefined
           const parentItem = parentId
             ? await mediaServer.getMetadata(parentId)
-            : undefined;
+            : undefined
           const mediaWithParent = parentItem
             ? ({ ...media, parentItem } as MediaItemWithParent)
-            : media;
+            : media
 
           const daysLeft = Math.ceil(
             (item.deleteDate.getTime() - Date.now()) / 86400000,
-          );
+          )
 
           return {
             media: mediaWithParent,
@@ -594,10 +636,10 @@ export class StatsService {
             collectionTitle: item.collectionTitle,
             deleteDate: item.deleteDate.toISOString(),
             daysLeft,
-          };
+          }
         }),
       )
-    ).filter((item): item is AppLeavingSoonItem => item !== undefined);
+    ).filter((item): item is AppLeavingSoonItem => item !== undefined)
   }
 
   private pickLeavingSoonCandidates<T extends { deleteDate: Date }>(
@@ -605,49 +647,49 @@ export class StatsService {
     limit: number,
   ): T[] {
     if (items.length <= limit) {
-      return items;
+      return items
     }
 
-    const cutoff = items[limit - 1].deleteDate.getTime();
+    const cutoff = items[limit - 1].deleteDate.getTime()
     const beforeCutoff = items.filter(
       (item) => item.deleteDate.getTime() < cutoff,
-    );
+    )
     const tiedAtCutoff = items.filter(
       (item) => item.deleteDate.getTime() === cutoff,
-    );
-    const remaining = limit - beforeCutoff.length;
+    )
+    const remaining = limit - beforeCutoff.length
 
-    return [...beforeCutoff, ...this.shuffle(tiedAtCutoff).slice(0, remaining)];
+    return [...beforeCutoff, ...this.shuffle(tiedAtCutoff).slice(0, remaining)]
   }
 
   private shuffle<T>(items: T[]): T[] {
-    return [...items].sort(() => Math.random() - 0.5);
+    return [...items].sort(() => Math.random() - 0.5)
   }
 
   private async getSonarrStorageStats(): Promise<AppStorageStats> {
-    const settings = await this.sonarrSettingsRepository.find();
+    const settings = await this.sonarrSettingsRepository.find()
     const diskspaceByRootFolder = (
       await Promise.all(
         settings.map(async (setting) => {
           try {
             const client = await this.servarrService.getSonarrApiClient(
               setting.id,
-            );
+            )
             const [diskspace, rootFolders] = await Promise.all([
               client.getDiskspace(),
               client.getRootFolders(),
-            ]);
+            ])
 
             return this.getRootFolderDiskspace(
               diskspace ?? [],
               rootFolders ?? [],
-            );
+            )
           } catch {
-            return [];
+            return []
           }
         }),
       )
-    ).flat();
+    ).flat()
     const diskspace =
       diskspaceByRootFolder.length > 0
         ? diskspaceByRootFolder
@@ -657,71 +699,71 @@ export class StatsService {
                 try {
                   const client = await this.servarrService.getSonarrApiClient(
                     setting.id,
-                  );
-                  return (await client.getDiskspace()) ?? [];
+                  )
+                  return (await client.getDiskspace()) ?? []
                 } catch {
-                  return [];
+                  return []
                 }
               }),
             )
-          ).flat();
-    const uniqueDiskspace = new Map<string, DiskSpaceResource>();
+          ).flat()
+    const uniqueDiskspace = new Map<string, DiskSpaceResource>()
 
     for (const entry of diskspace) {
-      const key = entry.path ?? `${entry.totalSpace}-${entry.freeSpace}`;
+      const key = entry.path ?? `${entry.totalSpace}-${entry.freeSpace}`
       if (!uniqueDiskspace.has(key)) {
-        uniqueDiskspace.set(key, entry);
+        uniqueDiskspace.set(key, entry)
       }
     }
 
     const totals = [...uniqueDiskspace.values()].reduce(
       (acc, entry) => {
-        const totalSpace = entry.totalSpace ?? 0;
-        const freeSpace = entry.freeSpace ?? 0;
+        const totalSpace = entry.totalSpace ?? 0
+        const freeSpace = entry.freeSpace ?? 0
 
-        acc.totalSpace += totalSpace;
-        acc.freeSpace += freeSpace;
-        return acc;
+        acc.totalSpace += totalSpace
+        acc.freeSpace += freeSpace
+        return acc
       },
       { totalSpace: 0, freeSpace: 0 },
-    );
+    )
 
     return {
       totalSpace: totals.totalSpace,
       freeSpace: totals.freeSpace,
       usedSpace: Math.max(totals.totalSpace - totals.freeSpace, 0),
       sourceCount: uniqueDiskspace.size,
-    };
+    }
   }
 
   private getRootFolderDiskspace(
     diskspace: DiskSpaceResource[],
     rootFolders: RootFolder[],
   ): DiskSpaceResource[] {
-    const result = new Map<string, DiskSpaceResource>();
+    const result = new Map<string, DiskSpaceResource>()
 
     for (const rootFolder of rootFolders) {
-      const rootPath = normalizeDiskPath(rootFolder.path);
-      let bestMatch: DiskSpaceResource | undefined;
-      let bestMatchLength = -1;
+      const rootPath = normalizeDiskPath(rootFolder.path)
+      let bestMatch: DiskSpaceResource | undefined
+      let bestMatchLength = -1
 
       for (const entry of diskspace) {
-        if (!entry.path) continue;
+        if (!entry.path) continue
 
-        const diskPath = normalizeDiskPath(entry.path);
-        if (!isPathPrefix(diskPath, rootPath)) continue;
+        const diskPath = normalizeDiskPath(entry.path)
+        if (!isPathPrefix(diskPath, rootPath)) continue
 
         if (diskPath.length > bestMatchLength) {
-          bestMatch = entry;
-          bestMatchLength = diskPath.length;
+          bestMatch = entry
+          bestMatchLength = diskPath.length
         }
       }
 
       if (bestMatch?.path) {
-        result.set(normalizeDiskPath(bestMatch.path), bestMatch);
+        result.set(normalizeDiskPath(bestMatch.path), bestMatch)
       }
     }
 
-    return [...result.values()];
+    return [...result.values()]
   }
 }

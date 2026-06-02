@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { ExternalApiModule } from '../external-api/external-api.module';
-import { InternalApiService } from './internal-api.service';
-import { InternalApiController } from './internal-api.controller';
+import { Module } from '@nestjs/common'
+import { ExternalApiModule } from '../external-api/external-api.module'
+import { InternalApiService } from './internal-api.service'
+import { InternalApiController } from './internal-api.controller'
 
 @Module({
   imports: [ExternalApiModule],

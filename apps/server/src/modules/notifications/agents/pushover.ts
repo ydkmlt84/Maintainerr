@@ -1,29 +1,29 @@
-import axios from 'axios';
-import { MaintainerrLogger } from '../../logging/logs.service';
-import { SettingsService } from '../../settings/settings.service';
-import { Notification } from '../entities/notification.entities';
+import axios from 'axios'
+import { MaintainerrLogger } from '../../logging/logs.service'
+import { SettingsService } from '../../settings/settings.service'
+import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentKey,
   NotificationAgentPushover,
   NotificationType,
-} from '../notifications-interfaces';
-import { hasNotificationType } from '../notifications.service';
-import type { NotificationAgent, NotificationPayload } from './agent';
+} from '../notifications-interfaces'
+import { hasNotificationType } from '../notifications.service'
+import type { NotificationAgent, NotificationPayload } from './agent'
 
 interface PushoverImagePayload {
-  attachment_base64: string;
-  attachment_type: string;
+  attachment_base64: string
+  attachment_type: string
 }
 
 interface PushoverPayload extends PushoverImagePayload {
-  token: string;
-  user: string;
-  title: string;
-  message: string;
-  url: string;
-  url_title: string;
-  priority: number;
-  html: number;
+  token: string
+  user: string
+  title: string
+  message: string
+  url: string
+  url_title: string
+  priority: number
+  html: number
 }
 
 class PushoverAgent implements NotificationAgent {
@@ -33,15 +33,15 @@ class PushoverAgent implements NotificationAgent {
     private readonly logger: MaintainerrLogger,
     readonly notification: Notification,
   ) {
-    logger.setContext(PushoverAgent.name);
-    this.notification = notification;
+    logger.setContext(PushoverAgent.name)
+    this.notification = notification
   }
 
-  getNotification = () => this.notification;
+  getNotification = () => this.notification
 
-  getSettings = () => this.settings;
+  getSettings = () => this.settings
 
-  getIdentifier = () => NotificationAgentKey.PUSHOVER;
+  getIdentifier = () => NotificationAgentKey.PUSHOVER
 
   public shouldSend(): boolean {
     if (
@@ -49,9 +49,9 @@ class PushoverAgent implements NotificationAgent {
       this.settings.options.accessToken &&
       this.settings.options.userToken
     ) {
-      return true;
+      return true
     }
-    return false;
+    return false
   }
 
   private async getImagePayload(
@@ -60,19 +60,19 @@ class PushoverAgent implements NotificationAgent {
     try {
       const response = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
-      });
-      const base64 = Buffer.from(response.data, 'binary').toString('base64');
+      })
+      const base64 = Buffer.from(response.data, 'binary').toString('base64')
       const contentType = (
         response.headers['Content-Type'] || response.headers['content-type']
-      )?.toString();
+      )?.toString()
 
       return {
         attachment_base64: base64,
         attachment_type: contentType,
-      };
+      }
     } catch (e) {
-      this.logger.error(`Error getting image payload`, e);
-      return {};
+      this.logger.error(`Error getting image payload`, e)
+      return {}
     }
   }
 
@@ -80,25 +80,25 @@ class PushoverAgent implements NotificationAgent {
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<Partial<PushoverPayload>> {
-    const title = payload.subject;
-    let message = `<b>${payload.subject}</b>`;
-    const priority = 0;
+    const title = payload.subject
+    let message = `<b>${payload.subject}</b>`
+    const priority = 0
 
     if (payload.message) {
-      message += `<small>${message ? '\n' : ''}${payload.message}</small>`;
+      message += `<small>${message ? '\n' : ''}${payload.message}</small>`
     }
 
     // for (const extra of payload.extra ?? []) {
     //   message += `<small>\n<b>${extra.name}:</b> ${extra.value}</small>`;
     // }
 
-    let attachment_base64;
-    let attachment_type;
+    let attachment_base64
+    let attachment_type
     if (payload.image) {
-      const imagePayload = await this.getImagePayload(payload.image);
+      const imagePayload = await this.getImagePayload(payload.image)
       if (imagePayload.attachment_base64 && imagePayload.attachment_type) {
-        attachment_base64 = imagePayload.attachment_base64;
-        attachment_type = imagePayload.attachment_type;
+        attachment_base64 = imagePayload.attachment_base64
+        attachment_type = imagePayload.attachment_type
       }
     }
 
@@ -109,23 +109,20 @@ class PushoverAgent implements NotificationAgent {
       html: 1,
       attachment_base64,
       attachment_type,
-    };
+    }
   }
 
   public async send(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<string> {
-    const settings = this.getSettings();
-    const endpoint = 'https://api.pushover.net/1/messages.json';
-    const notificationPayload = await this.getNotificationPayload(
-      type,
-      payload,
-    );
+    const settings = this.getSettings()
+    const endpoint = 'https://api.pushover.net/1/messages.json'
+    const notificationPayload = await this.getNotificationPayload(type, payload)
 
     // Send notification
     if (hasNotificationType(type, settings.types ?? [0]) && this.shouldSend()) {
-      this.logger.log('Sending Pushover notification');
+      this.logger.log('Sending Pushover notification')
 
       try {
         await axios.post(endpoint, {
@@ -133,7 +130,7 @@ class PushoverAgent implements NotificationAgent {
           token: settings.options.accessToken,
           user: settings.options.userToken,
           sound: settings.options.sound,
-        } as PushoverPayload);
+        } as PushoverPayload)
       } catch (e) {
         this.logger.error(
           `Error sending Pushover notification. Details: ${JSON.stringify({
@@ -142,13 +139,13 @@ class PushoverAgent implements NotificationAgent {
             response: e.response?.data,
           })}`,
           e,
-        );
-        return `Failure: ${e.message}`;
+        )
+        return `Failure: ${e.message}`
       }
     }
 
-    return 'Success';
+    return 'Success'
   }
 }
 
-export default PushoverAgent;
+export default PushoverAgent

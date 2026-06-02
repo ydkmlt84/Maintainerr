@@ -12,13 +12,13 @@ const ToggleItem: React.FC<ToggleItemProps> = ({
   toggled,
   onStateChange,
 }) => {
-  const [isToggled, setIsToggled] = useState(false)
+  const [isToggled, setIsToggled] = useState(toggled ?? false)
 
   useEffect(() => {
     if (toggled !== undefined) {
-      setIsToggled(toggled)
+      queueMicrotask(() => setIsToggled(toggled))
     }
-  }, [])
+  }, [toggled])
 
   const handleToggle = () => {
     onStateChange(!isToggled)

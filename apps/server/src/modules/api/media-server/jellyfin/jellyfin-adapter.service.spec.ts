@@ -1,7 +1,7 @@
-import { MediaServerFeature, MediaServerType } from '@maintainerr/contracts';
-import { Mocked, TestBed } from '@suites/unit';
-import { SettingsService } from '../../../settings/settings.service';
-import { JellyfinAdapterService } from './jellyfin-adapter.service';
+import { MediaServerFeature, MediaServerType } from '@maintainerr/contracts'
+import { Mocked, TestBed } from '@suites/unit'
+import { SettingsService } from '../../../settings/settings.service'
+import { JellyfinAdapterService } from './jellyfin-adapter.service'
 
 const jellyfinApiMocks = {
   getPublicSystemInfo: jest.fn(),
@@ -9,7 +9,7 @@ const jellyfinApiMocks = {
   getUserById: jest.fn(),
   getConfiguration: jest.fn(),
   getItems: jest.fn(),
-};
+}
 
 const jellyfinCacheMocks = {
   flush: jest.fn(),
@@ -21,7 +21,7 @@ const jellyfinCacheMocks = {
     flushAll: jest.fn(),
     keys: jest.fn(),
   },
-};
+}
 
 // Mock the @jellyfin/sdk module and its generated client
 jest.mock('@jellyfin/sdk', () => ({
@@ -32,7 +32,7 @@ jest.mock('@jellyfin/sdk', () => ({
       configuration: {},
     }),
   })),
-}));
+}))
 
 jest.mock('@jellyfin/sdk/lib/generated-client/models', () => ({
   __esModule: true,
@@ -65,7 +65,7 @@ jest.mock('@jellyfin/sdk/lib/generated-client/models', () => ({
     Ascending: 'Ascending',
     Descending: 'Descending',
   },
-}));
+}))
 
 jest.mock('@jellyfin/sdk/lib/utils/api/index.js', () => ({
   __esModule: true,
@@ -89,7 +89,7 @@ jest.mock('@jellyfin/sdk/lib/utils/api/index.js', () => ({
   getSearchApi: jest.fn(),
   getPlaylistsApi: jest.fn(),
   getUserViewsApi: jest.fn(),
-}));
+}))
 
 // Mock the cacheManager module
 jest.mock('../../lib/cache', () => ({
@@ -108,20 +108,20 @@ jest.mock('../../lib/cache', () => ({
       },
     })),
   },
-}));
+}))
 
 describe('JellyfinAdapterService', () => {
-  let service: JellyfinAdapterService;
-  let settingsService: Mocked<SettingsService>;
+  let service: JellyfinAdapterService
+  let settingsService: Mocked<SettingsService>
 
   const mockSettings = {
     jellyfin_url: 'http://jellyfin.test:8096',
     jellyfin_api_key: 'test-api-key',
     clientId: 'test-client-id',
-  };
+  }
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.clearAllMocks()
 
     jellyfinApiMocks.getPublicSystemInfo.mockResolvedValue({
       data: {
@@ -130,86 +130,86 @@ describe('JellyfinAdapterService', () => {
         Version: '10.11.0',
         OperatingSystem: 'Linux',
       },
-    });
-    jellyfinApiMocks.getUsers.mockResolvedValue({ data: [] });
-    jellyfinApiMocks.getUserById.mockResolvedValue({ data: undefined });
+    })
+    jellyfinApiMocks.getUsers.mockResolvedValue({ data: [] })
+    jellyfinApiMocks.getUserById.mockResolvedValue({ data: undefined })
     jellyfinApiMocks.getConfiguration.mockResolvedValue({
       data: { MaxResumePct: 90 },
-    });
-    jellyfinApiMocks.getItems.mockResolvedValue({ data: { Items: [] } });
-    jellyfinCacheMocks.data.has.mockReturnValue(false);
-    jellyfinCacheMocks.data.get.mockReturnValue(undefined);
-    jellyfinCacheMocks.data.keys.mockReturnValue([]);
+    })
+    jellyfinApiMocks.getItems.mockResolvedValue({ data: { Items: [] } })
+    jellyfinCacheMocks.data.has.mockReturnValue(false)
+    jellyfinCacheMocks.data.get.mockReturnValue(undefined)
+    jellyfinCacheMocks.data.keys.mockReturnValue([])
 
     const { unit, unitRef } = await TestBed.solitary(
       JellyfinAdapterService,
-    ).compile();
+    ).compile()
 
-    service = unit;
-    settingsService = unitRef.get(SettingsService);
-  });
+    service = unit
+    settingsService = unitRef.get(SettingsService)
+  })
 
   describe('lifecycle', () => {
     it('should not be setup initially', () => {
-      expect(service.isSetup()).toBe(false);
-    });
+      expect(service.isSetup()).toBe(false)
+    })
 
     it('should return JELLYFIN as server type', () => {
-      expect(service.getServerType()).toBe(MediaServerType.JELLYFIN);
-    });
+      expect(service.getServerType()).toBe(MediaServerType.JELLYFIN)
+    })
 
     it('should initialize successfully with valid settings', async () => {
       settingsService.getSettings.mockResolvedValue(
         mockSettings as unknown as Awaited<
           ReturnType<SettingsService['getSettings']>
         >,
-      );
-      await service.initialize();
-      expect(service.isSetup()).toBe(true);
-    });
+      )
+      await service.initialize()
+      expect(service.isSetup()).toBe(true)
+    })
 
     it('should throw error when settings are missing', async () => {
       settingsService.getSettings.mockResolvedValue(
         null as unknown as Awaited<ReturnType<SettingsService['getSettings']>>,
-      );
+      )
       await expect(service.initialize()).rejects.toThrow(
         'Settings not available',
-      );
-    });
+      )
+    })
 
     it('should throw error when Jellyfin URL is missing', async () => {
       settingsService.getSettings.mockResolvedValue({
         ...mockSettings,
         jellyfin_url: undefined,
-      } as unknown as Awaited<ReturnType<SettingsService['getSettings']>>);
+      } as unknown as Awaited<ReturnType<SettingsService['getSettings']>>)
       await expect(service.initialize()).rejects.toThrow(
         'Jellyfin settings not configured',
-      );
-    });
+      )
+    })
 
     it('should throw error when API key is missing', async () => {
       settingsService.getSettings.mockResolvedValue({
         ...mockSettings,
         jellyfin_api_key: undefined,
-      } as unknown as Awaited<ReturnType<SettingsService['getSettings']>>);
+      } as unknown as Awaited<ReturnType<SettingsService['getSettings']>>)
       await expect(service.initialize()).rejects.toThrow(
         'Jellyfin settings not configured',
-      );
-    });
+      )
+    })
 
     it('should uninitialize correctly', async () => {
       settingsService.getSettings.mockResolvedValue(
         mockSettings as unknown as Awaited<
           ReturnType<SettingsService['getSettings']>
         >,
-      );
-      await service.initialize();
-      expect(service.isSetup()).toBe(true);
+      )
+      await service.initialize()
+      expect(service.isSetup()).toBe(true)
 
-      service.uninitialize();
-      expect(service.isSetup()).toBe(false);
-    });
-  });
+      service.uninitialize()
+      expect(service.isSetup()).toBe(false)
+    })
+  })
 
   describe('feature detection', () => {
     it.each([
@@ -219,19 +219,19 @@ describe('JellyfinAdapterService', () => {
       [MediaServerFeature.WATCHLIST, false],
       [MediaServerFeature.CENTRAL_WATCH_HISTORY, false],
     ])('supportsFeature(%s) is %s', (feature, expected) => {
-      expect(service.supportsFeature(feature)).toBe(expected);
-    });
-  });
+      expect(service.supportsFeature(feature)).toBe(expected)
+    })
+  })
 
   describe('cache management', () => {
     it('should not throw when resetting cache with itemId', () => {
-      expect(() => service.resetMetadataCache('item123')).not.toThrow();
-    });
+      expect(() => service.resetMetadataCache('item123')).not.toThrow()
+    })
 
     it('should not throw when resetting all cache', () => {
-      expect(() => service.resetMetadataCache()).not.toThrow();
-    });
-  });
+      expect(() => service.resetMetadataCache()).not.toThrow()
+    })
+  })
 
   describe('uninitialized state', () => {
     it.each([
@@ -245,15 +245,15 @@ describe('JellyfinAdapterService', () => {
     ] as [string, unknown, () => Promise<unknown>][])(
       '%s returns %j when not initialized',
       async (_method, expected, call) => {
-        const result = await call();
+        const result = await call()
         if (expected === undefined) {
-          expect(result).toBeUndefined();
+          expect(result).toBeUndefined()
         } else {
-          expect(result).toEqual(expected);
+          expect(result).toEqual(expected)
         }
       },
-    );
-  });
+    )
+  })
 
   describe('getWatchHistory', () => {
     beforeEach(async () => {
@@ -261,9 +261,9 @@ describe('JellyfinAdapterService', () => {
         mockSettings as unknown as Awaited<
           ReturnType<SettingsService['getSettings']>
         >,
-      );
-      await service.initialize();
-    });
+      )
+      await service.initialize()
+    })
 
     it('should apply Jellyfin MaxResumePct when filtering completed views', async () => {
       jellyfinApiMocks.getUsers.mockResolvedValue({
@@ -271,10 +271,10 @@ describe('JellyfinAdapterService', () => {
           { Id: 'user-1', Name: 'Alice' },
           { Id: 'user-2', Name: 'Bob' },
         ],
-      });
+      })
       jellyfinApiMocks.getConfiguration.mockResolvedValue({
         data: { MaxResumePct: 95 },
-      });
+      })
       jellyfinApiMocks.getItems.mockImplementation(
         ({ userId }: { userId: string }) =>
           Promise.resolve({
@@ -297,9 +297,9 @@ describe('JellyfinAdapterService', () => {
               ],
             },
           }),
-      );
+      )
 
-      const history = await service.getWatchHistory('item123');
+      const history = await service.getWatchHistory('item123')
 
       expect(history).toEqual([
         {
@@ -308,21 +308,21 @@ describe('JellyfinAdapterService', () => {
           watchedAt: new Date('2024-06-02T00:00:00.000Z'),
           progress: 95,
         },
-      ]);
+      ])
       expect(jellyfinCacheMocks.data.set).toHaveBeenCalledWith(
         'jellyfin:watch:95:item123',
         history,
         300000,
-      );
-    });
+      )
+    })
 
     it('should fall back to Jellyfin played state when threshold cannot be loaded', async () => {
       jellyfinApiMocks.getUsers.mockResolvedValue({
         data: [{ Id: 'user-1', Name: 'Alice' }],
-      });
+      })
       jellyfinApiMocks.getConfiguration.mockRejectedValue(
         new Error('Configuration unavailable'),
-      );
+      )
       jellyfinApiMocks.getItems.mockResolvedValue({
         data: {
           Items: [
@@ -335,20 +335,20 @@ describe('JellyfinAdapterService', () => {
             },
           ],
         },
-      });
+      })
 
-      const history = await service.getWatchHistory('item123');
+      const history = await service.getWatchHistory('item123')
 
-      expect(history).toEqual([]);
-    });
+      expect(history).toEqual([])
+    })
 
     it('should keep Jellyfin played items when no percentage is available', async () => {
       jellyfinApiMocks.getUsers.mockResolvedValue({
         data: [{ Id: 'user-1', Name: 'Alice' }],
-      });
+      })
       jellyfinApiMocks.getConfiguration.mockResolvedValue({
         data: { MaxResumePct: 95 },
-      });
+      })
       jellyfinApiMocks.getItems.mockResolvedValue({
         data: {
           Items: [
@@ -360,9 +360,9 @@ describe('JellyfinAdapterService', () => {
             },
           ],
         },
-      });
+      })
 
-      const history = await service.getWatchHistory('item123');
+      const history = await service.getWatchHistory('item123')
 
       expect(history).toEqual([
         {
@@ -371,9 +371,9 @@ describe('JellyfinAdapterService', () => {
           watchedAt: new Date('2024-06-03T00:00:00.000Z'),
           progress: 100,
         },
-      ]);
-    });
-  });
+      ])
+    })
+  })
 
   describe('resetMetadataCache', () => {
     it('should remove threshold-specific watch history entries for one item', () => {
@@ -381,19 +381,19 @@ describe('JellyfinAdapterService', () => {
         'jellyfin:watch:90:item123',
         'jellyfin:watch:95:item123',
         'jellyfin:watch:90:item999',
-      ]);
+      ])
 
-      service.resetMetadataCache('item123');
+      service.resetMetadataCache('item123')
 
       expect(jellyfinCacheMocks.data.del).toHaveBeenCalledWith(
         'jellyfin:watch:90:item123',
-      );
+      )
       expect(jellyfinCacheMocks.data.del).toHaveBeenCalledWith(
         'jellyfin:watch:95:item123',
-      );
+      )
       expect(jellyfinCacheMocks.data.del).not.toHaveBeenCalledWith(
         'jellyfin:watch:90:item999',
-      );
-    });
-  });
-});
+      )
+    })
+  })
+})

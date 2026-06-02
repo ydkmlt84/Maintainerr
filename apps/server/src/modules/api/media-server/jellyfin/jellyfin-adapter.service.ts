@@ -1,10 +1,10 @@
-import { Jellyfin, type Api } from '@jellyfin/sdk';
+import { Jellyfin, type Api } from '@jellyfin/sdk'
 import {
   BaseItemKind,
   ItemFields,
   ItemSortBy,
   SortOrder,
-} from '@jellyfin/sdk/lib/generated-client/models';
+} from '@jellyfin/sdk/lib/generated-client/models'
 import {
   getCollectionApi,
   getConfigurationApi,
@@ -16,7 +16,7 @@ import {
   getSystemApi,
   getTvShowsApi,
   getUserApi,
-} from '@jellyfin/sdk/lib/utils/api/index.js';
+} from '@jellyfin/sdk/lib/utils/api/index.js'
 import {
   MediaServerFeature,
   MediaServerType,
@@ -35,34 +35,34 @@ import {
   type RecentlyAddedOptions,
   type UpdateCollectionParams,
   type WatchRecord,
-} from '@maintainerr/contracts';
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
-import { SettingsService } from '../../../settings/settings.service';
-import cacheManager, { type Cache } from '../../lib/cache';
-import { supportsFeature } from '../media-server.constants';
-import type { IMediaServerService } from '../media-server.interface';
+} from '@maintainerr/contracts'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
+import { SettingsService } from '../../../settings/settings.service'
+import cacheManager, { type Cache } from '../../lib/cache'
+import { supportsFeature } from '../media-server.constants'
+import type { IMediaServerService } from '../media-server.interface'
 import {
   JELLYFIN_BATCH_SIZE,
   JELLYFIN_CACHE_KEYS,
   JELLYFIN_CACHE_TTL,
   JELLYFIN_CLIENT_INFO,
   JELLYFIN_DEVICE_INFO,
-} from './jellyfin.constants';
-import { JellyfinMapper } from './jellyfin.mapper';
+} from './jellyfin.constants'
+import { JellyfinMapper } from './jellyfin.mapper'
 
 const toJellyfinSortBy = (sort?: MediaLibrarySortField): ItemSortBy => {
   switch (sort) {
     case 'airDate':
-      return 'PremiereDate' as ItemSortBy;
+      return 'PremiereDate' as ItemSortBy
     case 'rating':
-      return 'CommunityRating' as ItemSortBy;
+      return 'CommunityRating' as ItemSortBy
     case 'watchCount':
-      return 'PlayCount' as ItemSortBy;
+      return 'PlayCount' as ItemSortBy
     case 'title':
     default:
-      return ItemSortBy.SortName;
+      return ItemSortBy.SortName
   }
-};
+}
 
 /**
  * Jellyfin media server service implementation.
@@ -78,16 +78,16 @@ const toJellyfinSortBy = (sort?: MediaLibrarySortField): ItemSortBy => {
  */
 @Injectable()
 export class JellyfinAdapterService implements IMediaServerService {
-  private api: Api | undefined;
-  private initialized = false;
-  private readonly logger = new Logger(JellyfinAdapterService.name);
-  private readonly cache: Cache;
+  private api: Api | undefined
+  private initialized = false
+  private readonly logger = new Logger(JellyfinAdapterService.name)
+  private readonly cache: Cache
 
   constructor(
     @Inject(forwardRef(() => SettingsService))
     private readonly settingsService: SettingsService,
   ) {
-    this.cache = cacheManager.getCache('jellyfin');
+    this.cache = cacheManager.getCache('jellyfin')
   }
 
   /**
@@ -107,40 +107,40 @@ export class JellyfinAdapterService implements IMediaServerService {
         name: JELLYFIN_DEVICE_INFO.name,
         id: `${JELLYFIN_DEVICE_INFO.idPrefix}-${deviceSuffix}`,
       },
-    });
+    })
 
-    return jellyfin.createApi(url, apiKey);
+    return jellyfin.createApi(url, apiKey)
   }
 
   /**
    * Verify connection to a Jellyfin server and return server info.
    */
   private async verifyConnection(api: Api): Promise<{
-    success: boolean;
-    serverName?: string;
-    version?: string;
-    error?: string;
-    users?: Array<{ id: string; name: string }>;
+    success: boolean
+    serverName?: string
+    version?: string
+    error?: string
+    users?: Array<{ id: string; name: string }>
   }> {
     try {
       // First get public system info to check if server is reachable
-      const systemInfo = await getSystemApi(api).getPublicSystemInfo();
+      const systemInfo = await getSystemApi(api).getPublicSystemInfo()
 
       // Then verify API key by calling an authenticated endpoint
-      let users: Array<{ id: string; name: string }> = [];
+      let users: Array<{ id: string; name: string }> = []
       try {
-        const usersResponse = await getUserApi(api).getUsers();
+        const usersResponse = await getUserApi(api).getUsers()
         users = (usersResponse.data || [])
           .filter((u) => u.Policy?.IsAdministrator)
           .map((u) => ({
             id: u.Id || '',
             name: u.Name || '',
-          }));
+          }))
       } catch (authError) {
         return {
           success: false,
           error: 'Invalid API key - authentication failed',
-        };
+        }
       }
 
       return {
@@ -148,53 +148,53 @@ export class JellyfinAdapterService implements IMediaServerService {
         serverName: systemInfo.data.ServerName || undefined,
         version: systemInfo.data.Version || undefined,
         users,
-      };
+      }
     } catch (e) {
-      const error = e instanceof Error ? e.message : 'Connection failed';
-      return { success: false, error };
+      const error = e instanceof Error ? e.message : 'Connection failed'
+      return { success: false, error }
     }
   }
 
   async initialize(): Promise<void> {
-    const settings = await this.settingsService.getSettings();
+    const settings = await this.settingsService.getSettings()
 
     if (!settings || !('jellyfin_url' in settings)) {
-      throw new Error('Settings not available');
+      throw new Error('Settings not available')
     }
 
     if (!settings.jellyfin_url || !settings.jellyfin_api_key) {
-      throw new Error('Jellyfin settings not configured');
+      throw new Error('Jellyfin settings not configured')
     }
 
     const api = this.createApiClient(
       settings.jellyfin_url,
       settings.jellyfin_api_key,
       settings.clientId || 'default',
-    );
+    )
 
-    const result = await this.verifyConnection(api);
+    const result = await this.verifyConnection(api)
 
     if (!result.success) {
-      this.initialized = false;
-      throw new Error(`Failed to connect to Jellyfin: ${result.error}`);
+      this.initialized = false
+      throw new Error(`Failed to connect to Jellyfin: ${result.error}`)
     }
 
-    this.api = api;
-    this.initialized = true;
+    this.api = api
+    this.initialized = true
     this.logger.log(
       `Jellyfin connection established: ${result.serverName} (${result.version})`,
-    );
+    )
   }
 
   uninitialize(): void {
-    this.initialized = false;
-    this.api = undefined;
+    this.initialized = false
+    this.api = undefined
     // Clear the cache when uninitializing
-    this.cache.flush();
+    this.cache.flush()
   }
 
   isSetup(): boolean {
-    return this.initialized && this.api !== undefined;
+    return this.initialized && this.api !== undefined
   }
 
   /**
@@ -206,138 +206,136 @@ export class JellyfinAdapterService implements IMediaServerService {
     url: string,
     apiKey: string,
   ): Promise<{
-    success: boolean;
-    serverName?: string;
-    version?: string;
-    error?: string;
-    users?: Array<{ id: string; name: string }>;
+    success: boolean
+    serverName?: string
+    version?: string
+    error?: string
+    users?: Array<{ id: string; name: string }>
   }> {
-    const api = this.createApiClient(url, apiKey, 'test');
-    const result = await this.verifyConnection(api);
+    const api = this.createApiClient(url, apiKey, 'test')
+    const result = await this.verifyConnection(api)
 
     if (result.success) {
       this.logger.log(
         `Jellyfin connection test successful: ${result.serverName} (${result.version})`,
-      );
+      )
     } else {
-      this.logger.error(`Jellyfin connection test failed: ${result.error}`);
+      this.logger.error(`Jellyfin connection test failed: ${result.error}`)
     }
 
-    return result;
+    return result
   }
 
   getServerType(): MediaServerType {
-    return MediaServerType.JELLYFIN;
+    return MediaServerType.JELLYFIN
   }
 
   supportsFeature(feature: MediaServerFeature): boolean {
-    return supportsFeature(MediaServerType.JELLYFIN, feature);
+    return supportsFeature(MediaServerType.JELLYFIN, feature)
   }
 
   async getStatus(): Promise<MediaServerStatus | undefined> {
-    if (!this.api) return undefined;
+    if (!this.api) return undefined
 
     try {
       if (this.cache.data.has(JELLYFIN_CACHE_KEYS.STATUS)) {
         return this.cache.data.get<MediaServerStatus>(
           JELLYFIN_CACHE_KEYS.STATUS,
-        );
+        )
       }
 
-      const response = await getSystemApi(this.api).getPublicSystemInfo();
-      const settings = await this.settingsService.getSettings();
+      const response = await getSystemApi(this.api).getPublicSystemInfo()
+      const settings = await this.settingsService.getSettings()
       // Extract jellyfin_url if settings is a valid Settings object (not an error response)
       const jellyfinUrl =
         settings && 'jellyfin_url' in settings
           ? settings.jellyfin_url
-          : undefined;
+          : undefined
       const status = JellyfinMapper.toMediaServerStatus(
         response.data.Id || '',
         response.data.Version || '',
         response.data.ServerName,
         response.data.OperatingSystem,
         jellyfinUrl,
-      );
+      )
 
       this.cache.data.set(
         JELLYFIN_CACHE_KEYS.STATUS,
         status,
         JELLYFIN_CACHE_TTL.STATUS,
-      );
+      )
 
-      return status;
+      return status
     } catch (error) {
-      this.logger.error('Failed to get Jellyfin status', error);
-      return undefined;
+      this.logger.error('Failed to get Jellyfin status', error)
+      return undefined
     }
   }
 
   async getUsers(): Promise<MediaUser[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
       if (this.cache.data.has(JELLYFIN_CACHE_KEYS.USERS)) {
-        return (
-          this.cache.data.get<MediaUser[]>(JELLYFIN_CACHE_KEYS.USERS) || []
-        );
+        return this.cache.data.get<MediaUser[]>(JELLYFIN_CACHE_KEYS.USERS) || []
       }
 
-      const response = await getUserApi(this.api).getUsers();
-      const users = (response.data || []).map(JellyfinMapper.toMediaUser);
+      const response = await getUserApi(this.api).getUsers()
+      const users = (response.data || []).map(JellyfinMapper.toMediaUser)
 
       this.cache.data.set(
         JELLYFIN_CACHE_KEYS.USERS,
         users,
         JELLYFIN_CACHE_TTL.USERS,
-      );
+      )
 
-      return users;
+      return users
     } catch (error) {
-      this.logger.error('Failed to get Jellyfin users', error);
-      return [];
+      this.logger.error('Failed to get Jellyfin users', error)
+      return []
     }
   }
 
   private async getPlayedCompletionThreshold(): Promise<number | undefined> {
-    if (!this.api) return undefined;
+    if (!this.api) return undefined
 
     if (this.cache.data.has(JELLYFIN_CACHE_KEYS.PLAYED_THRESHOLD)) {
-      return this.cache.data.get<number>(JELLYFIN_CACHE_KEYS.PLAYED_THRESHOLD);
+      return this.cache.data.get<number>(JELLYFIN_CACHE_KEYS.PLAYED_THRESHOLD)
     }
 
     try {
-      const response = await getConfigurationApi(this.api).getConfiguration();
-      const threshold = response.data.MaxResumePct;
+      const response = await getConfigurationApi(this.api).getConfiguration()
+      const threshold = response.data.MaxResumePct
 
       if (typeof threshold !== 'number' || Number.isNaN(threshold)) {
-        return undefined;
+        return undefined
       }
 
-      const normalizedThreshold = Math.min(100, Math.max(0, threshold));
+      const normalizedThreshold = Math.min(100, Math.max(0, threshold))
 
       this.cache.data.set(
         JELLYFIN_CACHE_KEYS.PLAYED_THRESHOLD,
         normalizedThreshold,
         JELLYFIN_CACHE_TTL.PLAYED_THRESHOLD,
-      );
+      )
 
-      return normalizedThreshold;
+      return normalizedThreshold
     } catch (error) {
-      this.logger.warn('Failed to get Jellyfin MaxResumePct', error);
-      return undefined;
+      this.logger.warn('Failed to get Jellyfin MaxResumePct', error)
+      return undefined
     }
   }
 
   private isCompletedWatch(
     userData:
       | {
-          Played?: boolean | null;
-          PlayedPercentage?: number | null;
+          Played?: boolean | null
+          PlayedPercentage?: number | null
         }
       | undefined,
     playedCompletionThreshold?: number,
   ): boolean {
-    if (!userData) return false;
+    if (!userData) return false
 
     if (
       playedCompletionThreshold !== undefined &&
@@ -346,30 +344,30 @@ export class JellyfinAdapterService implements IMediaServerService {
       return (
         userData.Played === true ||
         userData.PlayedPercentage >= playedCompletionThreshold
-      );
+      )
     }
 
-    return userData.Played === true;
+    return userData.Played === true
   }
 
   async getUser(id: string): Promise<MediaUser | undefined> {
-    if (!this.api) return undefined;
+    if (!this.api) return undefined
 
     try {
-      const response = await getUserApi(this.api).getUserById({ userId: id });
+      const response = await getUserApi(this.api).getUserById({ userId: id })
       return response.data
         ? JellyfinMapper.toMediaUser(response.data)
-        : undefined;
+        : undefined
     } catch (error) {
-      this.logger.warn(`Failed to get Jellyfin user ${id}`, error);
-      return undefined;
+      this.logger.warn(`Failed to get Jellyfin user ${id}`, error)
+      return undefined
     }
   }
 
   async getLibraries(): Promise<MediaLibrary[]> {
     if (!this.api) {
-      this.logger.warn('getLibraries() - API not initialized');
-      return [];
+      this.logger.warn('getLibraries() - API not initialized')
+      return []
     }
 
     try {
@@ -377,28 +375,28 @@ export class JellyfinAdapterService implements IMediaServerService {
         return (
           this.cache.data.get<MediaLibrary[]>(JELLYFIN_CACHE_KEYS.LIBRARIES) ||
           []
-        );
+        )
       }
 
-      const response = await getLibraryApi(this.api).getMediaFolders();
+      const response = await getLibraryApi(this.api).getMediaFolders()
       const libraries = (response.data.Items || [])
         .filter(
           (item) =>
             item.CollectionType === 'movies' ||
             item.CollectionType === 'tvshows',
         )
-        .map(JellyfinMapper.toMediaLibrary);
+        .map(JellyfinMapper.toMediaLibrary)
 
       this.cache.data.set(
         JELLYFIN_CACHE_KEYS.LIBRARIES,
         libraries,
         JELLYFIN_CACHE_TTL.LIBRARIES,
-      );
+      )
 
-      return libraries;
+      return libraries
     } catch (error) {
-      this.logger.error('Failed to get Jellyfin libraries', error);
-      return [];
+      this.logger.error('Failed to get Jellyfin libraries', error)
+      return []
     }
   }
 
@@ -407,12 +405,12 @@ export class JellyfinAdapterService implements IMediaServerService {
     options?: LibraryQueryOptions,
   ): Promise<PagedResult<MediaItem>> {
     if (!this.api) {
-      this.logger.warn('getLibraryContents() - API not initialized');
-      return { items: [], totalSize: 0, offset: 0, limit: 50 };
+      this.logger.warn('getLibraryContents() - API not initialized')
+      return { items: [], totalSize: 0, offset: 0, limit: 50 }
     }
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getItemsApi(this.api).getItems({
         userId,
         parentId: libraryId,
@@ -439,19 +437,19 @@ export class JellyfinAdapterService implements IMediaServerService {
             ? SortOrder.Descending
             : SortOrder.Ascending,
         ],
-      });
+      })
 
-      const items = (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+      const items = (response.data.Items || []).map(JellyfinMapper.toMediaItem)
 
       return {
         items,
         totalSize: response.data.TotalRecordCount || items.length,
         offset: options?.offset || 0,
         limit: options?.limit || JELLYFIN_BATCH_SIZE.DEFAULT_PAGE_SIZE,
-      };
+      }
     } catch (error) {
-      this.logLibraryError(libraryId, 'get library contents', error);
-      return { items: [], totalSize: 0, offset: 0, limit: 50 };
+      this.logLibraryError(libraryId, 'get library contents', error)
+      return { items: [], totalSize: 0, offset: 0, limit: 50 }
     }
   }
 
@@ -459,10 +457,10 @@ export class JellyfinAdapterService implements IMediaServerService {
     libraryId: string,
     type?: MediaItemType,
   ): Promise<number> {
-    if (!this.api) return 0;
+    if (!this.api) return 0
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getItemsApi(this.api).getItems({
         userId,
         parentId: libraryId,
@@ -471,12 +469,12 @@ export class JellyfinAdapterService implements IMediaServerService {
         includeItemTypes: type
           ? JellyfinMapper.toBaseItemKinds([type])
           : [BaseItemKind.Movie, BaseItemKind.Series],
-      });
+      })
 
-      return response.data.TotalRecordCount || 0;
+      return response.data.TotalRecordCount || 0
     } catch (error) {
-      this.logLibraryError(libraryId, 'get library count', error);
-      return 0;
+      this.logLibraryError(libraryId, 'get library count', error)
+      return 0
     }
   }
 
@@ -485,10 +483,10 @@ export class JellyfinAdapterService implements IMediaServerService {
     query: string,
     type?: MediaItemType,
   ): Promise<MediaItem[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getItemsApi(this.api).getItems({
         userId,
         parentId: libraryId,
@@ -504,20 +502,20 @@ export class JellyfinAdapterService implements IMediaServerService {
           ? JellyfinMapper.toBaseItemKinds([type])
           : [BaseItemKind.Movie, BaseItemKind.Series],
         enableUserData: true,
-      });
+      })
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaItem)
     } catch (error) {
-      this.logLibraryError(libraryId, 'search library', error);
-      return [];
+      this.logLibraryError(libraryId, 'search library', error)
+      return []
     }
   }
 
   async getMetadata(itemId: string): Promise<MediaItem | undefined> {
-    if (!this.api) return undefined;
+    if (!this.api) return undefined
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getItemsApi(this.api).getItems({
         userId,
         ids: [itemId],
@@ -532,13 +530,13 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.People,
         ],
         enableUserData: true,
-      });
+      })
 
-      const item = response.data.Items?.[0];
-      return item ? JellyfinMapper.toMediaItem(item) : undefined;
+      const item = response.data.Items?.[0]
+      return item ? JellyfinMapper.toMediaItem(item) : undefined
     } catch (error) {
-      this.logger.warn(`Failed to get metadata for ${itemId}`, error);
-      return undefined;
+      this.logger.warn(`Failed to get metadata for ${itemId}`, error)
+      return undefined
     }
   }
 
@@ -546,10 +544,10 @@ export class JellyfinAdapterService implements IMediaServerService {
     parentId: string,
     childType?: MediaItemType,
   ): Promise<MediaItem[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
 
       // For seasons, use the dedicated TvShows API which properly handles
       // the Jellyfin data model where seasons have SeriesId pointing to the show,
@@ -565,9 +563,9 @@ export class JellyfinAdapterService implements IMediaServerService {
             ItemFields.MediaSources,
           ],
           enableUserData: true,
-        });
+        })
 
-        return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+        return (response.data.Items || []).map(JellyfinMapper.toMediaItem)
       }
 
       // For episodes and other types, parentId works correctly
@@ -590,12 +588,12 @@ export class JellyfinAdapterService implements IMediaServerService {
               BaseItemKind.Season,
               BaseItemKind.Episode,
             ],
-      });
+      })
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaItem)
     } catch (error) {
-      this.logger.error(`Failed to get children for ${parentId}`, error);
-      return [];
+      this.logger.error(`Failed to get children for ${parentId}`, error)
+      return []
     }
   }
 
@@ -603,10 +601,10 @@ export class JellyfinAdapterService implements IMediaServerService {
     libraryId: string,
     options?: RecentlyAddedOptions,
   ): Promise<MediaItem[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getItemsApi(this.api).getItems({
         userId,
         parentId: libraryId,
@@ -623,20 +621,20 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.DateCreated,
         ],
         enableUserData: true,
-      });
+      })
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaItem)
     } catch (error) {
-      this.logLibraryError(libraryId, 'get recently added', error);
-      return [];
+      this.logLibraryError(libraryId, 'get recently added', error)
+      return []
     }
   }
 
   async searchContent(query: string): Promise<MediaItem[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getSearchApi(this.api).getSearchHints({
         userId,
         searchTerm: query,
@@ -651,7 +649,7 @@ export class JellyfinAdapterService implements IMediaServerService {
         includeGenres: false,
         includeStudios: false,
         includeArtists: false,
-      });
+      })
 
       return (response.data.SearchHints || [])
         .filter((hint) => hint.Id)
@@ -664,26 +662,26 @@ export class JellyfinAdapterService implements IMediaServerService {
           providerIds: {},
           mediaSources: [],
           library: { id: '', title: '' },
-        })) as MediaItem[];
+        })) as MediaItem[]
     } catch (error) {
-      this.logger.error('Failed to search Jellyfin content', error);
-      return [];
+      this.logger.error('Failed to search Jellyfin content', error)
+      return []
     }
   }
 
   async getWatchHistory(itemId: string): Promise<WatchRecord[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
       const playedCompletionThreshold =
-        await this.getPlayedCompletionThreshold();
-      const cacheKey = `${JELLYFIN_CACHE_KEYS.WATCH_HISTORY}:${playedCompletionThreshold ?? 'played'}:${itemId}`;
+        await this.getPlayedCompletionThreshold()
+      const cacheKey = `${JELLYFIN_CACHE_KEYS.WATCH_HISTORY}:${playedCompletionThreshold ?? 'played'}:${itemId}`
       if (this.cache.data.has(cacheKey)) {
-        return this.cache.data.get<WatchRecord[]>(cacheKey) || [];
+        return this.cache.data.get<WatchRecord[]>(cacheKey) || []
       }
 
-      const users = await this.getUsers();
-      const records: WatchRecord[] = [];
+      const users = await this.getUsers()
+      const records: WatchRecord[] = []
 
       // Batch users to avoid overwhelming the API
       for (
@@ -691,14 +689,11 @@ export class JellyfinAdapterService implements IMediaServerService {
         i < users.length;
         i += JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY
       ) {
-        const batch = users.slice(
-          i,
-          i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY,
-        );
+        const batch = users.slice(i, i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY)
 
         const results = await Promise.allSettled(
           batch.map((user) => this.getItemUserData(itemId, user.id)),
-        );
+        )
 
         results.forEach((result, idx) => {
           if (
@@ -714,22 +709,22 @@ export class JellyfinAdapterService implements IMediaServerService {
                   : undefined,
                 result.value.PlayedPercentage,
               ),
-            );
+            )
           }
-        });
+        })
       }
 
-      this.cache.data.set(cacheKey, records, JELLYFIN_CACHE_TTL.WATCH_HISTORY);
-      return records;
+      this.cache.data.set(cacheKey, records, JELLYFIN_CACHE_TTL.WATCH_HISTORY)
+      return records
     } catch (error) {
-      this.logger.error(`Failed to get watch history for ${itemId}`, error);
-      return [];
+      this.logger.error(`Failed to get watch history for ${itemId}`, error)
+      return []
     }
   }
 
   async getItemSeenBy(itemId: string): Promise<string[]> {
-    const history = await this.getWatchHistory(itemId);
-    return history.map((record) => record.userId);
+    const history = await this.getWatchHistory(itemId)
+    return history.map((record) => record.userId)
   }
 
   /**
@@ -737,37 +732,34 @@ export class JellyfinAdapterService implements IMediaServerService {
    * Iterates over all users and checks UserData.IsFavorite.
    */
   async getItemFavoritedBy(itemId: string): Promise<string[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const users = await this.getUsers();
-      const favoritedBy: string[] = [];
+      const users = await this.getUsers()
+      const favoritedBy: string[] = []
 
       for (
         let i = 0;
         i < users.length;
         i += JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY
       ) {
-        const batch = users.slice(
-          i,
-          i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY,
-        );
+        const batch = users.slice(i, i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY)
 
         const results = await Promise.allSettled(
           batch.map((user) => this.getItemUserData(itemId, user.id)),
-        );
+        )
 
         results.forEach((result, idx) => {
           if (result.status === 'fulfilled' && result.value?.IsFavorite) {
-            favoritedBy.push(batch[idx].id);
+            favoritedBy.push(batch[idx].id)
           }
-        });
+        })
       }
 
-      return favoritedBy;
+      return favoritedBy
     } catch (error) {
-      this.logger.error(`Failed to get favorited-by list for ${itemId}`, error);
-      return [];
+      this.logger.error(`Failed to get favorited-by list for ${itemId}`, error)
+      return []
     }
   }
 
@@ -777,11 +769,11 @@ export class JellyfinAdapterService implements IMediaServerService {
    * Only meaningful for Movies and Episodes (Series/Seasons always return 0).
    */
   async getTotalPlayCount(itemId: string): Promise<number> {
-    if (!this.api) return 0;
+    if (!this.api) return 0
 
     try {
-      const users = await this.getUsers();
-      let totalPlayCount = 0;
+      const users = await this.getUsers()
+      let totalPlayCount = 0
 
       // Batch users to avoid overwhelming the API
       for (
@@ -789,26 +781,23 @@ export class JellyfinAdapterService implements IMediaServerService {
         i < users.length;
         i += JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY
       ) {
-        const batch = users.slice(
-          i,
-          i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY,
-        );
+        const batch = users.slice(i, i + JELLYFIN_BATCH_SIZE.USER_WATCH_HISTORY)
 
         const results = await Promise.allSettled(
           batch.map((user) => this.getItemUserData(itemId, user.id)),
-        );
+        )
 
         results.forEach((result) => {
           if (result.status === 'fulfilled' && result.value?.PlayCount) {
-            totalPlayCount += result.value.PlayCount;
+            totalPlayCount += result.value.PlayCount
           }
-        });
+        })
       }
 
-      return totalPlayCount;
+      return totalPlayCount
     } catch (error) {
-      this.logger.error(`Failed to get play count for ${itemId}`, error);
-      return 0;
+      this.logger.error(`Failed to get play count for ${itemId}`, error)
+      return 0
     }
   }
 
@@ -816,17 +805,17 @@ export class JellyfinAdapterService implements IMediaServerService {
    * Get user data for a specific item.
    */
   private async getItemUserData(itemId: string, userId: string) {
-    if (!this.api) return undefined;
+    if (!this.api) return undefined
 
     try {
       const response = await getItemsApi(this.api).getItems({
         userId,
         ids: [itemId],
         enableUserData: true,
-      });
-      return response.data.Items?.[0]?.UserData;
+      })
+      return response.data.Items?.[0]?.UserData
     } catch {
-      return undefined;
+      return undefined
     }
   }
 
@@ -836,17 +825,17 @@ export class JellyfinAdapterService implements IMediaServerService {
    * authenticating with an API key (no implicit user session).
    */
   private async getUserId(): Promise<string | undefined> {
-    const settings = await this.settingsService.getSettings();
+    const settings = await this.settingsService.getSettings()
     return settings && 'jellyfin_user_id' in settings
       ? settings.jellyfin_user_id
-      : undefined;
+      : undefined
   }
 
   async getCollections(libraryId: string): Promise<MediaCollection[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       // Get all BoxSets system-wide - Jellyfin collections can contain items
       // from any library, so we can't filter by parentId
       const response = await getItemsApi(this.api).getItems({
@@ -858,22 +847,22 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.DateCreated,
           ItemFields.ChildCount,
         ],
-      });
+      })
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaCollection);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaCollection)
     } catch (error) {
-      this.logger.error(`Failed to get collections for ${libraryId}`, error);
-      return [];
+      this.logger.error(`Failed to get collections for ${libraryId}`, error)
+      return []
     }
   }
 
   async getCollection(
     collectionId: string,
   ): Promise<MediaCollection | undefined> {
-    if (!this.api) return undefined;
+    if (!this.api) return undefined
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getItemsApi(this.api).getItems({
         userId,
         ids: [collectionId],
@@ -882,13 +871,13 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.DateCreated,
           ItemFields.ChildCount,
         ],
-      });
+      })
 
-      const item = response.data.Items?.[0];
-      return item ? JellyfinMapper.toMediaCollection(item) : undefined;
+      const item = response.data.Items?.[0]
+      return item ? JellyfinMapper.toMediaCollection(item) : undefined
     } catch (error) {
-      this.logger.warn(`Failed to get collection ${collectionId}`, error);
-      return undefined;
+      this.logger.warn(`Failed to get collection ${collectionId}`, error)
+      return undefined
     }
   }
 
@@ -896,7 +885,7 @@ export class JellyfinAdapterService implements IMediaServerService {
     params: CreateCollectionParams,
   ): Promise<MediaCollection> {
     if (!this.api) {
-      throw new Error('Jellyfin not initialized');
+      throw new Error('Jellyfin not initialized')
     }
 
     try {
@@ -905,44 +894,44 @@ export class JellyfinAdapterService implements IMediaServerService {
         parentId: params.libraryId,
         // isLocked enables composite image generation from collection items
         isLocked: true,
-      });
+      })
 
-      const collectionId = response.data.Id;
+      const collectionId = response.data.Id
       if (!collectionId) {
-        throw new Error('Collection created but no ID returned');
+        throw new Error('Collection created but no ID returned')
       }
 
       // Note: No refresh needed - Jellyfin auto-generates composite images
       // when items are added (as long as isLocked: true, which we set above).
 
-      const collection = await this.getCollection(collectionId);
+      const collection = await this.getCollection(collectionId)
       if (!collection) {
-        throw new Error('Failed to fetch created collection');
+        throw new Error('Failed to fetch created collection')
       }
 
-      return collection;
+      return collection
     } catch (error) {
-      this.logger.error('Failed to create Jellyfin collection', error);
-      throw error;
+      this.logger.error('Failed to create Jellyfin collection', error)
+      throw error
     }
   }
 
   async deleteCollection(collectionId: string): Promise<void> {
-    if (!this.api) return;
+    if (!this.api) return
 
     try {
-      await getLibraryApi(this.api).deleteItem({ itemId: collectionId });
+      await getLibraryApi(this.api).deleteItem({ itemId: collectionId })
     } catch (error) {
-      this.logger.error(`Failed to delete collection ${collectionId}`, error);
-      throw error;
+      this.logger.error(`Failed to delete collection ${collectionId}`, error)
+      throw error
     }
   }
 
   async getCollectionChildren(collectionId: string): Promise<MediaItem[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
 
       // For BoxSets in Jellyfin, we need to use the Items endpoint
       // with the collection's ID as parentId AND a userId
@@ -956,7 +945,7 @@ export class JellyfinAdapterService implements IMediaServerService {
         ],
         enableUserData: true,
         recursive: false,
-      });
+      })
 
       // If parentId approach returns nothing, try recursive search
       if (!response.data.Items?.length) {
@@ -976,39 +965,39 @@ export class JellyfinAdapterService implements IMediaServerService {
             ItemFields.DateCreated,
           ],
           enableUserData: true,
-        });
+        })
 
         if (itemsResponse.data.Items?.length) {
           return (itemsResponse.data.Items || []).map(
             JellyfinMapper.toMediaItem,
-          );
+          )
         }
       }
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaItem)
     } catch (error) {
       this.logger.error(
         `Failed to get collection children for ${collectionId}`,
         error,
-      );
-      return [];
+      )
+      return []
     }
   }
 
   async addToCollection(collectionId: string, itemId: string): Promise<void> {
-    if (!this.api) return;
+    if (!this.api) return
 
     try {
       await getCollectionApi(this.api).addToCollection({
         collectionId,
         ids: [itemId],
-      });
+      })
     } catch (error) {
       this.logger.error(
         `Failed to add ${itemId} to collection ${collectionId}`,
         error,
-      );
-      throw error;
+      )
+      throw error
     }
   }
 
@@ -1016,19 +1005,19 @@ export class JellyfinAdapterService implements IMediaServerService {
     collectionId: string,
     itemId: string,
   ): Promise<void> {
-    if (!this.api) return;
+    if (!this.api) return
 
     try {
       await getCollectionApi(this.api).removeFromCollection({
         collectionId,
         ids: [itemId],
-      });
+      })
     } catch (error) {
       this.logger.error(
         `Failed to remove ${itemId} from collection ${collectionId}`,
         error,
-      );
-      throw error;
+      )
+      throw error
     }
   }
 
@@ -1038,11 +1027,11 @@ export class JellyfinAdapterService implements IMediaServerService {
     params: UpdateCollectionParams,
   ): Promise<MediaCollection> {
     if (!this.api) {
-      throw new Error('Jellyfin client not initialized');
+      throw new Error('Jellyfin client not initialized')
     }
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       // First, get the existing collection to preserve all properties
       const existingResponse = await getItemsApi(this.api).getItems({
         userId,
@@ -1057,11 +1046,11 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.Studios,
           ItemFields.People,
         ],
-      });
+      })
 
-      const existingCollection = existingResponse.data.Items?.[0];
+      const existingCollection = existingResponse.data.Items?.[0]
       if (!existingCollection) {
-        throw new Error(`Collection ${params.collectionId} not found`);
+        throw new Error(`Collection ${params.collectionId} not found`)
       }
 
       // Update collection metadata using ItemUpdateApi
@@ -1085,7 +1074,7 @@ export class JellyfinAdapterService implements IMediaServerService {
           ProviderIds: existingCollection.ProviderIds ?? {},
           LockedFields: existingCollection.LockedFields ?? [],
         },
-      });
+      })
 
       // Return updated collection info
       const response = await getItemsApi(this.api).getItems({
@@ -1097,20 +1086,20 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.DateCreated,
           ItemFields.ChildCount,
         ],
-      });
+      })
 
-      const collection = response.data.Items?.[0];
+      const collection = response.data.Items?.[0]
       if (!collection) {
-        throw new Error(`Collection ${params.collectionId} not found`);
+        throw new Error(`Collection ${params.collectionId} not found`)
       }
 
-      return JellyfinMapper.toMediaCollection(collection);
+      return JellyfinMapper.toMediaCollection(collection)
     } catch (error) {
       this.logger.error(
         `Failed to update Jellyfin collection ${params.collectionId}`,
         error,
-      );
-      throw error;
+      )
+      throw error
     }
   }
 
@@ -1120,11 +1109,11 @@ export class JellyfinAdapterService implements IMediaServerService {
     this.logger.warn(
       `Attempted to update collection visibility for collection ${settings.collectionId} in library ${settings.libraryId}, ` +
         'but Jellyfin does not support hub/recommendation visibility features.',
-    );
+    )
     throw new Error(
       'Collection visibility settings are not supported on Jellyfin. ' +
         'Jellyfin does not have hub/recommendation visibility features.',
-    );
+    )
   }
 
   // OPTIONAL: SERVER-SPECIFIC FEATURES (Not supported)
@@ -1133,10 +1122,10 @@ export class JellyfinAdapterService implements IMediaServerService {
   // as it doesn't have a watchlist API
 
   async getPlaylists(libraryId: string): Promise<MediaPlaylist[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
 
       // Jellyfin playlists are not library-specific, but we filter by parentId
       // to maintain consistency with the interface contract
@@ -1146,35 +1135,35 @@ export class JellyfinAdapterService implements IMediaServerService {
         includeItemTypes: [BaseItemKind.Playlist],
         recursive: true,
         fields: [ItemFields.Overview, ItemFields.DateCreated],
-      });
+      })
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaPlaylist);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaPlaylist)
     } catch (error) {
       this.logger.error(
         `Failed to get Jellyfin playlists for library ${libraryId}`,
         error,
-      );
-      return [];
+      )
+      return []
     }
   }
 
   async getPlaylistItems(playlistId: string): Promise<MediaItem[]> {
-    if (!this.api) return [];
+    if (!this.api) return []
 
     try {
-      const userId = await this.getUserId();
+      const userId = await this.getUserId()
       const response = await getPlaylistsApi(this.api).getPlaylistItems({
         userId,
         playlistId,
-      });
+      })
 
-      return (response.data.Items || []).map(JellyfinMapper.toMediaItem);
+      return (response.data.Items || []).map(JellyfinMapper.toMediaItem)
     } catch (error) {
       this.logger.error(
         `Failed to get Jellyfin playlist items for ${playlistId}`,
         error,
-      );
-      return [];
+      )
+      return []
     }
   }
 
@@ -1185,10 +1174,10 @@ export class JellyfinAdapterService implements IMediaServerService {
   ): Promise<string[]> {
     // Handle -1 sentinel value (meaning "all" from UI) - just return the mediaId
     if (context.id === '-1') {
-      return [mediaId];
+      return [mediaId]
     }
 
-    const handleMedia: string[] = [];
+    const handleMedia: string[] = []
 
     // If we have a collection type, use it to determine what IDs to return
     if (collectionType) {
@@ -1198,55 +1187,55 @@ export class JellyfinAdapterService implements IMediaServerService {
           switch (context.type) {
             // and context type is seasons - return just the season
             case 'season':
-              handleMedia.push(context.id);
-              break;
+              handleMedia.push(context.id)
+              break
             // and context type is episodes - not allowed
             case 'episode':
               this.logger.warn(
                 'Tried to add episodes to a collection of type season. This is not allowed.',
-              );
-              break;
+              )
+              break
             // and context type is show - return all seasons
             default:
-              const seasons = await this.getChildrenMetadata(mediaId, 'season');
-              handleMedia.push(...seasons.map((s) => s.id));
-              break;
+              const seasons = await this.getChildrenMetadata(mediaId, 'season')
+              handleMedia.push(...seasons.map((s) => s.id))
+              break
           }
-          break;
+          break
 
         // When collection type is episodes
         case 'episode':
           switch (context.type) {
             // and context type is seasons - return all episodes in season
             case 'season':
-              const eps = await this.getChildrenMetadata(context.id, 'episode');
-              handleMedia.push(...eps.map((ep) => ep.id));
-              break;
+              const eps = await this.getChildrenMetadata(context.id, 'episode')
+              handleMedia.push(...eps.map((ep) => ep.id))
+              break
             // and context type is episodes - return just the episode
             case 'episode':
-              handleMedia.push(context.id);
-              break;
+              handleMedia.push(context.id)
+              break
             // and context type is show - return all episodes in show
             default:
               const allSeasons = await this.getChildrenMetadata(
                 mediaId,
                 'season',
-              );
+              )
               for (const season of allSeasons) {
                 const episodes = await this.getChildrenMetadata(
                   season.id,
                   'episode',
-                );
-                handleMedia.push(...episodes.map((ep) => ep.id));
+                )
+                handleMedia.push(...episodes.map((ep) => ep.id))
               }
-              break;
+              break
           }
-          break;
+          break
 
         // When collection type is show or movie - just return the media item
         default:
-          handleMedia.push(mediaId);
-          break;
+          handleMedia.push(mediaId)
+          break
       }
     }
     // For global exclusions (no collection type), return hierarchically
@@ -1254,59 +1243,59 @@ export class JellyfinAdapterService implements IMediaServerService {
       switch (context.type) {
         case 'show':
           // For shows, add the show + all seasons + all episodes
-          handleMedia.push(mediaId);
-          const showSeasons = await this.getChildrenMetadata(mediaId, 'season');
+          handleMedia.push(mediaId)
+          const showSeasons = await this.getChildrenMetadata(mediaId, 'season')
           for (const season of showSeasons) {
-            handleMedia.push(season.id);
+            handleMedia.push(season.id)
             const episodes = await this.getChildrenMetadata(
               season.id,
               'episode',
-            );
-            handleMedia.push(...episodes.map((ep) => ep.id));
+            )
+            handleMedia.push(...episodes.map((ep) => ep.id))
           }
-          break;
+          break
         case 'season':
           // For seasons, add the season + all its episodes
-          handleMedia.push(context.id);
+          handleMedia.push(context.id)
           const seasonEps = await this.getChildrenMetadata(
             context.id,
             'episode',
-          );
-          handleMedia.push(...seasonEps.map((ep) => ep.id));
-          break;
+          )
+          handleMedia.push(...seasonEps.map((ep) => ep.id))
+          break
         case 'episode':
           // Just the episode
-          handleMedia.push(context.id);
-          break;
+          handleMedia.push(context.id)
+          break
         default:
           // Movies or unknown - just the item
-          handleMedia.push(mediaId);
-          break;
+          handleMedia.push(mediaId)
+          break
       }
     }
 
-    return handleMedia;
+    return handleMedia
   }
 
   async deleteFromDisk(itemId: string): Promise<void> {
     if (!this.api) {
       throw new Error(
         'Jellyfin API not initialized — cannot delete item from disk',
-      );
+      )
     }
 
     if (!itemId || itemId.trim() === '') {
       throw new Error(
         'deleteFromDisk called with empty itemId — aborting to prevent unintended deletion',
-      );
+      )
     }
 
     try {
-      await getLibraryApi(this.api).deleteItem({ itemId });
-      this.logger.log(`Successfully deleted Jellyfin item ${itemId} from disk`);
+      await getLibraryApi(this.api).deleteItem({ itemId })
+      this.logger.log(`Successfully deleted Jellyfin item ${itemId} from disk`)
     } catch (error) {
-      this.logger.error(`Failed to delete item ${itemId} from disk`, error);
-      throw error;
+      this.logger.error(`Failed to delete item ${itemId} from disk`, error)
+      throw error
     }
   }
 
@@ -1319,10 +1308,10 @@ export class JellyfinAdapterService implements IMediaServerService {
             key.startsWith(`${JELLYFIN_CACHE_KEYS.WATCH_HISTORY}:`) &&
             key.endsWith(`:${itemId}`),
         )
-        .forEach((key) => this.cache.data.del(key));
+        .forEach((key) => this.cache.data.del(key))
     } else {
       // Clear all Jellyfin cache
-      this.cache.data.flushAll();
+      this.cache.data.flushAll()
     }
   }
 
@@ -1331,7 +1320,7 @@ export class JellyfinAdapterService implements IMediaServerService {
    * (e.g. Plex numeric IDs) or is empty/invalid.
    */
   private isLikelyMigrationId(libraryId: string): boolean {
-    return !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId);
+    return !libraryId || libraryId.trim() === '' || /^\d+$/.test(libraryId)
   }
 
   /**
@@ -1345,9 +1334,9 @@ export class JellyfinAdapterService implements IMediaServerService {
     if (this.isLikelyMigrationId(libraryId)) {
       this.logger.warn(
         `Library '${libraryId || '(empty)'}' appears to be from a different media server. Please update the library setting in your rules.`,
-      );
+      )
     } else {
-      this.logger.error(`Failed to ${operation} for ${libraryId}`, error);
+      this.logger.error(`Failed to ${operation} for ${libraryId}`, error)
     }
   }
 }

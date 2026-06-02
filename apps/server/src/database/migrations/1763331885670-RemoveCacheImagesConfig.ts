@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class RemoveCacheImagesConfig1763331885670 implements MigrationInterface {
-  name = 'RemoveCacheImagesConfig1763331885670';
+  name = 'RemoveCacheImagesConfig1763331885670'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -26,7 +26,7 @@ export class RemoveCacheImagesConfig1763331885670 implements MigrationInterface 
                 "jellyseerr_url" varchar,
                 "jellyseerr_api_key" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_settings"(
                     "id",
@@ -69,14 +69,14 @@ export class RemoveCacheImagesConfig1763331885670 implements MigrationInterface 
                 "jellyseerr_url",
                 "jellyseerr_api_key"
             FROM "settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_settings"
                 RENAME TO "settings"
-        `);
+        `)
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -103,7 +103,7 @@ export class RemoveCacheImagesConfig1763331885670 implements MigrationInterface 
                 "jellyseerr_url" varchar,
                 "jellyseerr_api_key" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_settings"(
                     "id",
@@ -148,13 +148,13 @@ export class RemoveCacheImagesConfig1763331885670 implements MigrationInterface 
                 "jellyseerr_url",
                 "jellyseerr_api_key"
             FROM "settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_settings"
                 RENAME TO "settings"
-        `);
+        `)
   }
 }

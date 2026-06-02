@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class SeerrMigration1771712257373 implements MigrationInterface {
-  name = 'SeerrMigration1771712257373';
+  name = 'SeerrMigration1771712257373'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -34,7 +34,7 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_collection"(
                     "id",
@@ -89,14 +89,14 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 "mediaServerType",
                 "totalSizeBytes"
             FROM "collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "collection"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_collection"
                 RENAME TO "collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "temporary_settings" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -122,7 +122,7 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 "seerr_url" varchar,
                 "seerr_api_key" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "temporary_settings"(
                     "id",
@@ -171,32 +171,32 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 COALESCE("overseerr_url", "jellyseerr_url"),
                 COALESCE("overseerr_api_key", "jellyseerr_api_key")
             FROM "settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "temporary_settings"
                 RENAME TO "settings"
-        `);
+        `)
     // Migrate JELLYSEERR (application=5) to SEERR (application=3) in rule JSON
     await queryRunner.query(`
             UPDATE "rules"
             SET "ruleJson" = REPLACE("ruleJson", '"firstVal":[5,', '"firstVal":[3,')
             WHERE "ruleJson" LIKE '%"firstVal":[5,%'
-        `);
+        `)
     await queryRunner.query(`
             UPDATE "rules"
             SET "ruleJson" = REPLACE("ruleJson", '"lastVal":[5,', '"lastVal":[3,')
             WHERE "ruleJson" LIKE '%"lastVal":[5,%'
-        `);
+        `)
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
             ALTER TABLE "settings"
                 RENAME TO "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "settings" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -224,7 +224,7 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 "jellyfin_user_id" varchar,
                 "jellyfin_server_name" varchar
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "settings"(
                     "id",
@@ -273,14 +273,14 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 "jellyfin_user_id",
                 "jellyfin_server_name"
             FROM "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_settings"
-        `);
+        `)
     await queryRunner.query(`
             ALTER TABLE "collection"
                 RENAME TO "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             CREATE TABLE "collection" (
                 "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -311,7 +311,7 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 CONSTRAINT "FK_b638046ca16fca4108a7981fd8c" FOREIGN KEY ("sonarrSettingsId") REFERENCES "sonarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
                 CONSTRAINT "FK_7b354cc91e78c8e730465f14f69" FOREIGN KEY ("radarrSettingsId") REFERENCES "radarr_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
-        `);
+        `)
     await queryRunner.query(`
             INSERT INTO "collection"(
                     "id",
@@ -366,9 +366,9 @@ export class SeerrMigration1771712257373 implements MigrationInterface {
                 "mediaServerType",
                 "totalSizeBytes"
             FROM "temporary_collection"
-        `);
+        `)
     await queryRunner.query(`
             DROP TABLE "temporary_collection"
-        `);
+        `)
   }
 }

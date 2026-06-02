@@ -3,29 +3,29 @@ import {
   CollectionHandlerProgressedEventDto,
   CollectionHandlerStartedEventDto,
   MaintainerrEvent,
-} from '@maintainerr/contracts';
-import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Repository } from 'typeorm';
-import { delay } from '../../utils/delay';
-import { SeerrApiService } from '../api/seerr-api/seerr-api.service';
-import { CollectionMediaHandledDto } from '../events/events.dto';
-import { MaintainerrLogger } from '../logging/logs.service';
-import { SettingsService } from '../settings/settings.service';
-import { ExecutionLockService } from '../tasks/execution-lock.service';
-import { TaskBase } from '../tasks/task.base';
-import { TasksService } from '../tasks/tasks.service';
-import { CollectionHandler } from './collection-handler';
-import { CollectionsService } from './collections.service';
-import { Collection } from './entities/collection.entities';
-import { CollectionMedia } from './entities/collection_media.entities';
-import { ServarrAction } from './interfaces/collection.interface';
+} from '@maintainerr/contracts'
+import { Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { InjectRepository } from '@nestjs/typeorm'
+import { LessThanOrEqual, Repository } from 'typeorm'
+import { delay } from '../../utils/delay'
+import { SeerrApiService } from '../api/seerr-api/seerr-api.service'
+import { CollectionMediaHandledDto } from '../events/events.dto'
+import { MaintainerrLogger } from '../logging/logs.service'
+import { SettingsService } from '../settings/settings.service'
+import { ExecutionLockService } from '../tasks/execution-lock.service'
+import { TaskBase } from '../tasks/task.base'
+import { TasksService } from '../tasks/tasks.service'
+import { CollectionHandler } from './collection-handler'
+import { CollectionsService } from './collections.service'
+import { Collection } from './entities/collection.entities'
+import { CollectionMedia } from './entities/collection_media.entities'
+import { ServarrAction } from './interfaces/collection.interface'
 
 @Injectable()
 export class CollectionWorkerService extends TaskBase {
-  protected name = 'Collection Handler';
-  protected cronSchedule = ''; // overriden in onBootstrapHook
+  protected name = 'Collection Handler'
+  protected cronSchedule = '' // overriden in onBootstrapHook
 
   constructor(
     @InjectRepository(Collection)
@@ -41,12 +41,12 @@ export class CollectionWorkerService extends TaskBase {
     protected readonly logger: MaintainerrLogger,
     private readonly executionLock: ExecutionLockService,
   ) {
-    logger.setContext(CollectionWorkerService.name);
-    super(taskService, logger);
+    logger.setContext(CollectionWorkerService.name)
+    super(taskService, logger)
   }
 
   protected onBootstrapHook(): void {
-    this.cronSchedule = this.settings.collection_handler_job_cron;
+    this.cronSchedule = this.settings.collection_handler_job_cron
   }
 
   protected async executeTask() {
@@ -55,108 +55,108 @@ export class CollectionWorkerService extends TaskBase {
       new CollectionHandlerStartedEventDto(
         'Started handling of all collections',
       ),
-    );
+    )
 
     // Acquire shared lock to avoid overlap with rule execution
-    const release = await this.executionLock.acquire('rules-collections-lock');
+    const release = await this.executionLock.acquire('rules-collections-lock')
 
     try {
       // Start actual task
-      const appStatus = await this.settings.testConnections();
+      const appStatus = await this.settings.testConnections()
 
       if (!appStatus) {
         this.infoLogger(
           'Not all applications are reachable.. Skipping collection handling',
-        );
+        )
         this.eventEmitter.emit(
           MaintainerrEvent.CollectionHandler_Finished,
           new CollectionHandlerFinishedEventDto('Finished collection handling'),
-        );
+        )
 
-        this.eventEmitter.emit(MaintainerrEvent.CollectionHandler_Failed);
-        return;
+        this.eventEmitter.emit(MaintainerrEvent.CollectionHandler_Failed)
+        return
       }
 
-      this.logger.log('Started handling of all collections');
-      let handledCollectionMedia = 0;
+      this.logger.log('Started handling of all collections')
+      let handledCollectionMedia = 0
 
       // loop over all active collections
       const collections = await this.collectionRepo.find({
         where: { isActive: true },
-      });
+      })
 
       const collectionsToHandle = collections.filter((collection) => {
         if (collection.arrAction === ServarrAction.DO_NOTHING) {
           this.infoLogger(
             `Skipping collection '${collection.title}' as its action is 'Do Nothing'`,
-          );
-          return false;
+          )
+          return false
         }
 
-        return true;
-      });
+        return true
+      })
 
       const collectionHandleMediaGroup: {
-        collection: Collection;
-        mediaToHandle: CollectionMedia[];
-      }[] = [];
+        collection: Collection
+        mediaToHandle: CollectionMedia[]
+      }[] = []
 
       for (const collection of collectionsToHandle) {
         const dangerDate = new Date(
           new Date().getTime() - +collection.deleteAfterDays * 86400000,
-        );
+        )
 
         const mediaToHandle = await this.collectionMediaRepo.find({
           where: {
             collectionId: collection.id,
             addDate: LessThanOrEqual(dangerDate),
           },
-        });
+        })
 
         collectionHandleMediaGroup.push({
           collection,
           mediaToHandle,
-        });
+        })
       }
 
-      const progressedEvent = new CollectionHandlerProgressedEventDto();
+      const progressedEvent = new CollectionHandlerProgressedEventDto()
       const emitProgressedEvent = () => {
-        progressedEvent.time = new Date();
+        progressedEvent.time = new Date()
         this.eventEmitter.emit(
           MaintainerrEvent.CollectionHandler_Progressed,
           progressedEvent,
-        );
-      };
-      progressedEvent.totalCollections = collectionsToHandle.length;
+        )
+      }
+      progressedEvent.totalCollections = collectionsToHandle.length
       progressedEvent.totalMediaToHandle = collectionHandleMediaGroup.reduce(
         (acc, curr) => acc + curr.mediaToHandle.length,
         0,
-      );
-      emitProgressedEvent();
+      )
+      emitProgressedEvent()
 
       for (const collectionGroup of collectionHandleMediaGroup) {
-        const collection = collectionGroup.collection;
-        const collectionMedia = collectionGroup.mediaToHandle;
+        const collection = collectionGroup.collection
+        const collectionMedia = collectionGroup.mediaToHandle
 
         progressedEvent.processingCollection = {
           name: collection.title,
           processedMedias: 0,
           totalMedias: collectionMedia.length,
-        };
-        emitProgressedEvent();
+        }
+        emitProgressedEvent()
 
-        this.infoLogger(`Handling collection '${collection.title}'`);
-        const handledMediaForNotification = [];
+        this.infoLogger(`Handling collection '${collection.title}'`)
+        const handledMediaForNotification = []
 
         for (const media of collectionMedia) {
-          await this.collectionHandler.handleMedia(collection, media);
-          handledCollectionMedia++;
-          progressedEvent.processingCollection.processedMedias++;
-          progressedEvent.processedMedias++;
+          await this.collectionHandler.handleMedia(collection, media)
+          handledCollectionMedia++
+          progressedEvent.processingCollection.processedMedias++
+          progressedEvent.processedMedias++
           handledMediaForNotification.push({
             mediaServerId: media.mediaServerId,
-          });
-          emitProgressedEvent();
+          })
+          emitProgressedEvent()
         }
 
         // handle notification
@@ -168,13 +168,13 @@ export class CollectionWorkerService extends TaskBase {
               collection.title,
               { type: 'collection', value: collection.id },
             ),
-          );
+          )
         }
 
-        progressedEvent.processedCollections++;
-        emitProgressedEvent();
+        progressedEvent.processedCollections++
+        emitProgressedEvent()
 
-        this.infoLogger(`Handling collection '${collection.title}' finished`);
+        this.infoLogger(`Handling collection '${collection.title}' finished`)
       }
 
       if (handledCollectionMedia > 0) {
@@ -183,49 +183,47 @@ export class CollectionWorkerService extends TaskBase {
             try {
               await this.seerrApi.api.post(
                 '/settings/jobs/availability-sync/run',
-              );
+              )
 
               this.infoLogger(
                 `All collections handled. Triggered Seerr's availability-sync because media was altered`,
-              );
+              )
             } catch (err) {
               this.logger.error(
                 `Failed to trigger Seerr's availability-sync`,
                 err,
-              );
+              )
             }
-          });
+          })
         }
       } else {
-        this.infoLogger(`All collections handled. No data was altered`);
+        this.infoLogger(`All collections handled. No data was altered`)
       }
 
       // Update cached total size for all collections
-      this.infoLogger('Updating collection size cache...');
-      const allCollections = await this.collectionRepo.find();
+      this.infoLogger('Updating collection size cache...')
+      const allCollections = await this.collectionRepo.find()
       for (const collection of allCollections) {
         try {
-          await this.collectionsService.updateCollectionTotalSize(
-            collection.id,
-          );
+          await this.collectionsService.updateCollectionTotalSize(collection.id)
         } catch (e) {
           this.logger.debug(
             `Failed to update size for collection '${collection.title}': ${e.message}`,
-          );
+          )
         }
       }
-      this.infoLogger('Collection size cache updated');
+      this.infoLogger('Collection size cache updated')
     } finally {
-      release();
+      release()
 
       this.eventEmitter.emit(
         MaintainerrEvent.CollectionHandler_Finished,
         new CollectionHandlerFinishedEventDto('Finished collection handling'),
-      );
+      )
     }
   }
 
   private infoLogger(message: string) {
-    this.logger.log(message);
+    this.logger.log(message)
   }
 }
