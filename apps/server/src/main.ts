@@ -6,12 +6,8 @@ import * as fs from 'fs'
 import { cleanupOpenApiDoc } from 'nestjs-zod'
 import path from 'path'
 import { AppModule } from './app/app.module'
+import { dataDir, resolveDatabasePath } from './app/config/databasePath'
 import { MaintainerrLogger } from './modules/logging/logs.service'
-
-const dataDir =
-  process.env.NODE_ENV === 'production'
-    ? '/opt/data'
-    : path.join(__dirname, '../../../data')
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -60,7 +56,7 @@ function createDataDirectoryStructure() {
     }
 
     // if db already exists, check r/w permissions
-    const db = path.join(dataDir, 'maintainerr.sqlite')
+    const db = resolveDatabasePath()
     if (fs.existsSync(db)) {
       fs.accessSync(db, fs.constants.R_OK | fs.constants.W_OK)
     }

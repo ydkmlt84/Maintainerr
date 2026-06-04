@@ -959,30 +959,33 @@ const MediaMetricCard = ({ libraries }: { libraries: AppLibraryStats[] }) => {
           Media
         </span>
       </div>
-      <div className="mt-2 grid grid-cols-1 gap-1.5 xs:grid-cols-2">
+      <div className="mt-2 grid grid-cols-1 gap-1.5 xs:grid-cols-2 lg:gap-2">
         {libraries.map((library) => (
-          <div key={library.id} className="rounded-md bg-zinc-900 px-2 py-1">
-            <p className="truncate text-[11px] font-medium text-zinc-400">
+          <div
+            key={library.id}
+            className="rounded-md bg-zinc-900 px-2 py-1 lg:px-3 lg:py-2"
+          >
+            <p className="truncate text-[11px] font-medium text-zinc-400 lg:text-xs">
               {library.title}
             </p>
-            <p className="text-xs font-semibold text-zinc-100">
+            <p className="text-xs font-semibold text-zinc-100 lg:text-sm">
               {formatNumber(library.itemCount)}
             </p>
           </div>
         ))}
-        <div className="rounded-md bg-zinc-900 px-2 py-1">
-          <p className="truncate text-[11px] font-medium text-zinc-400">
+        <div className="rounded-md bg-zinc-900 px-2 py-1 lg:px-3 lg:py-2">
+          <p className="truncate text-[11px] font-medium text-zinc-400 lg:text-xs">
             Seasons
           </p>
-          <p className="text-xs font-semibold text-zinc-100">
+          <p className="text-xs font-semibold text-zinc-100 lg:text-sm">
             {formatNumber(seasonTotal)}
           </p>
         </div>
-        <div className="rounded-md bg-zinc-900 px-2 py-1">
-          <p className="truncate text-[11px] font-medium text-zinc-400">
+        <div className="rounded-md bg-zinc-900 px-2 py-1 lg:px-3 lg:py-2">
+          <p className="truncate text-[11px] font-medium text-zinc-400 lg:text-xs">
             Episodes
           </p>
-          <p className="text-xs font-semibold text-zinc-100">
+          <p className="text-xs font-semibold text-zinc-100 lg:text-sm">
             {formatNumber(episodeTotal)}
           </p>
         </div>

@@ -58,6 +58,13 @@ describe('RuleExecutorService', () => {
     const settings = {
       media_server_type: mediaServerType,
       testConnections: jest.fn().mockResolvedValue(true),
+      testMediaServerConnection: jest.fn().mockResolvedValue(true),
+      testRadarr: jest.fn().mockResolvedValue({ status: 'OK' }),
+      testSonarr: jest.fn().mockResolvedValue({ status: 'OK' }),
+      testSeerr: jest.fn().mockResolvedValue({ status: 'OK' }),
+      testTautulli: jest.fn().mockResolvedValue({ status: 'OK' }),
+      seerrConfigured: jest.fn().mockReturnValue(true),
+      tautulliConfigured: jest.fn().mockReturnValue(true),
       testSetup: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<SettingsService>
 
@@ -249,5 +256,48 @@ describe('RuleExecutorService', () => {
       MaintainerrEvent.RuleHandler_Failed,
     )
     expect(progressManager.reset).not.toHaveBeenCalled()
+  })
+
+  it('only checks the selected Radarr server when executing a Radarr rule group', async () => {
+    const { service, rulesService, settings } = createService(
+      MediaServerType.PLEX,
+    )
+
+    rulesService.getRuleGroup.mockResolvedValue({
+      id: 77,
+      name: 'Movies',
+      isActive: true,
+      libraryId: '1',
+      dataType: 'movie',
+      useRules: true,
+      collection: {
+        radarrSettingsId: 1,
+      },
+      rules: [
+        {
+          ruleJson: JSON.stringify({
+            firstVal: [1, 0],
+            action: 0,
+            customVal: {
+              ruleTypeId: 0,
+              value: 1,
+            },
+          }),
+        },
+      ],
+    } as any)
+    rulesService.getRuleGroupById.mockResolvedValue({
+      id: 77,
+      collectionId: 1,
+    } as any)
+
+    const abortController = new AbortController()
+
+    await service.executeForRuleGroups(77, abortController.signal)
+
+    expect(settings.testRadarr).toHaveBeenCalledTimes(1)
+    expect(settings.testRadarr).toHaveBeenCalledWith(1)
+    expect(settings.testSonarr).not.toHaveBeenCalled()
+    expect(settings.testConnections).not.toHaveBeenCalled()
   })
 })
