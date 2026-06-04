@@ -22,7 +22,8 @@ import {
 } from '../../events/events.dto'
 import { MaintainerrLogger } from '../../logging/logs.service'
 import { SettingsService } from '../../settings/settings.service'
-import { RuleConstants } from '../constants/rules.constants'
+import { Application, RuleConstants } from '../constants/rules.constants'
+import { RuleDto } from '../dtos/rule.dto'
 import { RulesDto } from '../dtos/rules.dto'
 import { RuleGroup } from '../entities/rule-group.entities'
 import { RuleComparatorServiceFactory } from '../helpers/rule.comparator.service'
@@ -110,7 +111,7 @@ export class RuleExecutorService {
         return
       }
 
-      const appStatus = await this.settings.testConnections()
+      const appStatus = await this.testRuleGroupConnections(ruleGroup)
 
       if (appStatus) {
         // reset API caches, make sure latest data is used
@@ -338,6 +339,70 @@ export class RuleExecutorService {
         )
       }
     }
+  }
+
+  private async testRuleGroupConnections(ruleGroup: RulesDto) {
+    if (!(await this.settings.testMediaServerConnection())) {
+      return false
+    }
+
+    const referencedApplications = this.getReferencedApplications(ruleGroup)
+    const selectedRadarrSettingsId = ruleGroup.collection?.radarrSettingsId
+    const selectedSonarrSettingsId = ruleGroup.collection?.sonarrSettingsId
+
+    if (
+      (referencedApplications.has(Application.RADARR) ||
+        selectedRadarrSettingsId != null) &&
+      (!selectedRadarrSettingsId ||
+        (await this.settings.testRadarr(selectedRadarrSettingsId)).status !==
+          'OK')
+    ) {
+      return false
+    }
+
+    if (
+      (referencedApplications.has(Application.SONARR) ||
+        selectedSonarrSettingsId != null) &&
+      (!selectedSonarrSettingsId ||
+        (await this.settings.testSonarr(selectedSonarrSettingsId)).status !==
+          'OK')
+    ) {
+      return false
+    }
+
+    if (
+      referencedApplications.has(Application.SEERR) &&
+      (!this.settings.seerrConfigured() ||
+        (await this.settings.testSeerr()).status !== 'OK')
+    ) {
+      return false
+    }
+
+    if (
+      referencedApplications.has(Application.TAUTULLI) &&
+      (!this.settings.tautulliConfigured() ||
+        (await this.settings.testTautulli()).status !== 'OK')
+    ) {
+      return false
+    }
+
+    return true
+  }
+
+  private getReferencedApplications(ruleGroup: RulesDto) {
+    const applications = new Set<number>()
+
+    for (const rule of ruleGroup.rules ?? []) {
+      const parsedRule =
+        'ruleJson' in rule ? (JSON.parse(rule.ruleJson) as RuleDto) : rule
+      applications.add(parsedRule.firstVal[0])
+
+      if (parsedRule.lastVal) {
+        applications.add(parsedRule.lastVal[0])
+      }
+    }
+
+    return applications
   }
 
   private async handleCollection(rulegroup: RuleGroup): Promise<Set<string>> {

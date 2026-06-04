@@ -1,8 +1,9 @@
 import { DataSource } from 'typeorm'
+import { resolveDatabasePath } from './app/config/databasePath'
 
 const datasource = new DataSource({
   type: 'better-sqlite3',
-  database: '../../data/maintainerr.sqlite',
+  database: resolveDatabasePath(),
   entities: ['./src/**/*.entities.ts'],
   synchronize: false,
   migrationsTableName: 'migrations',

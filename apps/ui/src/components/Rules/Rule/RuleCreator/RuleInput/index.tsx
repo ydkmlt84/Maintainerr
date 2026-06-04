@@ -125,37 +125,37 @@ const RuleInput = (props: IRuleInput) => {
             ) {
               queueMicrotask(() => {
                 setSecondVal(CustomParams.CUSTOM_DAYS)
-                setRuleType(RuleType.NUMBER)
+                setCustomValType(RuleType.TEXT)
               })
             } else {
               queueMicrotask(() => {
                 setSecondVal(CustomParams.CUSTOM_NUMBER)
-                setRuleType(RuleType.NUMBER)
+                setCustomValType(RuleType.NUMBER)
               })
             }
             break
           case 1:
             queueMicrotask(() => {
               setSecondVal(CustomParams.CUSTOM_DATE)
-              setRuleType(RuleType.DATE)
+              setCustomValType(RuleType.DATE)
             })
             break
           case 2:
             queueMicrotask(() => {
               setSecondVal(CustomParams.CUSTOM_TEXT)
-              setRuleType(RuleType.TEXT)
+              setCustomValType(RuleType.TEXT)
             })
             break
           case 3:
             queueMicrotask(() => {
               setSecondVal(CustomParams.CUSTOM_BOOLEAN)
-              setRuleType(RuleType.BOOL)
+              setCustomValType(RuleType.BOOL)
             })
             break
           case 4:
             queueMicrotask(() => {
               setSecondVal(CustomParams.CUSTOM_TEXT_LIST)
-              setRuleType(RuleType.TEXT_LIST)
+              setCustomValType(RuleType.TEXT_LIST)
             })
             break
         }
@@ -388,16 +388,16 @@ const RuleInput = (props: IRuleInput) => {
         } else if (secondVal === CustomParams.CUSTOM_BOOLEAN) {
           setCustomValActive(true)
           setCustomValType(RuleType.BOOL)
-          if (customVal !== '0') {
-            setCustomVal('1')
-          }
+          setCustomVal((currentCustomVal) =>
+            currentCustomVal === '0' ? currentCustomVal : '1',
+          )
         } else {
           setCustomValActive(false)
           setCustomVal(undefined)
         }
       })
     }
-  }, [customVal, secondVal])
+  }, [secondVal])
 
   if (!constants || constantsLoading) {
     return <LoadingSpinner />

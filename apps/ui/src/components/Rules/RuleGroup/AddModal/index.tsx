@@ -16,7 +16,7 @@ import {
   MediaLibrary,
 } from '@maintainerr/contracts'
 import { isValidCron } from 'cron-validator'
-import { useState, useSyncExternalStore } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
@@ -399,9 +399,9 @@ const AddModal = (props: AddModal) => {
     }
   }
 
-  function updateRules(rules: IRule[]) {
+  const updateRules = useCallback((rules: IRule[]) => {
     setRules(rules)
-  }
+  }, [])
 
   const toggleCommunityRuleModal = () => {
     if (selectedLibraryType == null) {

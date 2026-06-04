@@ -1,6 +1,6 @@
 import { ClipboardListIcon, DocumentAddIcon } from '@heroicons/react/solid'
 import { type MediaItemType, MediaType } from '@maintainerr/contracts'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Alert from '../../../Common/Alert'
 import SectionHeading from '../../../Common/SectionHeading'
 import RuleInput from './RuleInput'
@@ -40,19 +40,24 @@ const calculateRuleAmount = (
 ): [number, number[]] => {
   const sectionAmounts = [] as number[]
   if (data) {
-    data.rules.forEach((el) =>
-      el.section !== undefined
-        ? sectionAmounts[el.section]
-          ? sectionAmounts[el.section]++
-          : (sectionAmounts[el.section] = 1)
-        : (sectionAmounts[0] = 1),
-    )
+    data.rules.forEach((el) => {
+      const section = el.section ?? 0
+      sectionAmounts[section] = (sectionAmounts[section] ?? 0) + 1
+    })
   }
 
   return [
     sections,
     sectionAmounts.filter((el) => el !== undefined && el !== null),
   ]
+}
+
+const calculateSectionCount = (data: { rules: IRule[] } | undefined) => {
+  if (!data || !Array.isArray(data.rules) || data.rules.length <= 0) {
+    return undefined
+  }
+
+  return Math.max(...data.rules.map((rule) => rule.section ?? 0)) + 1
 }
 
 const calculateRuleAmountArr = (ruleAmount: [number, number[]]) => {
@@ -77,98 +82,132 @@ const calculateRuleAmountArr = (ruleAmount: [number, number[]]) => {
   return worker
 }
 
+const calculateRuleId = (
+  ruleAmount: [number, number[]],
+  sectionId: number,
+  ruleId: number,
+) =>
+  ruleAmount[1].length > 1
+    ? ruleAmount[1].reduce((pv, cv, idx) =>
+        sectionId === 1
+          ? cv - (cv - ruleId)
+          : idx <= sectionId - 1
+            ? idx === sectionId - 1
+              ? cv - (cv - ruleId) + pv
+              : cv + pv
+            : pv,
+      )
+    : ruleAmount[1][0] - (ruleAmount[1][0] - ruleId)
+
 const RuleCreator = (props: iRuleCreator) => {
-  const initialSections =
-    props.editData &&
-    Array.isArray(props.editData.rules) &&
-    props.editData.rules.length > 0
-      ? props.editData.rules[props.editData.rules.length - 1].section! + 1
-      : undefined
+  const { onUpdate } = props
+  const initialSections = calculateSectionCount(props.editData)
   const initialRuleAmount: [number, number[]] = initialSections
     ? calculateRuleAmount(props.editData, initialSections)
     : [1, [1]]
+  const initialRulesCreated: IRulesToCreate[] =
+    props.editData?.rules.map((rule, index) => ({
+      id: index + 1,
+      rule,
+    })) ?? []
 
   const [ruleAmount, setRuleAmount] =
     useState<[number, number[]]>(initialRuleAmount)
-  const [editData, setEditData] = useState<{ rules: IRule[] } | undefined>(
-    props.editData,
-  )
   const [ruleAmountArr, setRuleAmountArr] = useState<[number[], [number[]]]>(
     calculateRuleAmountArr(initialRuleAmount),
   )
-  const rulesCreated = useRef<IRulesToCreate[]>([])
+  const rulesCreated = useRef<IRulesToCreate[]>(initialRulesCreated)
+  const [renderRules, setRenderRules] =
+    useState<IRulesToCreate[]>(initialRulesCreated)
   const [deletedVersion, setDeletedVersion] = useState(0)
   const [addedRules, setAddedRules] = useState<number[]>(
     initialSections ? [] : [1],
   )
-  const [committedRuleCount, setCommittedRuleCount] = useState(0)
+  const [committedRuleCount, setCommittedRuleCount] = useState(
+    initialRulesCreated.length,
+  )
 
-  const ruleCommited = (id: number, rule: IRule) => {
-    if (rulesCreated) {
-      const rules = rulesCreated.current.filter((el) => el.id !== id)
-      const toCommit = [...rules, { id: id, rule: rule }].sort(
-        (a, b) => a.id - b.id,
-      )
-      rulesCreated.current = toCommit
-      setCommittedRuleCount(rulesCreated.current.length)
-      props.onUpdate(rulesCreated.current.map((el) => el.rule))
+  const updateRuleAmount = useCallback((ruleAmount: [number, number[]]) => {
+    setRuleAmountArr(calculateRuleAmountArr(ruleAmount))
+    setRuleAmount(ruleAmount)
+  }, [])
+
+  const ruleCommited = useCallback(
+    (id: number, rule: IRule) => {
+      if (rulesCreated) {
+        const rules = rulesCreated.current.filter((el) => el.id !== id)
+        const toCommit = [...rules, { id: id, rule: rule }].sort(
+          (a, b) => a.id - b.id,
+        )
+        rulesCreated.current = toCommit
+        setRenderRules(toCommit)
+        setCommittedRuleCount(rulesCreated.current.length)
+        onUpdate(rulesCreated.current.map((el) => el.rule))
+        setAddedRules((currentAddedRules) =>
+          currentAddedRules.filter((e) => e !== id),
+        )
+      }
+    },
+    [onUpdate],
+  )
+
+  const ruleOmitted = useCallback(
+    (id: number) => {
+      if (rulesCreated) {
+        const rules = rulesCreated.current?.filter((el) => el.id !== id)
+        rulesCreated.current = [...rules]
+        setRenderRules(rulesCreated.current)
+        setCommittedRuleCount(rulesCreated.current.length)
+        onUpdate(rulesCreated.current.map((el) => el.rule))
+      }
+    },
+    [onUpdate],
+  )
+
+  const ruleDeleted = useCallback(
+    (section = 0, id: number) => {
+      if (rulesCreated.current.length > 0) {
+        let rules = rulesCreated.current?.filter((el) => el.id !== id)
+        const section1IsEmpty = !rules.some((r) => r.rule.section === 0)
+
+        rules = rules.map((e) => {
+          e.id = e.id > id ? e.id - 1 : e.id
+
+          if (section1IsEmpty && section === 1 && e.rule.section) {
+            e.rule.section -= 1
+          }
+
+          return e
+        })
+        rulesCreated.current = [...rules]
+        setRenderRules(rulesCreated.current)
+        setCommittedRuleCount(rulesCreated.current.length)
+        onUpdate(rulesCreated.current.map((el) => el.rule))
+      }
+
       setAddedRules((currentAddedRules) =>
-        currentAddedRules.filter((e) => e !== id),
+        currentAddedRules
+          .filter((e) => e !== id)
+          .map((e) => {
+            return (e = e > id ? e - 1 : e)
+          }),
       )
-    }
-  }
+      const rules = [...ruleAmount[1]]
+      rules[section - 1] = rules[section - 1] - 1
 
-  const ruleOmitted = (id: number) => {
-    if (rulesCreated) {
-      const rules = rulesCreated.current?.filter((el) => el.id !== id)
-      rulesCreated.current = [...rules]
-      setCommittedRuleCount(rulesCreated.current.length)
-      props.onUpdate(rulesCreated.current.map((el) => el.rule))
-    }
-  }
+      // Find sections that still contain rules
+      const nonEmptySections = rules.filter((e) => e > 0)
 
-  const ruleDeleted = (section = 0, id: number) => {
-    if (rulesCreated.current.length > 0) {
-      let rules = rulesCreated.current?.filter((el) => el.id !== id)
-      const section1IsEmpty = !rules.some((r) => r.rule.section === 0)
+      // Update the rule count while ensuring at least one section remains
+      updateRuleAmount([
+        nonEmptySections.length,
+        nonEmptySections.length > 0 ? nonEmptySections : [1],
+      ])
 
-      rules = rules.map((e) => {
-        e.id = e.id > id ? e.id - 1 : e.id
-
-        if (section1IsEmpty && section === 1 && e.rule.section) {
-          e.rule.section -= 1
-        }
-
-        return e
-      })
-      rulesCreated.current = [...rules]
-      setCommittedRuleCount(rulesCreated.current.length)
-      props.onUpdate(rulesCreated.current.map((el) => el.rule))
-    }
-
-    setAddedRules((currentAddedRules) =>
-      currentAddedRules
-        .filter((e) => e !== id)
-        .map((e) => {
-          return (e = e > id ? e - 1 : e)
-        }),
-    )
-    setEditData({ rules: rulesCreated.current.map((el) => el.rule) })
-
-    const rules = [...ruleAmount[1]]
-    rules[section - 1] = rules[section - 1] - 1
-
-    // Find sections that still contain rules
-    const nonEmptySections = rules.filter((e) => e > 0)
-
-    // Update the rule count while ensuring at least one section remains
-    updateRuleAmount([
-      nonEmptySections.length,
-      nonEmptySections.length > 0 ? nonEmptySections : [1],
-    ])
-
-    setDeletedVersion((currentVersion) => currentVersion + 1)
-  }
+      setDeletedVersion((currentVersion) => currentVersion + 1)
+    },
+    [onUpdate, ruleAmount, updateRuleAmount],
+  )
 
   const RuleAdded = (section: number) => {
     const ruleId =
@@ -184,6 +223,7 @@ const RuleCreator = (props: iRuleCreator) => {
       }
       return e
     })
+    setRenderRules([...rulesCreated.current])
 
     const rules = [...ruleAmount[1]]
     rules[section - 1] = rules[section - 1] + 1
@@ -204,11 +244,6 @@ const RuleCreator = (props: iRuleCreator) => {
     updateRuleAmount([ruleAmount[0] + 1, rules])
   }
 
-  const updateRuleAmount = (ruleAmount: [number, number[]]) => {
-    setRuleAmountArr(calculateRuleAmountArr(ruleAmount))
-    setRuleAmount(ruleAmount)
-  }
-
   return (
     <div className="text-zinc-100">
       {ruleAmountArr[0].map((sid) => {
@@ -217,64 +252,42 @@ const RuleCreator = (props: iRuleCreator) => {
             <div className="rounded-lg bg-zinc-700 px-6 py-0.5 shadow-md">
               <SectionHeading id={sid} name={'Section'} />
               <div className="flex flex-col space-y-2">
-                {ruleAmountArr[1][sid - 1].map((id) => (
-                  <div
-                    key={`${sid}-${id}`}
-                    className="flex w-full flex-col items-start"
-                  >
-                    <div className="mb-4 w-full">
-                      <RuleInput
-                        key={`${sid}-${id}`}
-                        id={
-                          ruleAmount[1].length > 1
-                            ? ruleAmount[1].reduce((pv, cv, idx) =>
-                                sid === 1
-                                  ? cv - (cv - id)
-                                  : idx <= sid - 1
-                                    ? idx === sid - 1
-                                      ? cv - (cv - id) + pv
-                                      : cv + pv
-                                    : pv,
-                              )
-                            : ruleAmount[1][0] - (ruleAmount[1][0] - id)
-                        }
-                        tagId={id}
-                        editData={
-                          editData
-                            ? {
-                                rule: editData.rules[
-                                  (ruleAmount[1].length > 1
-                                    ? ruleAmount[1].reduce((pv, cv, idx) =>
-                                        sid === 1
-                                          ? cv - (cv - id)
-                                          : idx <= sid - 1
-                                            ? idx === sid - 1
-                                              ? cv - (cv - id) + pv
-                                              : cv + pv
-                                            : pv,
-                                      )
-                                    : ruleAmount[1][0] -
-                                      (ruleAmount[1][0] - id)) - 1
-                                ],
-                              }
-                            : undefined
-                        }
-                        section={sid}
-                        newlyAdded={addedRules}
-                        mediaType={props.mediaType}
-                        dataType={props.dataType}
-                        radarrSettingsId={props.radarrSettingsId}
-                        sonarrSettingsId={props.sonarrSettingsId}
-                        onCommit={ruleCommited}
-                        onIncomplete={ruleOmitted}
-                        onDelete={ruleDeleted}
-                        allowDelete={
-                          ruleAmount[0] > 1 || ruleAmount[1][sid - 1] > 1
-                        }
-                      />
+                {ruleAmountArr[1][sid - 1].map((id) => {
+                  const currentRuleId = calculateRuleId(ruleAmount, sid, id)
+                  const currentRule = renderRules.find(
+                    (rule) => rule.id === currentRuleId,
+                  )?.rule
+
+                  return (
+                    <div
+                      key={`${sid}-${id}`}
+                      className="flex w-full flex-col items-start"
+                    >
+                      <div className="mb-4 w-full">
+                        <RuleInput
+                          key={`${sid}-${id}`}
+                          id={currentRuleId}
+                          tagId={id}
+                          editData={
+                            currentRule ? { rule: currentRule } : undefined
+                          }
+                          section={sid}
+                          newlyAdded={addedRules}
+                          mediaType={props.mediaType}
+                          dataType={props.dataType}
+                          radarrSettingsId={props.radarrSettingsId}
+                          sonarrSettingsId={props.sonarrSettingsId}
+                          onCommit={ruleCommited}
+                          onIncomplete={ruleOmitted}
+                          onDelete={ruleDeleted}
+                          allowDelete={
+                            ruleAmount[0] > 1 || ruleAmount[1][sid - 1] > 1
+                          }
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {addedRules.length <= 0 ? (
