@@ -1,8 +1,9 @@
-import { SaveIcon } from '@heroicons/react/solid'
+import { SaveIcon, TrashIcon } from '@heroicons/react/solid'
 import { isValidCron } from 'cron-validator'
 import { useRef, useState } from 'react'
 import { useSettingsOutletContext } from '..'
 import { usePatchSettings } from '../../../api/settings'
+import { PostApiHandler } from '../../../utils/ApiHandler'
 import Alert from '../../Common/Alert'
 import Button from '../../Common/Button'
 
@@ -12,6 +13,11 @@ const JobSettings = () => {
   const [secondCronValid, setSecondCronValid] = useState(true)
   const [firstCronValid, setFirstCronValid] = useState(true)
   const [missingValuesError, setMissingValuesError] = useState<boolean>(false)
+  const [cleanupPending, setCleanupPending] = useState(false)
+  const [cleanupError, setCleanupError] = useState(false)
+  const [cleanupRemovedCount, setCleanupRemovedCount] = useState<
+    number | undefined
+  >()
   const {
     mutateAsync: updateSettings,
     isError: updateSettingsError,
@@ -19,6 +25,24 @@ const JobSettings = () => {
     isSuccess: updateSettingsSuccess,
   } = usePatchSettings()
   const { settings } = useSettingsOutletContext()
+
+  const cleanupStaleMedia = async () => {
+    setCleanupPending(true)
+    setCleanupError(false)
+    setCleanupRemovedCount(undefined)
+
+    try {
+      const result = await PostApiHandler<{ removedCount: number }>(
+        '/collections/maintenance/stale-media',
+        {},
+      )
+      setCleanupRemovedCount(result.removedCount)
+    } catch {
+      setCleanupError(true)
+    } finally {
+      setCleanupPending(false)
+    }
+  }
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -161,6 +185,47 @@ const JobSettings = () => {
               </div>
             </div>
           </form>
+        </div>
+
+        <div className="section">
+          <h3 className="heading">Maintenance</h3>
+
+          {cleanupError ? (
+            <Alert
+              type="error"
+              title="Cleanup failed. Verify the media server connection."
+            />
+          ) : undefined}
+
+          {cleanupRemovedCount !== undefined ? (
+            <Alert
+              type="info"
+              title={
+                cleanupRemovedCount === 0
+                  ? 'No stale media entries found.'
+                  : `Removed ${cleanupRemovedCount} stale media ${
+                      cleanupRemovedCount === 1 ? 'entry' : 'entries'
+                    }.`
+              }
+            />
+          ) : undefined}
+
+          <div className="form-row">
+            <label className="text-label">Stale Media</label>
+            <div className="form-input flex justify-end">
+              <Button
+                buttonType="warning"
+                type="button"
+                disabled={cleanupPending}
+                onClick={() => void cleanupStaleMedia()}
+              >
+                <TrashIcon className="mr-2 h-4 w-4" />
+                <span>
+                  {cleanupPending ? 'Cleaning...' : 'Clean Stale Media'}
+                </span>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </>

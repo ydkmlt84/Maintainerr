@@ -142,6 +142,7 @@ export interface TmdbVideo {
   key: string
   name: string
   site: 'YouTube'
+  official?: boolean
   size: number
   type:
     | 'Clip'

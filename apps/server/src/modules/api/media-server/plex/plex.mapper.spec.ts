@@ -6,6 +6,7 @@ import {
   PlexSeenBy,
   PlexUserAccount,
 } from '../../plex-api/interfaces/library.interfaces'
+import { PlexMetadata } from '../../plex-api/interfaces/media.interface'
 import { PlexMapper } from './plex.mapper'
 
 describe('PlexMapper', () => {
@@ -239,6 +240,40 @@ describe('PlexMapper', () => {
         type: 'audience',
       })
       expect(result.userRating).toBe(10)
+    })
+  })
+
+  describe('metadataToMediaItem', () => {
+    it('preserves watch stats from search metadata', () => {
+      const metadata = {
+        ratingKey: '12345',
+        guid: 'plex://movie/12345',
+        type: 'movie',
+        title: 'Test Movie',
+        Guid: [],
+        addedAt: 1609459200,
+        updatedAt: 1609545600,
+        media: [],
+        Media: [],
+        index: 0,
+        leafCount: 0,
+        viewedLeafCount: 0,
+        originallyAvailableAt: '2021-01-01',
+        viewCount: 5,
+        lastViewedAt: 1609632000,
+        year: 2021,
+        duration: 5526353,
+        librarySectionID: 18,
+        librarySectionTitle: 'Movies',
+      } as PlexMetadata
+
+      const result = PlexMapper.metadataToMediaItem(metadata)
+
+      expect(result.viewCount).toBe(5)
+      expect(result.lastViewedAt).toEqual(new Date(1609632000 * 1000))
+      expect(result.year).toBe(2021)
+      expect(result.durationMs).toBe(5526353)
+      expect(result.library).toEqual({ id: '18', title: 'Movies' })
     })
   })
 

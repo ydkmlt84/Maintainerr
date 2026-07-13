@@ -218,15 +218,18 @@ export class PlexMapper {
       providerIds: PlexMapper.extractProviderIds(plex.Guid),
       mediaSources: PlexMapper.toMediaSources(plex.Media || plex.media),
       library: {
-        id: '', // Not available on PlexMetadata
-        title: '',
+        id: plex.librarySectionID?.toString() ?? '',
+        title: plex.librarySectionTitle ?? '',
       },
-      summary: undefined,
-      viewCount: undefined,
-      skipCount: undefined,
-      lastViewedAt: undefined,
-      year: undefined,
-      durationMs: plex.media?.[0]?.duration,
+      summary: plex.summary,
+      viewCount: plex.viewCount,
+      skipCount: plex.skipCount,
+      lastViewedAt: plex.lastViewedAt
+        ? new Date(plex.lastViewedAt * 1000)
+        : undefined,
+      year: plex.year,
+      durationMs:
+        plex.duration ?? plex.Media?.[0]?.duration ?? plex.media?.[0]?.duration,
       originallyAvailableAt: plex.originallyAvailableAt
         ? new Date(plex.originallyAvailableAt)
         : undefined,

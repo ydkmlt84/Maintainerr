@@ -12,3 +12,6 @@ node_modules
 
 # Development documentation (not committed)
 jellyfin-dev-documents/
+
+# Local UI prototypes (not committed)
+.local-prototypes/

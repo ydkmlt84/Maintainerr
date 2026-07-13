@@ -137,6 +137,32 @@ export class TmdbApiService extends ExternalApiService {
     }
   }
 
+  public getMediaAssets = async ({
+    tmdbId,
+    type,
+  }: {
+    tmdbId: number
+    type: 'movie' | 'show'
+  }): Promise<{ backdropPath?: string; trailerUrl?: string }> => {
+    const details =
+      type === 'movie'
+        ? await this.getMovie({ movieId: tmdbId })
+        : await this.getTvShow({ tvId: tmdbId })
+    const videos = details?.videos?.results ?? []
+    const trailers = videos.filter(
+      (video) => video.site === 'YouTube' && video.type === 'Trailer',
+    )
+    const trailer =
+      trailers.find((video) => video.official) ?? trailers[0] ?? undefined
+
+    return {
+      backdropPath: details?.backdrop_path,
+      trailerUrl: trailer
+        ? `https://www.youtube.com/watch?v=${encodeURIComponent(trailer.key)}`
+        : undefined,
+    }
+  }
+
   public async getByExternalId({
     externalId,
     type,

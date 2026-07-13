@@ -255,6 +255,47 @@ describe('JellyfinAdapterService', () => {
     )
   })
 
+  describe('searchContent', () => {
+    it('returns detailed results with user watch stats', async () => {
+      settingsService.getSettings.mockResolvedValue({
+        ...mockSettings,
+        jellyfin_user_id: 'user123',
+      } as unknown as Awaited<ReturnType<SettingsService['getSettings']>>)
+      await service.initialize()
+      jellyfinApiMocks.getItems.mockResolvedValue({
+        data: {
+          Items: [
+            {
+              Id: 'movie123',
+              Name: 'Test Movie',
+              Type: 'Movie',
+              DateCreated: '2021-01-01T00:00:00.000Z',
+              UserData: {
+                PlayCount: 5,
+                LastPlayedDate: '2021-01-03T00:00:00.000Z',
+              },
+            },
+          ],
+        },
+      })
+
+      const results = await service.searchContent('test')
+
+      expect(jellyfinApiMocks.getItems).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user123',
+          searchTerm: 'test',
+          recursive: true,
+          enableUserData: true,
+        }),
+      )
+      expect(results[0].viewCount).toBe(5)
+      expect(results[0].lastViewedAt).toEqual(
+        new Date('2021-01-03T00:00:00.000Z'),
+      )
+    })
+  })
+
   describe('getWatchHistory', () => {
     beforeEach(async () => {
       settingsService.getSettings.mockResolvedValue(

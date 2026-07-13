@@ -98,7 +98,7 @@ const RuleHandlerMessages = () => {
     >
       <div
         className={
-          'mx-2 flex flex-col rounded-lg bg-zinc-900 py-2 pl-2 pr-4 text-xs font-bold text-zinc-300 ring-1 ring-zinc-700'
+          'mx-2 flex w-[28rem] max-w-[35vw] flex-col rounded-lg bg-zinc-900 py-2 pl-2 pr-4 text-xs font-bold text-zinc-300 ring-1 ring-zinc-700'
         }
       >
         <div className="flex items-center gap-2">

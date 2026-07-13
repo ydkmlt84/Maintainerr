@@ -4,6 +4,8 @@ import {
   MediaItem,
   MediaItemType,
   MediaItemWithParent,
+  MediaProviderIds,
+  EPlexDataType,
 } from '@maintainerr/contracts'
 import { Injectable } from '@nestjs/common'
 import { SchedulerRegistry } from '@nestjs/schedule'
@@ -11,11 +13,18 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { CronTime } from 'cron'
 import { Repository } from 'typeorm'
 import { MediaServerFactory } from '../api/media-server/media-server.factory'
+import { PlexApiService } from '../api/plex-api/plex-api.service'
+import { PlexLibraryItem } from '../api/plex-api/interfaces/library.interfaces'
 import {
   DiskSpaceResource,
   RootFolder,
 } from '../api/servarr-api/interfaces/servarr.interface'
 import { ServarrService } from '../api/servarr-api/servarr.service'
+import {
+  TautulliApiService,
+  TautulliHomeStatRow,
+  TautulliRecentlyAddedItem,
+} from '../api/tautulli-api/tautulli-api.service'
 import { CollectionsService } from '../collections/collections.service'
 import { CollectionLog } from '../collections/entities/collection_log.entities'
 import { CollectionMedia } from '../collections/entities/collection_media.entities'
@@ -28,7 +37,11 @@ export interface AppStatsResponse {
   storage: AppStorageStats
   choppingBlock: AppChoppingBlockStats
   libraries: AppLibraryStats[]
-  recentlyAdded: MediaItem[]
+  recentlyAdded: AppRecentlyAddedItem[]
+  popularMovies: AppPopularMediaItem[]
+  popularTv: AppPopularMediaItem[]
+  oldestItems: AppLibraryRankingItem[]
+  biggestItems: AppLibraryRankingItem[]
   collections: AppCollectionPreview[]
   leavingSoon: AppLeavingSoonItem[]
   tasks: AppTaskStats[]
@@ -50,6 +63,29 @@ interface AppLibraryStats {
   itemCount: number
   seasonCount?: number
   episodeCount?: number
+}
+
+export interface AppRecentlyAddedItem extends MediaItem {
+  tautulliPosterPath?: string
+}
+
+export interface AppPopularMediaItem {
+  title: string
+  year?: number
+  usersWatched: number
+  totalPlays: number
+  ratingKey: string
+  posterPath?: string
+  backdropPath?: string
+}
+
+export interface AppLibraryRankingItem {
+  title: string
+  ratingKey: string
+  addedAt: string
+  sizeBytes: number
+  posterPath?: string
+  backdropPath?: string
 }
 
 interface AppChoppingBlockStats {
@@ -123,6 +159,118 @@ function isPathPrefix(parent: string, child: string): boolean {
   return child.startsWith(`${parent}/`)
 }
 
+function optionalNumber(value: string): number | undefined {
+  if (!value) return undefined
+
+  const number = Number(value)
+  return Number.isFinite(number) ? number : undefined
+}
+
+function optionalUnixDate(value: string): Date | undefined {
+  const seconds = optionalNumber(value)
+  return seconds === undefined ? undefined : new Date(seconds * 1000)
+}
+
+function getTautulliProviderIds(guids: string[]): MediaProviderIds {
+  const providerIds: MediaProviderIds = {}
+
+  for (const guid of guids ?? []) {
+    const match = guid.match(/^(imdb|tmdb|tvdb):\/\/(.+)$/i)
+    if (!match) continue
+
+    const provider = match[1].toLowerCase() as keyof MediaProviderIds
+    providerIds[provider] = [...(providerIds[provider] ?? []), match[2]]
+  }
+
+  return providerIds
+}
+
+export function mapTautulliRecentlyAddedItem(
+  item: TautulliRecentlyAddedItem,
+): AppRecentlyAddedItem | undefined {
+  if (!['movie', 'show', 'season', 'episode'].includes(item.media_type)) {
+    return undefined
+  }
+
+  const audienceRating = optionalNumber(item.audience_rating)
+
+  return {
+    id: item.rating_key,
+    parentId: item.parent_rating_key || undefined,
+    grandparentId: item.grandparent_rating_key || undefined,
+    title: item.title,
+    parentTitle: item.parent_title || undefined,
+    grandparentTitle: item.grandparent_title || undefined,
+    guid: item.guid,
+    type: item.media_type as MediaItemType,
+    addedAt: optionalUnixDate(item.added_at) ?? new Date(0),
+    updatedAt: optionalUnixDate(item.updated_at),
+    providerIds: getTautulliProviderIds(item.guids),
+    mediaSources: [],
+    library: {
+      id: item.section_id,
+      title: item.library_name,
+    },
+    summary: item.summary || undefined,
+    lastViewedAt: optionalUnixDate(item.last_viewed_at),
+    year: optionalNumber(item.year),
+    durationMs: optionalNumber(item.duration),
+    originallyAvailableAt: item.originally_available_at
+      ? new Date(item.originally_available_at)
+      : undefined,
+    contentRating: item.content_rating || undefined,
+    ratings:
+      audienceRating === undefined
+        ? []
+        : [{ source: 'audience', value: audienceRating, type: 'audience' }],
+    userRating: optionalNumber(item.user_rating),
+    genres: (item.genres ?? []).map((name) => ({ name })),
+    childCount: optionalNumber(item.child_count),
+    index: optionalNumber(item.media_index),
+    parentIndex: optionalNumber(item.parent_media_index),
+    collections: item.collections ?? [],
+    labels: item.labels ?? [],
+    tautulliPosterPath:
+      item.media_type === 'episode'
+        ? item.grandparent_thumb || item.parent_thumb || item.thumb || undefined
+        : item.thumb ||
+          item.parent_thumb ||
+          item.grandparent_thumb ||
+          undefined,
+  }
+}
+
+export function mapPlexLibraryRankingItem(
+  item: PlexLibraryItem,
+): AppLibraryRankingItem {
+  const episodeContext =
+    item.type === 'episode' &&
+    item.parentIndex !== undefined &&
+    item.index !== undefined
+      ? `S${String(item.parentIndex).padStart(2, '0')}E${String(item.index).padStart(2, '0')}`
+      : undefined
+
+  return {
+    title:
+      item.type === 'episode'
+        ? `${item.grandparentTitle || item.parentTitle || item.title}${episodeContext ? ` - ${episodeContext}` : ''}`
+        : item.title,
+    ratingKey: item.ratingKey,
+    addedAt: new Date(item.addedAt * 1000).toISOString(),
+    sizeBytes: (item.Media ?? []).reduce(
+      (total, media) =>
+        total +
+        (media.Part ?? []).reduce(
+          (mediaTotal, part) => mediaTotal + (part.size || 0),
+          0,
+        ),
+      0,
+    ),
+    posterPath: item.grandparentThumb || item.thumb || undefined,
+    backdropPath: item.art || undefined,
+  }
+}
+
 @Injectable()
 export class StatsService {
   private readonly serviceStatusCacheMs = 5 * 60 * 1000
@@ -133,7 +281,9 @@ export class StatsService {
 
   constructor(
     private readonly mediaServerFactory: MediaServerFactory,
+    private readonly plexApiService: PlexApiService,
     private readonly servarrService: ServarrService,
+    private readonly tautulliApiService: TautulliApiService,
     private readonly collectionsService: CollectionsService,
     private readonly settingsService: SettingsService,
     private readonly schedulerRegistry: SchedulerRegistry,
@@ -156,13 +306,21 @@ export class StatsService {
         this.getLibraryStats(),
         this.getCollectionPreviews(),
       ])
-    const [recentlyAdded, leavingSoon, recentActivity, tasks] =
-      await Promise.all([
-        this.getRecentlyAdded(libraries),
-        this.getLeavingSoon(),
-        this.getRecentActivity(),
-        this.getTaskStats(),
-      ])
+    const [
+      recentlyAdded,
+      popularity,
+      libraryRankings,
+      leavingSoon,
+      recentActivity,
+      tasks,
+    ] = await Promise.all([
+      this.getRecentlyAdded(libraries),
+      this.getPopularityStats(),
+      this.getLibraryRankings(libraries),
+      this.getLeavingSoon(),
+      this.getRecentActivity(),
+      this.getTaskStats(),
+    ])
 
     return {
       rules,
@@ -170,6 +328,10 @@ export class StatsService {
       choppingBlock,
       libraries,
       recentlyAdded,
+      popularMovies: popularity.movies,
+      popularTv: popularity.tv,
+      oldestItems: libraryRankings.oldest,
+      biggestItems: libraryRankings.biggest,
       collections,
       leavingSoon,
       tasks,
@@ -533,7 +695,15 @@ export class StatsService {
 
   private async getRecentlyAdded(
     libraries: AppLibraryStats[],
-  ): Promise<MediaItem[]> {
+  ): Promise<AppRecentlyAddedItem[]> {
+    const tautulliItems = await this.tautulliApiService.getRecentlyAdded(12)
+
+    if (tautulliItems !== null) {
+      return tautulliItems
+        .map(mapTautulliRecentlyAddedItem)
+        .filter((item): item is MediaItem => item !== undefined)
+    }
+
     const mediaServer = await this.mediaServerFactory.getService()
     const recentItems = (
       await Promise.all(
@@ -555,6 +725,93 @@ export class StatsService {
         (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       )
       .slice(0, 12)
+  }
+
+  private async getPopularityStats(): Promise<{
+    movies: AppPopularMediaItem[]
+    tv: AppPopularMediaItem[]
+  }> {
+    const homeStats = await this.tautulliApiService.getHomeStats(30, 5)
+    if (!homeStats) return { movies: [], tv: [] }
+
+    const mapRows = (statId: string): AppPopularMediaItem[] =>
+      (homeStats.find((stat) => stat.stat_id === statId)?.rows ?? []).map(
+        (row) => this.mapPopularMediaItem(row),
+      )
+
+    return {
+      movies: mapRows('popular_movies'),
+      tv: mapRows('popular_tv'),
+    }
+  }
+
+  private mapPopularMediaItem(row: TautulliHomeStatRow): AppPopularMediaItem {
+    return {
+      title: row.title,
+      year: optionalNumber(String(row.year ?? '')),
+      usersWatched: optionalNumber(String(row.users_watched ?? '')) ?? 0,
+      totalPlays: optionalNumber(String(row.total_plays ?? '')) ?? 0,
+      ratingKey: String(row.grandparent_rating_key || row.rating_key),
+      posterPath: row.grandparent_thumb || row.thumb || undefined,
+      backdropPath: row.art || undefined,
+    }
+  }
+
+  private async getLibraryRankings(libraries: AppLibraryStats[]): Promise<{
+    oldest: AppLibraryRankingItem[]
+    biggest: AppLibraryRankingItem[]
+  }> {
+    if (!this.plexApiService.isPlexSetup()) {
+      return { oldest: [], biggest: [] }
+    }
+
+    const rankingLibraries = libraries.filter(
+      (library) => !/(^|\W)4k(\W|$)/i.test(library.title),
+    )
+
+    const results = await Promise.all(
+      rankingLibraries.map(async (library) => {
+        const type =
+          library.type === 'movie'
+            ? EPlexDataType.MOVIES
+            : EPlexDataType.EPISODES
+
+        try {
+          const [oldest, biggest] = await Promise.all([
+            this.plexApiService.getLibraryContents(
+              library.id,
+              { size: 5, sort: 'addedAt:asc' },
+              type,
+            ),
+            this.plexApiService.getLibraryContents(
+              library.id,
+              { size: 25, sort: 'mediaSize:desc' },
+              type,
+            ),
+          ])
+
+          return {
+            oldest: oldest?.items ?? [],
+            biggest: biggest?.items ?? [],
+          }
+        } catch {
+          return { oldest: [], biggest: [] }
+        }
+      }),
+    )
+
+    const oldest = results
+      .flatMap((result) => result.oldest)
+      .sort((left, right) => left.addedAt - right.addedAt)
+      .slice(0, 5)
+      .map(mapPlexLibraryRankingItem)
+    const biggest = results
+      .flatMap((result) => result.biggest)
+      .map(mapPlexLibraryRankingItem)
+      .sort((left, right) => right.sizeBytes - left.sizeBytes)
+      .slice(0, 5)
+
+    return { oldest, biggest }
   }
 
   private async getCollectionPreviews(): Promise<AppCollectionPreview[]> {

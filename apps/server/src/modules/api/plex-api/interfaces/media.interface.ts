@@ -33,8 +33,16 @@ export interface PlexMetadata {
   Genre?: PlexGenre[]
   parentTitle?: string
   grandparentTitle?: string
+  summary?: string
+  viewCount?: number
+  skipCount?: number
+  lastViewedAt?: number
+  year?: number
   Rating?: PlexRating[]
   contentRating?: string
+  duration?: number
+  librarySectionID?: number
+  librarySectionTitle?: string
 }
 
 export interface PlexMediaPart {

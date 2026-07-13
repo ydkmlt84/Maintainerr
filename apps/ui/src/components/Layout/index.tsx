@@ -1,5 +1,11 @@
 import { ChartBarIcon } from '@heroicons/react/outline'
-import { SearchIcon, XIcon } from '@heroicons/react/solid'
+import {
+  DocumentAddIcon,
+  DocumentRemoveIcon,
+  PhotographIcon,
+  SearchIcon,
+  XIcon,
+} from '@heroicons/react/solid'
 import {
   type MediaItem,
   type MediaItemWithParent,
@@ -15,6 +21,8 @@ import {
 } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import GetApiHandler from '../../utils/ApiHandler'
+import AddModal from '../AddModal'
+import Button from '../Common/Button'
 import { SmallLoadingSpinner } from '../Common/LoadingSpinner'
 import MediaModalContent from '../Common/MediaCard/MediaModal'
 import NavBar from './NavBar'
@@ -248,7 +256,7 @@ const GlobalStatsDrawer: React.FC = () => {
           <ChartBarIcon className="h-5 w-5" />
         </button>
         <aside className="stats-drawer relative h-[min(34rem,calc(100vh-9rem))] w-80 overflow-hidden rounded-r-3xl text-zinc-100">
-          <dl className="relative z-10 grid h-full grid-cols-2 gap-3 overflow-y-auto p-5">
+          <dl className="hide-scrollbar relative z-10 grid h-full grid-cols-2 gap-3 overflow-y-auto p-5">
             <div className="stats-value-block col-span-2 rounded-xl p-3">
               <dt className="text-xs font-medium uppercase text-zinc-400">
                 Storage
@@ -291,7 +299,7 @@ const GlobalStatsDrawer: React.FC = () => {
                     : `${choppingBlockStoragePercent.toFixed(2)}%`}
                 </span>
               </dd>
-              <dd className="mt-2 max-h-44 space-y-1 overflow-y-auto pr-1">
+              <dd className="hide-scrollbar mt-2 max-h-44 space-y-1 overflow-y-auto pr-1">
                 {stats.choppingBlock?.collections?.length ? (
                   stats.choppingBlock.collections.map((collection) => (
                     <Link
@@ -422,11 +430,57 @@ const getSpotlightTypeLabel = (item: MediaItem): string => {
   return item.type.toUpperCase()
 }
 
+const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
+  const [posterPath, setPosterPath] = useState<string>()
+  const tmdbId = getSpotlightTmdbId(item)
+  const posterType = item.type === 'movie' ? 'movie' : 'show'
+
+  useEffect(() => {
+    if (!tmdbId) {
+      queueMicrotask(() => setPosterPath(undefined))
+      return
+    }
+
+    let active = true
+    GetApiHandler<string>(`/moviedb/image/${posterType}/${tmdbId}`).then(
+      (path) => {
+        if (active) {
+          setPosterPath(path || undefined)
+        }
+      },
+    )
+
+    return () => {
+      active = false
+    }
+  }, [posterType, tmdbId])
+
+  return posterPath ? (
+    <img
+      src={`https://image.tmdb.org/t/p/w92${posterPath}`}
+      alt=""
+      className="h-[4.5rem] w-12 flex-shrink-0 rounded-md object-cover shadow shadow-black/30"
+      onError={() => setPosterPath(undefined)}
+    />
+  ) : (
+    <span className="flex h-[4.5rem] w-12 flex-shrink-0 flex-col items-center justify-center gap-1 rounded-md border border-zinc-600 bg-zinc-950/70 text-zinc-500 shadow-inner shadow-black/20">
+      <PhotographIcon className="h-5 w-5" />
+      <span className="max-w-full truncate px-1 text-[8px] font-bold uppercase">
+        {getSpotlightTypeLabel(item)}
+      </span>
+    </span>
+  )
+}
+
 const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | undefined>()
+  const [mediaAction, setMediaAction] = useState<{
+    item: MediaItem
+    type: 'add' | 'exclude'
+  }>()
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -434,6 +488,11 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
       return
     }
 
+    queueMicrotask(() => {
+      setQuery('')
+      setResults([])
+      setLoading(false)
+    })
     const focusTimer = setTimeout(() => inputRef.current?.focus(), 50)
     return () => clearTimeout(focusTimer)
   }, [open])
@@ -496,6 +555,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
   const handleClose = () => {
     onClose()
     setSelectedMedia(undefined)
+    setMediaAction(undefined)
   }
 
   const displayResults = results.slice(0, 40)
@@ -507,7 +567,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/70" onClick={handleClose} />
-      <div className="spotlight-modal fixed left-1/2 top-[7.5rem] z-50 w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 overflow-hidden rounded-xl shadow-lg">
+      <div className="spotlight-modal fixed left-1/2 top-20 z-50 w-[calc(100vw-2rem)] max-w-5xl -translate-x-1/2 overflow-hidden rounded-xl shadow-lg sm:top-[7.5rem]">
         <div className="relative z-10">
           <div className="flex items-center gap-3 border-b border-zinc-700 bg-zinc-900 px-4 py-4">
             <SearchIcon className="h-6 w-6 flex-shrink-0 text-zinc-300" />
@@ -527,7 +587,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
               <XIcon className="h-5 w-5" />
             </button>
           </div>
-          <div className="max-h-[min(34rem,calc(100vh-12rem))] overflow-y-auto p-2">
+          <div className="max-h-[calc(100dvh-6rem)] overflow-y-auto p-2 sm:max-h-[min(34rem,calc(100dvh-12rem))]">
             {loading ? (
               <div className="flex h-28 items-center justify-center">
                 <SmallLoadingSpinner />
@@ -538,23 +598,25 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
               </div>
             ) : displayResults.length > 0 ? (
               <div>
-                <div className="mb-2 hidden grid-cols-[minmax(0,1fr)_5rem_5rem_7rem] gap-3 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500 md:grid">
+                <div className="mb-2 hidden grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_7rem_10rem] gap-3 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500 md:grid">
                   <span>Title</span>
                   <span>Rating</span>
                   <span>Views</span>
                   <span>Last Viewed</span>
+                  <span className="text-right">Actions</span>
                 </div>
                 <div className="space-y-1.5">
                   {displayResults.map((item) => (
-                    <button
+                    <div
                       key={item.id}
-                      className="panel-surface group grid w-full min-w-0 gap-3 rounded-lg px-3 py-3 text-left transition hover:border-zinc-500 hover:bg-zinc-800 focus:border-maintainerr-600 focus:bg-zinc-800 focus:outline-none md:grid-cols-[minmax(0,1fr)_5rem_5rem_7rem] md:items-center"
-                      onClick={() => setSelectedMedia(item)}
+                      className="panel-surface group grid w-full min-w-0 gap-3 rounded-lg px-3 py-3 text-left transition hover:border-zinc-500 hover:bg-zinc-800 md:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_7rem_10rem] md:items-center"
                     >
-                      <span className="flex min-w-0 items-start gap-3">
-                        <span className="mt-0.5 inline-flex h-9 w-12 flex-shrink-0 items-center justify-center rounded-md border border-zinc-600 bg-zinc-950/70 text-[10px] font-bold uppercase text-zinc-200 shadow-inner shadow-black/20">
-                          {getSpotlightTypeLabel(item)}
-                        </span>
+                      <button
+                        type="button"
+                        className="flex min-w-0 items-start gap-3 rounded-md text-left focus:outline-none focus:ring-2 focus:ring-maintainerr/50"
+                        onClick={() => setSelectedMedia(item)}
+                      >
+                        <SpotlightThumbnail item={item} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold text-white group-hover:text-zinc-50">
                             {getSpotlightTitle(item)}
@@ -563,7 +625,33 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
                             {getSpotlightSecondary(item)}
                           </span>
                           <span className="mt-0.5 block truncate text-xs text-slate-400">
-                            {getSpotlightMeta(item)} - {item.type}
+                            {getSpotlightMeta(item)}
+                          </span>
+                          <span className="mt-2 grid grid-cols-3 gap-2 text-[10px] md:hidden">
+                            <span className="min-w-0">
+                              <span className="block uppercase text-slate-500">
+                                Rating
+                              </span>
+                              <span className="block truncate font-semibold text-slate-200">
+                                {formatSpotlightRating(item)}
+                              </span>
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block uppercase text-slate-500">
+                                Views
+                              </span>
+                              <span className="block truncate text-slate-300">
+                                {formatSpotlightViews(item)}
+                              </span>
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block uppercase text-slate-500">
+                                Last viewed
+                              </span>
+                              <span className="block truncate text-slate-300">
+                                {formatSpotlightDate(item.lastViewedAt)}
+                              </span>
+                            </span>
                           </span>
                           <span className="mt-2 flex flex-wrap gap-1.5">
                             {item.maintainerrExclusionType ? (
@@ -591,7 +679,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
                             ) : undefined}
                           </span>
                         </span>
-                      </span>
+                      </button>
                       <span className="hidden text-sm font-semibold text-slate-200 md:block">
                         {formatSpotlightRating(item)}
                       </span>
@@ -601,7 +689,33 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
                       <span className="hidden text-sm text-slate-300 md:block">
                         {formatSpotlightDate(item.lastViewedAt)}
                       </span>
-                    </button>
+                      <span className="flex w-full overflow-hidden rounded-md border-t border-zinc-700 pt-2 shadow-md md:border-0 md:pt-0">
+                        <Button
+                          type="button"
+                          buttonType="twin-primary-l"
+                          buttonSize="sm"
+                          aria-label={`Add ${getSpotlightTitle(item)}`}
+                          className="h-8 min-w-0 flex-1 px-2 text-zinc-200"
+                          onClick={() => setMediaAction({ item, type: 'add' })}
+                        >
+                          <DocumentAddIcon className="mr-1.5 h-3.5 w-3.5" />
+                          <span>Add</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          buttonType="twin-primary-r"
+                          buttonSize="sm"
+                          aria-label={`Exclude ${getSpotlightTitle(item)}`}
+                          className="h-8 min-w-0 flex-1 px-2 text-zinc-200"
+                          onClick={() =>
+                            setMediaAction({ item, type: 'exclude' })
+                          }
+                        >
+                          <DocumentRemoveIcon className="mr-1.5 h-3.5 w-3.5" />
+                          <span>Excl</span>
+                        </Button>
+                      </span>
+                    </div>
                   ))}
                 </div>
                 {results.length > displayResults.length ? (
@@ -629,6 +743,16 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
           tmdbid={getSpotlightTmdbId(selectedMedia)}
           year={getSpotlightMeta(selectedMedia)}
           userScore={getSpotlightAudienceRating(selectedMedia)}
+        />
+      ) : undefined}
+      {mediaAction ? (
+        <AddModal
+          mediaServerId={mediaAction.item.id}
+          libraryId={mediaAction.item.library?.id}
+          type={mediaAction.item.type}
+          modalType={mediaAction.type}
+          onCancel={() => setMediaAction(undefined)}
+          onSubmit={() => setMediaAction(undefined)}
         />
       ) : undefined}
     </>

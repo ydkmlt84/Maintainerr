@@ -336,6 +336,11 @@ export class PlexApiService {
         return undefined
       }
     } catch (err) {
+      if (err instanceof Error && err.message.includes('response code: 404')) {
+        this.logger.debug(`Plex metadata item ${key} was not found`)
+        return undefined
+      }
+
       this.logger.error(
         'Plex api communication failure.. Is the application running?',
         err,

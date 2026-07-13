@@ -12,7 +12,7 @@ import {
   MediaServerFeature,
   MediaServerType,
 } from '@maintainerr/contracts'
-import { Injectable } from '@nestjs/common'
+import { Injectable, ServiceUnavailableException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, DataSource, LessThan, Repository } from 'typeorm'
@@ -59,6 +59,33 @@ export interface CollectionStorageLibrarySummary {
   collectedCount: number
   totalSizeBytes: number
   reclaimableSizeBytes: number
+}
+
+export interface MediaMaintainerrContext {
+  memberships: {
+    collectionId: number
+    collectionTitle: string
+    collectionActive: boolean
+    addedAt: Date
+    isManual: boolean
+    deleteAfterDays: number | null
+    scheduledFor: Date | null
+    ruleGroupName: string | null
+  }[]
+  exclusions: {
+    id: number
+    scope: 'global' | 'collection'
+    collectionId: number | null
+    collectionTitle: string | null
+    ruleGroupName: string | null
+  }[]
+  recentActivity: {
+    id: number
+    timestamp: Date
+    message: string
+    collectionId: number
+    collectionTitle: string
+  }[]
 }
 
 interface addCollectionDbResponse {
@@ -143,6 +170,125 @@ export class CollectionsService {
     }
     // No id = count ALL media across all collections
     return await this.CollectionMediaRepo.count()
+  }
+
+  public async getMediaMaintainerrContext(
+    mediaServerId: string,
+  ): Promise<MediaMaintainerrContext> {
+    const membershipsQuery = this.CollectionMediaRepo.createQueryBuilder(
+      'media',
+    )
+      .innerJoin('media.collection', 'collection')
+      .leftJoin('collection.ruleGroup', 'ruleGroup')
+      .select('media.collectionId', 'collectionId')
+      .addSelect('collection.title', 'collectionTitle')
+      .addSelect('collection.isActive', 'collectionActive')
+      .addSelect('media.addDate', 'addedAt')
+      .addSelect('media.isManual', 'isManual')
+      .addSelect('collection.deleteAfterDays', 'deleteAfterDays')
+      .addSelect('ruleGroup.name', 'ruleGroupName')
+      .where('media.mediaServerId = :mediaServerId', { mediaServerId })
+      .orderBy('media.addDate', 'DESC')
+
+    const exclusionsQuery = this.exclusionRepo
+      .createQueryBuilder('exclusion')
+      .leftJoin(RuleGroup, 'ruleGroup', 'ruleGroup.id = exclusion.ruleGroupId')
+      .leftJoin(
+        Collection,
+        'collection',
+        'collection.id = ruleGroup.collectionId',
+      )
+      .select('exclusion.id', 'id')
+      .addSelect('exclusion.ruleGroupId', 'ruleGroupId')
+      .addSelect('collection.id', 'collectionId')
+      .addSelect('collection.title', 'collectionTitle')
+      .addSelect('ruleGroup.name', 'ruleGroupName')
+      .where('exclusion.mediaServerId = :mediaServerId', { mediaServerId })
+      .orderBy('exclusion.id', 'DESC')
+
+    const activityQuery = this.CollectionLogRepo.createQueryBuilder('log')
+      .innerJoin('log.collection', 'collection')
+      .select('log.id', 'id')
+      .addSelect('log.timestamp', 'timestamp')
+      .addSelect('log.message', 'message')
+      .addSelect('collection.id', 'collectionId')
+      .addSelect('collection.title', 'collectionTitle')
+      .where('json_valid(log.meta) = 1')
+      .andWhere(
+        "json_extract(log.meta, '$.media.mediaServerId') = :mediaServerId",
+        {
+          mediaServerId,
+        },
+      )
+      .orderBy('log.timestamp', 'DESC')
+      .limit(4)
+
+    const [membershipRows, exclusionRows, activityRows] = await Promise.all([
+      membershipsQuery.getRawMany<{
+        collectionId: number
+        collectionTitle: string
+        collectionActive: boolean | number
+        addedAt: Date | string
+        isManual: boolean | number | null
+        deleteAfterDays: number | null
+        ruleGroupName: string | null
+      }>(),
+      exclusionsQuery.getRawMany<{
+        id: number
+        ruleGroupId: number | null
+        collectionId: number | null
+        collectionTitle: string | null
+        ruleGroupName: string | null
+      }>(),
+      activityQuery.getRawMany<{
+        id: number
+        timestamp: Date | string
+        message: string
+        collectionId: number
+        collectionTitle: string
+      }>(),
+    ])
+
+    return {
+      memberships: membershipRows.map((row) => {
+        const addedAt = new Date(row.addedAt)
+        const deleteAfterDays =
+          row.deleteAfterDays === null ? null : Number(row.deleteAfterDays)
+        const scheduledFor =
+          deleteAfterDays === null
+            ? null
+            : new Date(
+                addedAt.getTime() + deleteAfterDays * 24 * 60 * 60 * 1000,
+              )
+
+        return {
+          collectionId: Number(row.collectionId),
+          collectionTitle: row.collectionTitle,
+          collectionActive:
+            row.collectionActive === true || Number(row.collectionActive) === 1,
+          addedAt,
+          isManual: row.isManual === true || Number(row.isManual) === 1,
+          deleteAfterDays,
+          scheduledFor,
+          ruleGroupName: row.ruleGroupName,
+        }
+      }),
+      exclusions: exclusionRows.map((row) => ({
+        id: Number(row.id),
+        scope: row.ruleGroupId === null ? 'global' : 'collection',
+        collectionId:
+          row.collectionId === null ? null : Number(row.collectionId),
+        collectionTitle: row.collectionTitle,
+        ruleGroupName: row.ruleGroupName,
+      })),
+      recentActivity: activityRows.map((row) => ({
+        id: Number(row.id),
+        timestamp: new Date(row.timestamp),
+        message: row.message,
+        collectionId: Number(row.collectionId),
+        collectionTitle: row.collectionTitle,
+      })),
+    }
   }
 
   public async getCollectionStorageSummary(): Promise<CollectionStorageSummary> {
@@ -299,7 +445,7 @@ export class CollectionsService {
    * on the media server. Only call after verifying the server is reachable
    * (e.g., after testConnections() in the maintenance task).
    */
-  async removeStaleCollectionMedia(): Promise<void> {
+  async removeStaleCollectionMedia(): Promise<number> {
     const allMedia = await this.CollectionMediaRepo.find()
     const mediaServer = await this.getMediaServer()
     let removedCount = 0
@@ -317,6 +463,21 @@ export class CollectionsService {
         `Removed ${removedCount} stale collection media entries (items no longer on media server)`,
       )
     }
+
+    return removedCount
+  }
+
+  async cleanupStaleCollectionMedia(): Promise<number> {
+    const mediaServerReachable =
+      await this.settingsService.testMediaServerConnection()
+
+    if (!mediaServerReachable) {
+      throw new ServiceUnavailableException(
+        'Media server is not reachable. Stale media cleanup was not run.',
+      )
+    }
+
+    return this.removeStaleCollectionMedia()
   }
 
   public async getCollectionExclusionsWithServerDataAndPaging(

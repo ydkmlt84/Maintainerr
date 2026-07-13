@@ -2,7 +2,6 @@ import type { EmailOptions } from 'email-templates'
 import path from 'path'
 import { MaintainerrLogger } from '../../logging/logs.service'
 import { SettingsService } from '../../settings/settings.service'
-import PreparedEmail from '../email/preparedEmail'
 import { Notification } from '../entities/notification.entities'
 import {
   NotificationAgentEmail,
@@ -84,6 +83,7 @@ class EmailAgent implements NotificationAgent {
     this.logger.log('Sending email notification')
 
     try {
+      const { default: PreparedEmail } = await import('../email/preparedEmail')
       const email = new PreparedEmail(this.getSettings())
       await email.send(
         this.buildMessage(type, payload, this.getSettings().options.emailTo),

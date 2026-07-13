@@ -88,6 +88,13 @@ export class CollectionsController {
     )
   }
 
+  @Post('/maintenance/stale-media')
+  async cleanupStaleCollectionMedia(): Promise<{ removedCount: number }> {
+    const removedCount =
+      await this.collectionService.cleanupStaleCollectionMedia()
+    return { removedCount }
+  }
+
   @Put('/schedule/update')
   updateSchedule(@Body() request: { schedule: string }) {
     return this.collectionWorkerService.updateJob(request.schedule)
@@ -182,6 +189,11 @@ export class CollectionsController {
     collectionId?: number,
   ) {
     return this.collectionService.getCollectionMediaCount(collectionId)
+  }
+
+  @Get('/media-context/:id')
+  getMediaMaintainerrContext(@Param('id') mediaServerId: string) {
+    return this.collectionService.getMediaMaintainerrContext(mediaServerId)
   }
 
   @Get('/storage-summary')

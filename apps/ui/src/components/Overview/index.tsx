@@ -29,12 +29,38 @@ interface AppStats {
   storage?: AppStorageStats
   choppingBlock?: AppChoppingBlockStats
   libraries?: AppLibraryStats[]
-  recentlyAdded?: MediaItem[]
+  recentlyAdded?: AppRecentlyAddedItem[]
+  popularMovies?: AppPopularMediaItem[]
+  popularTv?: AppPopularMediaItem[]
+  oldestItems?: AppLibraryRankingItem[]
+  biggestItems?: AppLibraryRankingItem[]
   collections?: AppCollectionPreview[]
   leavingSoon?: AppLeavingSoonItem[]
   tasks?: AppTaskStats[]
   configuredServices?: AppConfiguredService[]
   recentActivity?: AppRecentActivityItem[]
+}
+
+type AppRecentlyAddedItem = MediaItem & {
+  tautulliPosterPath?: string
+}
+
+interface RankedMediaItem {
+  title: string
+  ratingKey: string
+  posterPath?: string
+  backdropPath?: string
+}
+
+interface AppPopularMediaItem extends RankedMediaItem {
+  year?: number
+  usersWatched: number
+  totalPlays: number
+}
+
+interface AppLibraryRankingItem extends RankedMediaItem {
+  addedAt: string
+  sizeBytes: number
 }
 
 type CalendarCollectionMedia = {
@@ -178,6 +204,11 @@ const formatBytes = (value?: number): string => {
 
 const formatNumber = (value?: number): string =>
   value == null ? '--' : value.toLocaleString()
+
+const getTautulliImageUrl = (path?: string): string | undefined =>
+  path
+    ? `${API_BASE_PATH}/api/tautulli/image?path=${encodeURIComponent(path)}`
+    : undefined
 
 const formatRelativeTime = (
   value?: string,
@@ -843,20 +874,53 @@ const Overview = () => {
         <CollectionRow collections={stats?.collections ?? []} />
 
         <PosterRow
-          title="Recently Added to Plex"
+          title="Recently Added"
           emptyText="No recently added media found."
         >
           {(stats?.recentlyAdded ?? []).map((item) => (
             <DashboardPoster
               key={`${item.library.id}-${item.id}`}
               title={getMediaTitle(item)}
-              subtitle={getMediaYear(item)}
+              subtitle={getMediaContext(item)}
               mediaType={item.type}
               posterType={getPosterType(item)}
               tmdbId={getTmdbId(item)}
+              posterUrl={getTautulliImageUrl(item.tautulliPosterPath)}
             />
           ))}
         </PosterRow>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <PopularMediaPanel
+            title="Most Popular Movies"
+            items={stats?.popularMovies ?? []}
+          />
+          <PopularMediaPanel
+            title="Most Popular TV Shows"
+            items={stats?.popularTv ?? []}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <RankedMediaPanel
+            title="Oldest Media"
+            metricLabel="Added"
+            items={stats?.oldestItems ?? []}
+            formatMetric={(item) =>
+              new Date(item.addedAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: '2-digit',
+              })
+            }
+          />
+          <RankedMediaPanel
+            title="Biggest Media"
+            metricLabel="Size"
+            items={stats?.biggestItems ?? []}
+            formatMetric={(item) => formatBytes(item.sizeBytes)}
+          />
+        </div>
       </div>
       {selectedLeavingSoon ? (
         <LeavingSoonModal
@@ -903,7 +967,7 @@ const MetricCard = ({
     <p className="mt-2 text-lg font-bold text-zinc-50">{value}</p>
     <p className="mt-0.5 text-xs text-zinc-400">{detail}</p>
     {details?.length ? (
-      <div className="tiny-scrollbar mt-3 grid max-h-40 grid-cols-1 gap-2 overflow-y-auto pr-1 xs:grid-cols-2">
+      <div className="tiny-scrollbar mt-3 grid max-h-40 grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-1 xs:grid-cols-2">
         {details.map((item) => {
           const content = (
             <>
@@ -1061,7 +1125,7 @@ const LogsCard = () => {
           <ExternalLinkIcon className="h-4 w-4" />
         </Link>
       </div>
-      <div className="tiny-scrollbar mt-2 h-40 space-y-1 overflow-y-auto pr-1">
+      <div className="tiny-scrollbar mt-2 h-40 space-y-1 overflow-y-auto overscroll-contain pr-1">
         {logLines.length > 0 ? (
           logLines.map((row, index) => {
             const levelColor =
@@ -1351,7 +1415,7 @@ const RecentActivityRow = ({
         </span>
       </div>
     </div>
-    <div className="tiny-scrollbar mt-4 max-h-[13.5rem] overflow-y-auto pr-1">
+    <div className="tiny-scrollbar mt-4 max-h-[13.5rem] overflow-y-auto overscroll-contain pr-1">
       {activity.length > 0 ? (
         <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {activity.map((item) => (
@@ -1432,21 +1496,15 @@ const useHorizontalWheelScroll = () => {
     }
 
     const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
-        return
-      }
-
       const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth
-      const nextScrollLeft = scroller.scrollLeft + event.deltaY
-      const canScrollLeft = event.deltaY < 0 && scroller.scrollLeft > 0
-      const canScrollRight =
-        event.deltaY > 0 && scroller.scrollLeft < maxScrollLeft
-
-      if (!canScrollLeft && !canScrollRight) {
-        return
-      }
+      const wheelDelta =
+        Math.abs(event.deltaY) > Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX
+      const nextScrollLeft = scroller.scrollLeft + wheelDelta
 
       event.preventDefault()
+      event.stopPropagation()
       scroller.scrollLeft = Math.min(Math.max(nextScrollLeft, 0), maxScrollLeft)
     }
 
@@ -1478,7 +1536,7 @@ const PosterRow = ({
       <div className="relative">
         <div
           ref={scrollRef}
-          className="tiny-scrollbar mt-4 flex min-w-0 gap-3 overflow-x-auto pb-2"
+          className="tiny-scrollbar mt-4 flex min-w-0 gap-3 overflow-x-auto overscroll-contain pb-2"
         >
           {Array.isArray(items) && items.length === 0 ? (
             <EmptyState text={emptyText} />
@@ -1497,6 +1555,7 @@ const DashboardPoster = ({
   mediaType,
   posterType,
   tmdbId,
+  posterUrl,
   tone = 'default',
   daysLeft,
   onSelect,
@@ -1506,14 +1565,19 @@ const DashboardPoster = ({
   mediaType: string
   posterType: 'movie' | 'show'
   tmdbId?: string
+  posterUrl?: string
   tone?: 'default' | 'danger'
   daysLeft?: number
   onSelect?: () => void
 }) => {
-  const [posterPath, setPosterPath] = useState<string>()
+  const posterRequestKey = `${posterType}:${tmdbId ?? ''}`
+  const [resolvedPoster, setResolvedPoster] = useState<{
+    key: string
+    path: string
+  }>()
 
   useEffect(() => {
-    if (!tmdbId) {
+    if (posterUrl || !tmdbId) {
       return
     }
 
@@ -1521,7 +1585,7 @@ const DashboardPoster = ({
     GetApiHandler<string>(`/moviedb/image/${posterType}/${tmdbId}`).then(
       (path) => {
         if (active && path) {
-          setPosterPath(path)
+          setResolvedPoster({ key: posterRequestKey, path })
         }
       },
     )
@@ -1529,13 +1593,19 @@ const DashboardPoster = ({
     return () => {
       active = false
     }
-  }, [posterType, tmdbId])
+  }, [posterRequestKey, posterType, posterUrl, tmdbId])
+
+  const posterPath =
+    resolvedPoster?.key === posterRequestKey ? resolvedPoster.path : undefined
 
   const poster = (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-lg shadow-black/25">
-      {posterPath ? (
+      {posterUrl || posterPath ? (
         <img
-          src={`https://image.tmdb.org/t/p/w300_and_h450_face${posterPath}`}
+          src={
+            posterUrl ??
+            `https://image.tmdb.org/t/p/w300_and_h450_face${posterPath}`
+          }
           alt=""
           className="h-full w-full object-cover transition duration-200 group-hover:blur-[1px]"
         />
@@ -1596,6 +1666,106 @@ const DashboardPoster = ({
         <div className="group">{poster}</div>
       )}
     </div>
+  )
+}
+
+const PopularMediaPanel = ({
+  title,
+  items,
+}: {
+  title: string
+  items: AppPopularMediaItem[]
+}) => {
+  return (
+    <RankedMediaPanel
+      title={title}
+      metricLabel="Users"
+      items={items}
+      formatMetric={(item) => item.usersWatched.toString()}
+    />
+  )
+}
+
+function RankedMediaPanel<T extends RankedMediaItem>({
+  title,
+  metricLabel,
+  items,
+  formatMetric,
+}: {
+  title: string
+  metricLabel: string
+  items: T[]
+  formatMetric: (item: T) => string
+}) {
+  const featured = items[0]
+  const posterUrl = getTautulliImageUrl(featured?.posterPath)
+  const backdropUrl = getTautulliImageUrl(featured?.backdropPath)
+
+  return (
+    <section className="relative min-h-52 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-lg shadow-black/20">
+      {backdropUrl ? (
+        <img
+          src={backdropUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+        />
+      ) : undefined}
+      <div className="absolute inset-0 bg-zinc-950/55" />
+
+      <div className="relative flex h-full min-h-52 gap-3 p-3 sm:gap-4 sm:p-4">
+        <div className="w-20 flex-shrink-0 sm:w-24">
+          <div className="aspect-[2/3] overflow-hidden rounded border border-zinc-600 bg-zinc-950 shadow-md">
+            {posterUrl ? (
+              <img
+                src={posterUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center px-2 text-center text-xs font-semibold uppercase text-zinc-600">
+                No poster
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex items-center justify-between gap-3 border-b border-zinc-600/60 pb-2">
+            <h2 className="truncate text-sm font-bold uppercase text-zinc-100 sm:text-base">
+              {title}
+            </h2>
+            <span className="flex-shrink-0 text-[10px] font-semibold uppercase text-zinc-400 sm:text-xs">
+              {metricLabel}
+            </span>
+          </div>
+
+          {items.length ? (
+            <ol className="divide-y divide-zinc-700/70">
+              {items.map((item, index) => (
+                <li
+                  key={`${item.ratingKey}-${index}`}
+                  className="grid h-7 grid-cols-[1.25rem_minmax(0,1fr)_4.5rem] items-center gap-1 text-sm"
+                >
+                  <span className="text-right text-xs text-zinc-500">
+                    {index + 1}
+                  </span>
+                  <span className="truncate text-zinc-200" title={item.title}>
+                    {item.title}
+                  </span>
+                  <span className="text-right font-semibold text-amber-400">
+                    {formatMetric(item)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="flex min-h-32 items-center justify-center text-sm text-zinc-500">
+              No ranked media found.
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -1810,7 +1980,7 @@ const CollectionRow = ({
       </div>
       <div
         ref={scrollRef}
-        className="tiny-scrollbar mt-4 flex min-w-0 gap-3 overflow-x-auto pb-2"
+        className="tiny-scrollbar mt-4 flex min-w-0 gap-3 overflow-x-auto overscroll-contain pb-2"
       >
         {collections.length > 0 ? (
           collections.map((collection) => (

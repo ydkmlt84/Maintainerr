@@ -33,6 +33,62 @@ export interface TautulliMetadata {
   added_at: string
 }
 
+export interface TautulliRecentlyAddedItem {
+  media_type: string
+  section_id: string
+  library_name: string
+  rating_key: string
+  parent_rating_key: string
+  grandparent_rating_key: string
+  title: string
+  parent_title: string
+  grandparent_title: string
+  media_index: string
+  parent_media_index: string
+  content_rating: string
+  summary: string
+  audience_rating: string
+  user_rating: string
+  duration: string
+  year: string
+  thumb: string
+  parent_thumb: string
+  grandparent_thumb: string
+  originally_available_at: string
+  added_at: string
+  updated_at: string
+  last_viewed_at: string
+  guid: string
+  guids: string[]
+  genres: string[]
+  labels: string[]
+  collections: string[]
+  child_count: string
+}
+
+interface TautulliRecentlyAddedResponse {
+  recently_added: TautulliRecentlyAddedItem[]
+}
+
+export interface TautulliHomeStatRow {
+  title: string
+  year: number
+  users_watched: number | string
+  total_plays: number
+  rating_key: number
+  grandparent_rating_key: number | string
+  thumb: string
+  grandparent_thumb: string
+  art: string
+  media_type: string
+}
+
+export interface TautulliHomeStat {
+  stat_id: string
+  stat_title: string
+  rows: TautulliHomeStatRow[]
+}
+
 interface TautulliChildrenMetadata {
   children_count: number
   children_list: TautulliMetadata[]
@@ -241,6 +297,96 @@ export class TautulliApiService {
     } catch (e) {
       this.logger.log(`Couldn't fetch Tautulli metadata: ${e.message}`)
       this.logger.debug(e)
+      return null
+    }
+  }
+
+  public async getRecentlyAdded(
+    count = 12,
+  ): Promise<TautulliRecentlyAddedItem[] | null> {
+    try {
+      const response: Response<TautulliRecentlyAddedResponse> =
+        await this.api.getWithoutCache('', {
+          params: {
+            cmd: 'get_recently_added',
+            count,
+          },
+        })
+
+      if (response.response.result !== 'success') {
+        throw new Error(
+          'Non-success response when fetching Tautulli recently added media',
+        )
+      }
+
+      return response.response.data.recently_added ?? []
+    } catch (e) {
+      this.logger.log(
+        `Couldn't fetch Tautulli recently added media: ${e.message}`,
+      )
+      this.logger.debug(e)
+      return null
+    }
+  }
+
+  public async getHomeStats(
+    timeRange = 30,
+    statsCount = 5,
+  ): Promise<TautulliHomeStat[] | null> {
+    try {
+      const response: Response<TautulliHomeStat[]> = await this.api.get(
+        '',
+        {
+          params: {
+            cmd: 'get_home_stats',
+            time_range: timeRange,
+            stats_count: statsCount,
+          },
+        },
+        300,
+      )
+
+      if (response.response.result !== 'success') {
+        throw new Error(
+          'Non-success response when fetching Tautulli home stats',
+        )
+      }
+
+      return response.response.data
+    } catch (e) {
+      this.logger.log(`Couldn't fetch Tautulli home stats: ${e.message}`)
+      this.logger.debug(e)
+      return null
+    }
+  }
+
+  public async getImage(
+    path: string,
+  ): Promise<{ data: Buffer; contentType: string } | null> {
+    if (!path) return null
+
+    const match = path.match(/^\/library\/metadata\/(\d+)\/(?:thumb|art)\/\d+$/)
+    if (!match) return null
+
+    try {
+      const isBackdrop = path.includes('/art/')
+      const response = await this.api.getRawWithoutCache<ArrayBuffer>('', {
+        responseType: 'arraybuffer',
+        params: {
+          cmd: 'pms_image_proxy',
+          img: path,
+          rating_key: match[1],
+          width: isBackdrop ? 800 : 300,
+          height: 450,
+        },
+      })
+
+      return {
+        data: Buffer.from(response.data),
+        contentType: response.headers['content-type'] ?? 'image/jpeg',
+      }
+    } catch (e) {
+      this.logger.debug(`Couldn't fetch Tautulli image ${path}: ${e.message}`)
       return null
     }
   }

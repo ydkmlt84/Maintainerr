@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { MediaServerModule } from '../api/media-server/media-server.module'
+import { PlexApiModule } from '../api/plex-api/plex-api.module'
 import { ServarrApiModule } from '../api/servarr-api/servarr-api.module'
+import { TautulliApiModule } from '../api/tautulli-api/tautulli-api.module'
 import { CollectionsModule } from '../collections/collections.module'
 import { CollectionLog } from '../collections/entities/collection_log.entities'
 import { CollectionMedia } from '../collections/entities/collection_media.entities'
@@ -14,7 +16,9 @@ import { StatsService } from './stats.service'
   imports: [
     CollectionsModule,
     MediaServerModule,
+    PlexApiModule,
     ServarrApiModule,
+    TautulliApiModule,
     TypeOrmModule.forFeature([
       CollectionLog,
       CollectionMedia,

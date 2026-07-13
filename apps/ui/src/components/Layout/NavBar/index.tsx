@@ -154,7 +154,7 @@ const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
             <MenuIcon className="h-5 w-5" />
           )}
         </button>
-        <div className="hidden max-w-sm flex-shrink-0 items-center gap-2 xl:flex">
+        <div className="hidden max-w-xl flex-shrink-0 items-center gap-2 xl:flex">
           <Messages />
           <VersionStatus />
         </div>
