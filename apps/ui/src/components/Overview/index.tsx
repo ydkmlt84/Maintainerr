@@ -1479,9 +1479,10 @@ const RecentActivityThumbnail = ({ item }: { item: AppRecentActivityItem }) => {
       src={`https://image.tmdb.org/t/p/w92${posterPath}`}
       alt=""
       className="h-[4.5rem] w-12 rounded-md object-cover"
+      onError={() => setPosterPath(undefined)}
     />
   ) : (
-    <div className="h-[4.5rem] w-12 rounded-md bg-zinc-800" />
+    <span className="block h-[4.5rem] w-12" aria-hidden="true" />
   )
 }
 

@@ -206,11 +206,14 @@ export class PlexApiService {
     }
   }
 
-  public async getLibraries(): Promise<PlexLibrary[]> {
+  public async getLibraries(useCache = true): Promise<PlexLibrary[]> {
     try {
-      const response = await this.plexClient.queryAll<PlexLibrariesResponse>({
-        uri: '/library/sections',
-      })
+      const response = await this.plexClient.queryAll<PlexLibrariesResponse>(
+        {
+          uri: '/library/sections',
+        },
+        useCache,
+      )
 
       return (
         response.MediaContainer.Directory?.filter(
@@ -223,6 +226,37 @@ export class PlexApiService {
         err,
       )
       return undefined
+    }
+  }
+
+  public async emptyTrash(): Promise<{
+    libraryCount: number
+    libraries: string[]
+  }> {
+    if (!this.isPlexSetup()) {
+      throw new Error('Plex is not configured')
+    }
+
+    const libraries = await this.getLibraries(false)
+    if (!libraries) {
+      throw new Error('Could not fetch Plex libraries')
+    }
+
+    const emptiedLibraries: string[] = []
+    for (const library of libraries) {
+      await this.plexClient.putQuery({
+        uri: `/library/sections/${library.key}/emptyTrash`,
+      })
+      emptiedLibraries.push(library.title)
+    }
+
+    this.logger.log(
+      `Emptied Plex trash for ${emptiedLibraries.length} libraries: ${emptiedLibraries.join(', ')}`,
+    )
+
+    return {
+      libraryCount: emptiedLibraries.length,
+      libraries: emptiedLibraries,
     }
   }
 
@@ -256,7 +290,13 @@ export class PlexApiService {
       offset = 0,
       size = 50,
       sort,
-    }: { offset?: number; size?: number; sort?: string } = {},
+      trash,
+    }: {
+      offset?: number
+      size?: number
+      sort?: string
+      trash?: boolean
+    } = {},
     datatype?: EPlexDataType,
     useCache: boolean = true,
   ): Promise<{ totalSize: number; items: PlexLibraryItem[] }> {
@@ -265,6 +305,7 @@ export class PlexApiService {
         includeGuids: '1',
         ...(datatype ? { type: datatype.toString() } : {}),
         ...(sort ? { sort } : {}),
+        ...(trash ? { trash: '1' } : {}),
       })
       const response = await this.plexClient.query<PlexLibraryResponse>(
         {
@@ -524,17 +565,20 @@ export class PlexApiService {
     }
   }
 
-  public async deleteMediaFromDisk(plexId: number | string): Promise<void> {
+  public async deleteMediaFromDisk(
+    plexId: number | string,
+    title?: string,
+  ): Promise<void> {
     try {
       await this.plexClient.deleteQuery({
         uri: `/library/metadata/${plexId}`,
       })
       this.logger.log(
-        `[Plex] Removed media with ID ${plexId} from Plex library.`,
+        `[Plex] Removed ${title ? `"${title}" (` : ''}Plex ID ${plexId}${title ? ')' : ''} from Plex library.`,
       )
     } catch (e) {
       this.logger.error(
-        `Something went wrong while removing media ${plexId} from Plex.`,
+        `Something went wrong while removing ${title ? `"${title}" (` : ''}Plex ID ${plexId}${title ? ')' : ''} from Plex.`,
         e,
       )
     }

@@ -47,32 +47,11 @@ const SettingsWrapper = () => {
     // User must select via MediaServerSelector in General settings
 
     // Add remaining tabs
-    baseRoutes.push(
-      {
-        text: 'Seerr',
-        route: '/settings/seerr',
-        regex: /^\/settings\/seerr$/,
-      },
-      {
-        text: 'Radarr',
-        route: '/settings/radarr',
-        regex: /^\/settings\/radarr$/,
-      },
-      {
-        text: 'Sonarr',
-        route: '/settings/sonarr',
-        regex: /^\/settings\/sonarr$/,
-      },
-    )
-
-    // Tautulli is a Plex-only integration
-    if (mediaServerType === MediaServerType.PLEX) {
-      baseRoutes.push({
-        text: 'Tautulli',
-        route: '/settings/tautulli',
-        regex: /^\/settings\/tautulli$/,
-      })
-    }
+    baseRoutes.push({
+      text: 'Services',
+      route: '/settings/services',
+      regex: /^\/settings\/(services|seerr|radarr|sonarr|tautulli)$/,
+    })
 
     baseRoutes.push(
       {
@@ -89,6 +68,11 @@ const SettingsWrapper = () => {
         text: 'Jobs',
         route: '/settings/jobs',
         regex: /^\/settings\/jobs$/,
+      },
+      {
+        text: 'ID Audit',
+        route: '/settings/reports',
+        regex: /^\/settings\/reports$/,
       },
       {
         text: 'About',

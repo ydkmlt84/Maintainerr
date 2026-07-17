@@ -69,6 +69,7 @@ export function camelCaseToPrettyText(camelCaseStr: string): string {
   return camelCaseStr
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/^./, (char) => char.toUpperCase())
+    .replace(/\bId\b/g, 'ID')
     .trim()
 }
 

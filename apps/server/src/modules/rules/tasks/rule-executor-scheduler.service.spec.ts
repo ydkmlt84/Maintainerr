@@ -47,11 +47,16 @@ describe('RuleExecutorSchedulerService', () => {
       getQueuedRuleGroupIds: jest.fn().mockReturnValue([] as number[]),
     }
 
+    const tasksService = {
+      registerExternalJob: jest.fn(),
+    }
+
     const service = new RuleExecutorSchedulerService(
       schedulerRegistry as any,
       rulesService as any,
       settingsService as any,
       queueManager as any,
+      tasksService as any,
       logger as any,
     )
 
@@ -61,6 +66,7 @@ describe('RuleExecutorSchedulerService', () => {
       rulesService,
       settingsService,
       queueManager,
+      tasksService,
     }
   }
 

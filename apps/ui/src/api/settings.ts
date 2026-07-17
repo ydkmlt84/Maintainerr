@@ -48,6 +48,7 @@ interface ISettings {
   tautulli_api_key: string
   collection_handler_job_cron: string
   rules_handler_job_cron: string
+  media_id_audit_job_cron: string
 }
 
 // Jellyfin test result (not in contracts as it's UI-specific)

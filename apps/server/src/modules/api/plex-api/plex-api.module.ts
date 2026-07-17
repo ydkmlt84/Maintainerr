@@ -3,6 +3,7 @@ import { SettingsModule } from '../../../modules/settings/settings.module'
 import { MediaServerModule } from '../media-server/media-server.module'
 import { PlexApiLegacyController } from './plex-api-legacy.controller'
 import { PlexApiService } from './plex-api.service'
+import { PlexMaintenanceController } from './plex-maintenance.controller'
 
 /**
  * PlexApiModule
@@ -20,7 +21,7 @@ import { PlexApiService } from './plex-api.service'
     forwardRef(() => SettingsModule),
     forwardRef(() => MediaServerModule),
   ],
-  controllers: [PlexApiLegacyController],
+  controllers: [PlexApiLegacyController, PlexMaintenanceController],
   providers: [PlexApiService],
   exports: [PlexApiService],
 })

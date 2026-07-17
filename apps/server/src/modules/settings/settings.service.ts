@@ -81,6 +81,8 @@ export class SettingsService implements SettingDto {
 
   rules_handler_job_cron: string
 
+  media_id_audit_job_cron: string
+
   constructor(
     @Inject(forwardRef(() => PlexApiService))
     private readonly plexApi: PlexApiService,
@@ -133,6 +135,7 @@ export class SettingsService implements SettingDto {
       this.tautulli_api_key = settingsDb?.tautulli_api_key
       this.collection_handler_job_cron = settingsDb?.collection_handler_job_cron
       this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron
+      this.media_id_audit_job_cron = settingsDb?.media_id_audit_job_cron
 
       // Auto-detect media server type when not set but credentials exist.
       // This handles upgrades from pre-Jellyfin versions (Plex) and any future
@@ -770,7 +773,8 @@ export class SettingsService implements SettingDto {
   public async updateSettings(settings: Settings): Promise<BasicResponseDto> {
     if (
       !this.cronIsValid(settings.collection_handler_job_cron) ||
-      !this.cronIsValid(settings.rules_handler_job_cron)
+      !this.cronIsValid(settings.rules_handler_job_cron) ||
+      !this.cronIsValid(settings.media_id_audit_job_cron)
     ) {
       this.logger.error(
         'Invalid CRON configuration found, settings update aborted.',

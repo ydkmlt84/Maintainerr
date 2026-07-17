@@ -63,6 +63,12 @@ interface TmdbMediaAssets {
   trailerUrl?: string
 }
 
+interface MetadataIdLink {
+  key: string
+  label: string
+  href?: string
+}
+
 const basePath = import.meta.env.VITE_BASE_PATH ?? ''
 const ratingIcons: Record<string, string> = {
   audience: `${basePath}/icons_logos/tmdb_icon.svg`,
@@ -114,6 +120,12 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     const [loading, setLoading] = useState<boolean>(true)
     const [backdrop, setBackdrop] = useState<string | null>(null)
     const [trailerUrl, setTrailerUrl] = useState<string | null>(null)
+    const [resolvedTmdbId, setResolvedTmdbId] = useState<
+      string | null | undefined
+    >(tmdbid)
+    const [resolvedSeasonNumber, setResolvedSeasonNumber] = useState<
+      number | null | undefined
+    >(['season', 'episode'].includes(mediaType) ? undefined : null)
     const [playingTrailerFor, setPlayingTrailerFor] = useState<string | null>(
       null,
     )
@@ -123,6 +135,9 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
       null,
     )
     const [metadata, setMetadata] = useState<MediaItem | null>(null)
+    const [parentMetadata, setParentMetadata] = useState<MediaItem | null>(null)
+    const [grandparentMetadata, setGrandparentMetadata] =
+      useState<MediaItem | null>(null)
     const [maintainerrContext, setMaintainerrContext] =
       useState<MediaMaintainerrContext | null>(null)
     const [contextLoading, setContextLoading] = useState(true)
@@ -147,20 +162,72 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
         setTautulliModalUrl(resp?.tautulli_url || null),
       )
       GetApiHandler<MediaItem>(`/media-server/meta/${id}`)
-        .then(setMetadata)
-        .catch(() => setMetadata(null))
+        .then(async (item) => {
+          setMetadata(item)
+          setResolvedSeasonNumber(
+            mediaType === 'season'
+              ? (item?.index ?? null)
+              : mediaType === 'episode'
+                ? (item?.parentIndex ?? null)
+                : null,
+          )
+
+          const [parent, grandparent] = await Promise.all([
+            item?.parentId
+              ? GetApiHandler<MediaItem>(
+                  `/media-server/meta/${item.parentId}`,
+                ).catch(() => null)
+              : Promise.resolve(null),
+            item?.grandparentId
+              ? GetApiHandler<MediaItem>(
+                  `/media-server/meta/${item.grandparentId}`,
+                ).catch(() => null)
+              : Promise.resolve(null),
+          ])
+          setParentMetadata(parent)
+          setGrandparentMetadata(grandparent)
+
+          const show = mediaType === 'episode' ? grandparent : parent
+          const assetTmdbId =
+            tmdbid ??
+            (['season', 'episode'].includes(mediaType)
+              ? show?.providerIds?.tmdb?.[0]
+              : item?.providerIds?.tmdb?.[0])
+
+          setResolvedTmdbId(assetTmdbId ?? null)
+        })
+        .catch(() => {
+          setMetadata(null)
+          setParentMetadata(null)
+          setGrandparentMetadata(null)
+        })
         .finally(() => setLoading(false))
       GetApiHandler<MediaMaintainerrContext>(`/collections/media-context/${id}`)
         .then(setMaintainerrContext)
         .catch(() => setMaintainerrContext(null))
         .finally(() => setContextLoading(false))
+    }, [id, mediaType, tmdbid])
+
+    useEffect(() => {
+      queueMicrotask(() => {
+        setBackdrop(null)
+        setTrailerUrl(null)
+      })
+
       // Fetch the backdrop and trailer from one cached TMDB detail response.
-      if (tmdbid) {
+      const childAssetsReady =
+        !['season', 'episode'].includes(mediaType) ||
+        resolvedSeasonNumber !== undefined
+      if (resolvedTmdbId && childAssetsReady) {
         const backdropType = ['season', 'episode'].includes(mediaType)
           ? 'show'
           : mediaType
+        const seasonQuery =
+          resolvedSeasonNumber !== null && resolvedSeasonNumber !== undefined
+            ? `?seasonNumber=${resolvedSeasonNumber}`
+            : ''
         GetApiHandler<TmdbMediaAssets>(
-          `/moviedb/assets/${backdropType}/${tmdbid}`,
+          `/moviedb/assets/${backdropType}/${resolvedTmdbId}${seasonQuery}`,
         )
           .then((resp) => {
             setBackdrop(resp?.backdropPath ?? null)
@@ -174,13 +241,8 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             setBackdrop(null)
             setTrailerUrl(null)
           })
-      } else {
-        console.warn(
-          `No TMDB ID found for "${title}" (id: ${id}). Backdrop image unavailable. ` +
-            'Please check your media server metadata - the item may not be matched correctly.',
-        )
       }
-    }, [id, mediaType, tmdbid, title])
+    }, [mediaType, resolvedSeasonNumber, resolvedTmdbId])
 
     const totalFileSize = useMemo(
       () =>
@@ -200,8 +262,129 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
         return null
       }
     }, [trailerUrl])
-    const trailerIdentity = `${mediaType}:${id}:${tmdbid ?? ''}`
+    const trailerIdentity = `${mediaType}:${id}:${resolvedTmdbId ?? ''}`
     const trailerPlaying = playingTrailerFor === trailerIdentity
+    const metadataIdLinks = useMemo<MetadataIdLink[]>(() => {
+      if (!metadata) return []
+
+      const links: MetadataIdLink[] = []
+      const plexUrl = (plexId: string) =>
+        machineId
+          ? `https://app.plex.tv/desktop#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${plexId}`
+          : undefined
+      const showTmdbId =
+        mediaType === 'episode'
+          ? grandparentMetadata?.providerIds.tmdb?.[0]
+          : mediaType === 'season'
+            ? parentMetadata?.providerIds.tmdb?.[0]
+            : undefined
+      const itemTmdbUrl = (tmdbId: string) => {
+        if (mediaType === 'movie') {
+          return `https://www.themoviedb.org/movie/${tmdbId}`
+        }
+        if (mediaType === 'show') {
+          return `https://www.themoviedb.org/tv/${tmdbId}`
+        }
+        if (mediaType === 'season' && showTmdbId && metadata.index != null) {
+          return `https://www.themoviedb.org/tv/${showTmdbId}/season/${metadata.index}`
+        }
+        if (
+          mediaType === 'episode' &&
+          showTmdbId &&
+          metadata.parentIndex != null &&
+          metadata.index != null
+        ) {
+          return `https://www.themoviedb.org/tv/${showTmdbId}/season/${metadata.parentIndex}/episode/${metadata.index}`
+        }
+        return undefined
+      }
+      const tvdbEntityType =
+        mediaType === 'movie'
+          ? 'movie'
+          : mediaType === 'show'
+            ? 'series'
+            : mediaType
+
+      if (isPlex || machineId) {
+        links.push({
+          key: `plex-${metadata.id}`,
+          label: `plex://${metadata.id}`,
+          href: plexUrl(metadata.id),
+        })
+      }
+      metadata.providerIds.tmdb?.forEach((tmdbId) =>
+        links.push({
+          key: `tmdb-${tmdbId}`,
+          label: `tmdb://${tmdbId}`,
+          href: itemTmdbUrl(tmdbId),
+        }),
+      )
+      metadata.providerIds.imdb?.forEach((imdbId) =>
+        links.push({
+          key: `imdb-${imdbId}`,
+          label: `imdb://${imdbId}`,
+          href: `https://www.imdb.com/title/${imdbId}`,
+        }),
+      )
+      if (mediaType !== 'movie') {
+        metadata.providerIds.tvdb?.forEach((tvdbId) =>
+          links.push({
+            key: `tvdb-${tvdbId}`,
+            label: `tvdb://${tvdbId}`,
+            href: `https://thetvdb.com/dereferrer/${tvdbEntityType}/${tvdbId}`,
+          }),
+        )
+      }
+
+      if (parentMetadata) {
+        if (isPlex) {
+          links.push({
+            key: `parent-plex-${parentMetadata.id}`,
+            label: `parent-plex://${parentMetadata.id}`,
+            href: plexUrl(parentMetadata.id),
+          })
+        }
+        parentMetadata.providerIds.tmdb?.forEach((tmdbId) =>
+          links.push({
+            key: `parent-tmdb-${tmdbId}`,
+            label: `parent-tmdb://${tmdbId}`,
+            href:
+              mediaType === 'episode'
+                ? showTmdbId &&
+                  (parentMetadata.index ?? metadata.parentIndex) != null
+                  ? `https://www.themoviedb.org/tv/${showTmdbId}/season/${parentMetadata.index ?? metadata.parentIndex}`
+                  : undefined
+                : `https://www.themoviedb.org/tv/${tmdbId}`,
+          }),
+        )
+      }
+
+      if (grandparentMetadata) {
+        if (isPlex) {
+          links.push({
+            key: `grandparent-plex-${grandparentMetadata.id}`,
+            label: `grandparent-plex://${grandparentMetadata.id}`,
+            href: plexUrl(grandparentMetadata.id),
+          })
+        }
+        grandparentMetadata.providerIds.tmdb?.forEach((tmdbId) =>
+          links.push({
+            key: `grandparent-tmdb-${tmdbId}`,
+            label: `grandparent-tmdb://${tmdbId}`,
+            href: `https://www.themoviedb.org/tv/${tmdbId}`,
+          }),
+        )
+      }
+
+      return links
+    }, [
+      grandparentMetadata,
+      isPlex,
+      machineId,
+      mediaType,
+      metadata,
+      parentMetadata,
+    ])
     const playCount = metadata?.viewCount ?? metadata?.watchedChildCount
     const hasMaintainerrData = Boolean(
       maintainerrContext &&
@@ -298,15 +481,17 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : backdrop ? (
               <div
                 className="h-full w-full rounded-xl bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: backdrop
-                    ? `url(https://image.tmdb.org/t/p/w1280${backdrop})`
-                    : 'linear-gradient(to bottom, #1e293b, #1e293b)',
+                  backgroundImage: `url(https://image.tmdb.org/t/p/w1280${backdrop})`,
                 }}
               />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-xl bg-zinc-800/70 text-zinc-600">
+                <FilmIcon className="h-16 w-16" aria-hidden="true" />
+              </div>
             )}
             {loading && !trailerPlaying && (
               <div className="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center bg-black bg-opacity-50">
@@ -370,10 +555,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                 </div>
                 <div className="flex flex-col items-end">
                   <div className="max-w-fit grow">
-                    {tmdbid && (
+                    {resolvedTmdbId && (
                       <div>
                         <a
-                          href={`https://themoviedb.org/${mediaTypeOf}/${tmdbid}`}
+                          href={`https://themoviedb.org/${mediaTypeOf}/${resolvedTmdbId}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -599,38 +784,29 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             </section>
 
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              {metadata?.providerIds &&
-                ['movie', 'show'].includes(mediaType) &&
-                (metadata.providerIds.tmdb?.length ||
-                  metadata.providerIds.imdb?.length ||
-                  metadata.providerIds.tvdb?.length) && (
-                  <div className="flex flex-wrap items-center gap-1 text-xs text-zinc-400">
-                    {metadata.providerIds.tmdb?.map((id) => (
-                      <span
-                        key={`tmdb-${id}`}
-                        className="flex items-center justify-center rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300"
+              {metadataIdLinks.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 text-xs text-zinc-400">
+                  {metadataIdLinks.map((metadataId) => {
+                    const className =
+                      'flex items-center justify-center rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300'
+                    return metadataId.href ? (
+                      <a
+                        key={metadataId.key}
+                        href={metadataId.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`${className} transition hover:bg-zinc-900 hover:text-white`}
                       >
-                        tmdb://{id}
+                        {metadataId.label}
+                      </a>
+                    ) : (
+                      <span key={metadataId.key} className={className}>
+                        {metadataId.label}
                       </span>
-                    ))}
-                    {metadata.providerIds.imdb?.map((id) => (
-                      <span
-                        key={`imdb-${id}`}
-                        className="flex items-center justify-center rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300"
-                      >
-                        imdb://{id}
-                      </span>
-                    ))}
-                    {metadata.providerIds.tvdb?.map((id) => (
-                      <span
-                        key={`tvdb-${id}`}
-                        className="flex items-center justify-center rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300"
-                      >
-                        tvdb://{id}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                    )
+                  })}
+                </div>
+              )}
               <div className="ml-auto flex space-x-3">
                 <button
                   onClick={onClose}

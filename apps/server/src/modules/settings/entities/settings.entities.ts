@@ -76,4 +76,7 @@ export class Settings implements SettingDto {
 
   @Column({ nullable: false, default: CronExpression.EVERY_8_HOURS })
   rules_handler_job_cron: string
+
+  @Column({ nullable: false, default: '0 9 * * *' })
+  media_id_audit_job_cron: string
 }

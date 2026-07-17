@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common'
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common'
 import { TmdbApiService } from './tmdb.service'
 
 @Controller('api/moviedb')
@@ -27,8 +27,10 @@ export class TmdbApiController {
   getMediaAssets(
     @Param('tmdbId', new ParseIntPipe()) tmdbId: number,
     @Param('type') type: 'movie' | 'show',
+    @Query('seasonNumber', new ParseIntPipe({ optional: true }))
+    seasonNumber?: number,
   ) {
-    return this.movieDbApi.getMediaAssets({ tmdbId, type })
+    return this.movieDbApi.getMediaAssets({ tmdbId, type, seasonNumber })
   }
   @Get('/image/:type/:tmdbId')
   getImage(

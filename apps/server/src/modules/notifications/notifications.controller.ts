@@ -1,5 +1,16 @@
 import { BasicResponseDto } from '@maintainerr/contracts'
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+} from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import {
   NotificationAgentKey,
@@ -96,10 +107,64 @@ export class NotificationsController {
     return this.notificationService.getNotificationConfigurations()
   }
 
+  @Get('/type/:type/configurations')
+  async getNotificationTypeAssignments(
+    @Param('type', ParseIntPipe) type: number,
+  ) {
+    const notificationType = this.parseNotificationType(type)
+    return this.notificationService.getNotificationTypeAssignments(
+      notificationType,
+    )
+  }
+
+  @Put('/type/:type/configurations/:id')
+  async setNotificationTypeAssignment(
+    @Param('type', ParseIntPipe) type: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { selected: boolean; aboutScale?: number },
+  ) {
+    if (typeof payload.selected !== 'boolean') {
+      throw new BadRequestException('selected must be a boolean')
+    }
+
+    const notificationType = this.parseNotificationType(type)
+    if (payload.aboutScale !== undefined) {
+      if (notificationType !== NotificationType.MEDIA_ABOUT_TO_BE_HANDLED) {
+        throw new BadRequestException(
+          'aboutScale is only valid for media about to be handled notifications',
+        )
+      }
+      if (!Number.isInteger(payload.aboutScale) || payload.aboutScale < 0) {
+        throw new BadRequestException(
+          'aboutScale must be a non-negative integer',
+        )
+      }
+    }
+
+    const result = await this.notificationService.setNotificationTypeAssignment(
+      id,
+      notificationType,
+      payload.selected,
+      payload.aboutScale,
+    )
+    if (!result) throw new NotFoundException('Notification agent not found')
+    return result
+  }
+
   @Delete('/configuration/:id')
   async deleteNotificationConfiguration(@Param('id') notificationId: number) {
     return this.notificationService.deleteNotificationConfiguration(
       notificationId,
     )
+  }
+
+  private parseNotificationType(type: number): NotificationType {
+    if (
+      !Object.values(NotificationType).includes(type) ||
+      type === NotificationType.TEST_NOTIFICATION
+    ) {
+      throw new BadRequestException('Unknown notification type')
+    }
+    return type as NotificationType
   }
 }

@@ -21,6 +21,7 @@ export class RadarrActionHandler {
   public async handleAction(
     collection: Collection,
     media: CollectionMedia,
+    mediaTitle?: string,
   ): Promise<void> {
     const radarrApiClient = await this.servarrApi.getRadarrApiClient(
       collection.radarrSettingsId,
@@ -36,6 +37,9 @@ export class RadarrActionHandler {
         )?.id
 
     if (tmdbid) {
+      const mediaLabel = mediaTitle
+        ? `"${mediaTitle}" (Plex ID ${media.mediaServerId})`
+        : `Plex ID ${media.mediaServerId}`
       const radarrMedia = await radarrApiClient.getMovieByTmdbId(tmdbid)
       if (radarrMedia?.id) {
         switch (collection.arrAction) {
@@ -73,19 +77,21 @@ export class RadarrActionHandler {
       } else {
         if (collection.arrAction !== ServarrAction.UNMONITOR) {
           this.logger.log(
-            `Couldn't find movie with tmdb id ${tmdbid} in Radarr, so no Radarr action was taken for movie with media server ID ${media.mediaServerId}. Attempting to remove from the filesystem via media server.`,
+            `Couldn't find movie with TMDB ID ${tmdbid} in Radarr, so no Radarr action was taken for ${mediaLabel}. Attempting to remove it from the filesystem via the media server.`,
           )
           const mediaServer = await this.mediaServerFactory.getService()
-          await mediaServer.deleteFromDisk(media.mediaServerId)
+          await (mediaTitle
+            ? mediaServer.deleteFromDisk(media.mediaServerId, mediaTitle)
+            : mediaServer.deleteFromDisk(media.mediaServerId))
         } else {
           this.logger.log(
-            `Radarr unmonitor action was not possible, couldn't find movie with tmdb id ${tmdbid} in Radarr. No action was taken for movie with media server ID ${media.mediaServerId}`,
+            `Radarr unmonitor action was not possible because TMDB ID ${tmdbid} was not found in Radarr. No action was taken for ${mediaLabel}.`,
           )
         }
       }
     } else {
       this.logger.log(
-        `Couldn't find correct tmdb id. No action taken for movie with media server ID: ${media.mediaServerId}. Please check this movie manually`,
+        `Couldn't find the correct TMDB ID. No action was taken for ${mediaTitle ? `"${mediaTitle}" (` : ''}Plex ID ${media.mediaServerId}${mediaTitle ? ')' : ''}. Please check this movie manually.`,
       )
     }
   }

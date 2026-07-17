@@ -3,6 +3,7 @@ export interface DiscordOptions {
   botUsername?: string
   botAvatarUrl?: string
   webhookUrl: string
+  mentionRoleId?: string
 }
 
 export interface SlackOptions {
@@ -155,4 +156,5 @@ export enum NotificationType {
   RULE_HANDLING_FAILED = 32,
   COLLECTION_HANDLING_FAILED = 64,
   TEST_NOTIFICATION = 128,
+  MEDIA_ID_AUDIT = 256,
 }

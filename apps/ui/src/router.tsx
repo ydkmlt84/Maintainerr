@@ -9,7 +9,6 @@ const Overview = lazy(() => import('./components/Overview'))
 const Settings = lazy(() => import('./components/Settings'))
 const SettingsAbout = lazy(() => import('./components/Settings/About'))
 const SettingsJellyfin = lazy(() => import('./components/Settings/Jellyfin'))
-const SettingsSeerr = lazy(() => import('./components/Settings/Seerr'))
 const SettingsJobs = lazy(() => import('./components/Settings/Jobs'))
 const SettingsLogs = lazy(() => import('./components/Settings/Logs'))
 const SettingsMain = lazy(() => import('./components/Settings/Main'))
@@ -17,9 +16,7 @@ const SettingsNotifications = lazy(
   () => import('./components/Settings/Notifications'),
 )
 const SettingsPlex = lazy(() => import('./components/Settings/Plex'))
-const SettingsRadarr = lazy(() => import('./components/Settings/Radarr'))
-const SettingsSonarr = lazy(() => import('./components/Settings/Sonarr'))
-const SettingsTautulli = lazy(() => import('./components/Settings/Tautulli'))
+const SettingsServices = lazy(() => import('./components/Settings/Services'))
 const CollectionDetailPage = lazy(() => import('./pages/CollectionDetailPage'))
 const CollectionExclusionsPage = lazy(
   () => import('./pages/CollectionExclusionsPage'),
@@ -30,6 +27,7 @@ const CollectionsListPage = lazy(() => import('./pages/CollectionsListPage'))
 const DocsPage = lazy(() => import('./pages/DocsPage'))
 const RuleFormPage = lazy(() => import('./pages/RuleFormPage'))
 const RulesListPage = lazy(() => import('./pages/RulesListPage'))
+const MediaIdAuditPage = lazy(() => import('./pages/MediaIdAuditPage'))
 
 const basePath = import.meta.env.VITE_BASE_PATH || ''
 
@@ -121,6 +119,10 @@ export const router = createBrowserRouter(
           element: page(<Calendar />),
         },
         {
+          path: 'reports/media-id-audit',
+          element: <Navigate to="/settings/reports" replace />,
+        },
+        {
           path: 'settings',
           element: page(<Settings />),
           children: [
@@ -141,20 +143,24 @@ export const router = createBrowserRouter(
               element: page(<SettingsJellyfin />),
             },
             {
+              path: 'services',
+              element: page(<SettingsServices />),
+            },
+            {
               path: 'sonarr',
-              element: page(<SettingsSonarr />),
+              element: <Navigate to="/settings/services" replace />,
             },
             {
               path: 'radarr',
-              element: page(<SettingsRadarr />),
+              element: <Navigate to="/settings/services" replace />,
             },
             {
               path: 'seerr',
-              element: page(<SettingsSeerr />),
+              element: <Navigate to="/settings/services" replace />,
             },
             {
               path: 'tautulli',
-              element: page(<SettingsTautulli />),
+              element: <Navigate to="/settings/services" replace />,
             },
             {
               path: 'notifications',
@@ -163,6 +169,10 @@ export const router = createBrowserRouter(
             {
               path: 'jobs',
               element: page(<SettingsJobs />),
+            },
+            {
+              path: 'reports',
+              element: page(<MediaIdAuditPage />),
             },
             {
               path: 'logs',

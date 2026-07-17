@@ -24,12 +24,20 @@ describe('TasksService', () => {
 
   let schedulerRegistry: MockSchedulerRegistry
   let tasksService: TasksService
+  const taskExecutionRepository = {
+    find: jest.fn().mockResolvedValue([]),
+    upsert: jest.fn().mockResolvedValue(undefined),
+  }
   const logger = createMockLogger() as unknown as MaintainerrLogger
 
   beforeEach(() => {
+    jest.clearAllMocks()
+    taskExecutionRepository.find.mockResolvedValue([])
+    taskExecutionRepository.upsert.mockResolvedValue(undefined)
     schedulerRegistry = new MockSchedulerRegistry()
     tasksService = new TasksService(
       schedulerRegistry as unknown as SchedulerRegistry,
+      taskExecutionRepository as never,
       new StatusService(),
       logger,
     )
@@ -125,5 +133,41 @@ describe('TasksService', () => {
 
     expect(result.code).toBe(1)
     expect(setTimeSpy).toHaveBeenCalled()
+  })
+
+  it('persists execution state and exposes task timing', async () => {
+    tasksService.createJob('tracked', '0 0 * * *', () => undefined)
+    tasksService.setRunning('tracked')
+    tasksService.clearRunning('tracked')
+
+    const summaries = await tasksService.getTaskSummaries()
+
+    expect(taskExecutionRepository.upsert).toHaveBeenCalledTimes(2)
+    expect(summaries[0]).toMatchObject({
+      name: 'tracked',
+      running: false,
+      lastStatus: 'success',
+    })
+    expect(summaries[0].lastRunAt).toBeInstanceOf(Date)
+    expect(summaries[0].nextRunAt).toBeInstanceOf(Date)
+  })
+
+  it('restores the last execution summary after a restart', async () => {
+    const lastRunAt = new Date('2026-07-15T12:00:00.000Z')
+    taskExecutionRepository.find.mockResolvedValue([
+      {
+        name: 'restored',
+        lastRunAt,
+        lastCompletedAt: lastRunAt,
+        status: 'success',
+        error: null,
+      },
+    ])
+    tasksService.createJob('restored', '0 0 * * *', () => undefined)
+
+    const summaries = await tasksService.getTaskSummaries()
+
+    expect(summaries[0].lastRunAt).toEqual(lastRunAt)
+    expect(summaries[0].lastStatus).toBe('success')
   })
 })

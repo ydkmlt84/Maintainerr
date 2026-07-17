@@ -10,6 +10,7 @@ import { CronJob, CronTime } from 'cron'
 import { MaintainerrLogger } from '../../logging/logs.service'
 import { Settings } from '../../settings/entities/settings.entities'
 import { SettingsService } from '../../settings/settings.service'
+import { TasksService } from '../../tasks/tasks.service'
 import { RulesDto } from '../dtos/rules.dto'
 import { RuleGroup } from '../entities/rule-group.entities'
 import { RulesService } from '../rules.service'
@@ -32,6 +33,7 @@ export class RuleExecutorSchedulerService
     private readonly rulesService: RulesService,
     private readonly settingsService: SettingsService,
     private readonly queueManager: RuleExecutorJobManagerService,
+    private readonly tasksService: TasksService,
     private readonly logger: MaintainerrLogger,
   ) {
     logger.setContext(RuleExecutorSchedulerService.name)
@@ -245,6 +247,7 @@ export class RuleExecutorSchedulerService
         EXECUTE_GLOBAL_SCHEDULE_RULES_JOB_NAME,
       )
       job.setTime(new CronTime(cronExpression))
+      this.registerTaskSummary(cronExpression)
       return
     }
 
@@ -256,6 +259,16 @@ export class RuleExecutorSchedulerService
         undefined,
         true,
       ),
+    )
+    this.registerTaskSummary(cronExpression)
+  }
+
+  private registerTaskSummary(cronExpression: string) {
+    this.tasksService.registerExternalJob(
+      'Rule Handler',
+      EXECUTE_GLOBAL_SCHEDULE_RULES_JOB_NAME,
+      cronExpression,
+      () => this.enqueueAllActiveRuleGroups(),
     )
   }
 

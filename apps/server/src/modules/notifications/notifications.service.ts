@@ -255,6 +255,54 @@ export class NotificationService {
     }
   }
 
+  async getNotificationTypeAssignments(type: NotificationType) {
+    const notifications = await this.notificationRepo.find({
+      order: { name: 'ASC' },
+    })
+
+    return notifications.map((notification) => ({
+      id: notification.id,
+      name: notification.name,
+      agent: notification.agent,
+      enabled: notification.enabled,
+      selected: (notification.types ?? []).includes(type),
+    }))
+  }
+
+  async setNotificationTypeAssignment(
+    notificationId: number,
+    type: NotificationType,
+    selected: boolean,
+    aboutScale?: number,
+  ) {
+    const notification = await this.notificationRepo.findOne({
+      where: { id: notificationId },
+    })
+    if (!notification) return undefined
+
+    const types = new Set(notification.types ?? [])
+    if (selected) types.add(type)
+    else types.delete(type)
+
+    notification.types = [...types]
+    if (
+      type === NotificationType.MEDIA_ABOUT_TO_BE_HANDLED &&
+      aboutScale !== undefined
+    ) {
+      notification.aboutScale = aboutScale
+    }
+    await this.notificationRepo.save(notification)
+    await this.registerConfiguredAgents(true)
+
+    return {
+      id: notification.id,
+      selected: notification.types.includes(type),
+      ...(aboutScale !== undefined
+        ? { aboutScale: notification.aboutScale }
+        : {}),
+    }
+  }
+
   public createDummyTestAgent(payload: {
     id?: number
     agent: NotificationAgentKey
@@ -434,6 +482,7 @@ export class NotificationService {
       .replace(/_/g, ' ')
       .toLowerCase()
       .replace(/\b\w/g, (char) => char.toUpperCase())
+      .replace(/\bId\b/g, 'ID')
   }
 
   public getAgentSpec() {
@@ -503,6 +552,13 @@ export class NotificationService {
             type: 'text',
             required: false,
             extraInfo: '',
+          },
+          {
+            field: 'mentionRoleId',
+            type: 'text',
+            required: false,
+            extraInfo:
+              'Optional role ID to mention. Enable Developer Mode in Discord, then copy the role ID.',
           },
         ],
       },

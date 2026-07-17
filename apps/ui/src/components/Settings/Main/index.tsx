@@ -1,4 +1,4 @@
-import { DownloadIcon, RefreshIcon, SaveIcon } from '@heroicons/react/solid'
+import { RefreshIcon, SaveIcon } from '@heroicons/react/solid'
 import React, { useRef, useState } from 'react'
 import { useSettingsOutletContext } from '..'
 import { usePatchSettings } from '../../../api/settings'
@@ -6,14 +6,12 @@ import GetApiHandler from '../../../utils/ApiHandler'
 import Alert from '../../Common/Alert'
 import Button from '../../Common/Button'
 import DocsButton from '../../Common/DocsButton'
-import DatabaseBackupModal from './DatabaseBackupModal'
 import MediaServerSelector from '../MediaServerSelector'
 
 const MainSettings = () => {
   const hostnameRef = useRef<HTMLInputElement>(null)
   const apiKeyRef = useRef<HTMLInputElement>(null)
   const [missingValuesError, setMissingValuesError] = useState<boolean>()
-  const [showDownloadModal, setShowDownloadModal] = useState(false)
   const { settings } = useSettingsOutletContext()
   const {
     mutateAsync: updateSettings,
@@ -58,10 +56,6 @@ const MainSettings = () => {
 
         {isSuccess && (
           <Alert type="info" title="Settings successfully updated" />
-        )}
-
-        {showDownloadModal && (
-          <DatabaseBackupModal onClose={() => setShowDownloadModal(false)} />
         )}
 
         <div className="section">
@@ -114,16 +108,6 @@ const MainSettings = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="flex rounded-md shadow-sm">
                     <DocsButton />
-                  </span>
-                  <span className="flex rounded-md shadow-sm">
-                    <Button
-                      buttonType="default"
-                      type="button"
-                      onClick={() => setShowDownloadModal(true)}
-                    >
-                      <DownloadIcon />
-                      <span>Backup Database</span>
-                    </Button>
                   </span>
                 </div>
                 <span className="flex rounded-md shadow-sm sm:ml-auto">

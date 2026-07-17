@@ -600,10 +600,12 @@ export class RulesService {
       )
       handleMedia = ids.map((id) => ({ mediaServerId: id }))
     }
+    let activeMediaTitle: string | undefined
     try {
       // add all items
       for (const media of handleMedia) {
         const metaData = await mediaServer.getMetadata(media.mediaServerId)
+        activeMediaTitle = metaData?.title
 
         const old = await this.exclusionRepo.findOne({
           where: {
@@ -641,7 +643,7 @@ export class RulesService {
         this.logger.log(
           `Added ${
             data.ruleGroupId === undefined ? 'global ' : ''
-          }exclusion for media with id ${media.mediaServerId} ${
+          }exclusion for ${metaData?.title ? `"${metaData.title}" (` : ''}media server ID ${media.mediaServerId}${metaData?.title ? ')' : ''} ${
             data.ruleGroupId !== undefined
               ? `and rulegroup id ${data.ruleGroupId}`
               : ''
@@ -652,7 +654,7 @@ export class RulesService {
       return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(
-        `Adding exclusion for media ID ${data.mediaId} and rulegroup id ${data.ruleGroupId} failed.`,
+        `Adding exclusion for ${activeMediaTitle ? `"${activeMediaTitle}" (` : ''}media server ID ${data.mediaId}${activeMediaTitle ? ')' : ''} and rulegroup ID ${data.ruleGroupId} failed.`,
       )
       this.logger.debug(e)
       return this.createReturnStatus(false, 'Failed')
@@ -724,6 +726,7 @@ export class RulesService {
       handleMedia = ids.map((id) => ({ mediaServerId: id }))
     }
 
+    let activeMediaTitle: string | undefined
     try {
       for (const media of handleMedia) {
         await this.exclusionRepo.delete({
@@ -734,17 +737,19 @@ export class RulesService {
         })
 
         // add collection log record if needed
+        let mediaTitle: string | undefined
         if (data.collectionId) {
-          await this.collectionService.CollectionLogRecordForChild(
+          mediaTitle = await this.collectionService.CollectionLogRecordForChild(
             media.mediaServerId,
             data.collectionId,
             'include',
           )
         }
+        activeMediaTitle = mediaTitle
         this.logger.log(
           `Removed ${
             data.ruleGroupId === undefined ? 'global ' : ''
-          }exclusion for media with id ${media.mediaServerId} ${
+          }exclusion for ${mediaTitle ? `"${mediaTitle}" (` : ''}media server ID ${media.mediaServerId}${mediaTitle ? ')' : ''} ${
             data.ruleGroupId !== undefined
               ? `and rulegroup id ${data.ruleGroupId}`
               : ''
@@ -754,7 +759,7 @@ export class RulesService {
       return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(
-        `Removing exclusion for media with id ${data.mediaId} failed.`,
+        `Removing exclusion for ${activeMediaTitle ? `"${activeMediaTitle}" (` : ''}media server ID ${data.mediaId}${activeMediaTitle ? ')' : ''} failed.`,
       )
       this.logger.debug(e)
       return this.createReturnStatus(false, 'Failed')
@@ -789,7 +794,7 @@ export class RulesService {
       return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(
-        `Removing all exclusions with mediaServerId ${mediaServerId} failed.`,
+        `Removing all exclusions for "${metaData.title}" (media server ID ${mediaServerId}) failed.`,
       )
       this.logger.debug(e)
       return this.createReturnStatus(false, 'Failed')

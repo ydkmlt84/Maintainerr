@@ -78,9 +78,15 @@ interface DiscordWebhookPayload {
   embeds: DiscordRichEmbed[]
   username?: string
   avatar_url?: string
-  tts: boolean
+  tts?: boolean
   content?: string
+  allowed_mentions?: {
+    parse: string[]
+    roles: string[]
+  }
 }
+
+const DISCORD_ROLE_ID_PATTERN = /^\d{17,20}$/
 
 class DiscordAgent implements NotificationAgent {
   constructor(
@@ -132,6 +138,28 @@ class DiscordAgent implements NotificationAgent {
     return false
   }
 
+  private buildRoleMention(): Pick<
+    DiscordWebhookPayload,
+    'content' | 'allowed_mentions'
+  > {
+    const roleId = this.getSettings().options.mentionRoleId?.trim()
+    if (!roleId) return {}
+
+    if (!DISCORD_ROLE_ID_PATTERN.test(roleId)) {
+      throw new Error(
+        'Discord mention role ID must be a 17 to 20 digit numeric ID',
+      )
+    }
+
+    return {
+      content: `<@&${roleId}>`,
+      allowed_mentions: {
+        parse: [],
+        roles: [roleId],
+      },
+    }
+  }
+
   public async send(
     type: NotificationType,
     payload: NotificationPayload,
@@ -149,6 +177,7 @@ class DiscordAgent implements NotificationAgent {
           : 'Maintainerr',
         avatar_url: this.getSettings().options.botAvatarUrl,
         embeds: [this.buildEmbed(type, payload)],
+        ...this.buildRoleMention(),
       } as DiscordWebhookPayload)
 
       return 'Success'

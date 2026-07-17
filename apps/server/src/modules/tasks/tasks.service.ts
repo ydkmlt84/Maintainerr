@@ -1,22 +1,52 @@
-import { Injectable } from '@nestjs/common'
+import { MaintainerrEvent } from '@maintainerr/contracts'
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
 import { CronExpression, SchedulerRegistry } from '@nestjs/schedule'
+import { InjectRepository } from '@nestjs/typeorm'
 import { CronJob, CronTime } from 'cron'
+import { Repository } from 'typeorm'
 import { MaintainerrLogger } from '../logging/logs.service'
+import { TaskExecution } from './entities/task-execution.entities'
 import { Status } from './interfaces/status.interface'
 import { StatusService } from './status.service'
 
 interface TaskState {
   name: string
+  schedulerName: string
+  schedule: string
+  task: () => void | Promise<void>
   running: boolean
   runningSince: Date | null
+  lastRunAt: Date | null
+  lastCompletedAt: Date | null
+  lastStatus: 'never' | 'running' | 'success' | 'failed'
+  lastError: string | null
+}
+
+export interface ScheduledTaskSummary {
+  name: string
+  schedule: string
+  running: boolean
+  runningSince: Date | null
+  lastRunAt: Date | null
+  nextRunAt: Date | null
+  lastStatus: TaskState['lastStatus']
+  lastError: string | null
 }
 
 @Injectable()
 export class TasksService {
   private readonly runningTasks = new Map<string, TaskState>()
+  private readonly persistenceQueue = new Map<string, Promise<void>>()
 
   constructor(
     private schedulerRegistry: SchedulerRegistry,
+    @InjectRepository(TaskExecution)
+    private readonly taskExecutionRepository: Repository<TaskExecution>,
     private readonly status: StatusService,
     private readonly logger: MaintainerrLogger,
   ) {
@@ -43,8 +73,15 @@ export class TasksService {
       if (!this.runningTasks.has(name)) {
         this.runningTasks.set(name, {
           name,
+          schedulerName: name,
+          schedule: cronExp.toString(),
+          task,
           running: false,
           runningSince: null,
+          lastRunAt: null,
+          lastCompletedAt: null,
+          lastStatus: 'never',
+          lastError: null,
         })
       }
 
@@ -74,6 +111,9 @@ export class TasksService {
       job.setTime(new CronTime(cronExp))
       job.start()
 
+      const task = this.runningTasks.get(name)
+      if (task) task.schedule = cronExp.toString()
+
       this.logger.log(`Task ${name} updated successfully`)
       return this.status.createStatus(true, `Task ${name} updated successfully`)
     } catch (e) {
@@ -90,8 +130,13 @@ export class TasksService {
       throw new Error(`Task ${name} does not exist.`)
     }
 
+    const now = new Date()
     task.running = true
-    task.runningSince = new Date()
+    task.runningSince = now
+    task.lastRunAt = now
+    task.lastStatus = 'running'
+    task.lastError = null
+    this.persistTaskState(task)
   }
 
   public isRunning(name: string) {
@@ -103,7 +148,7 @@ export class TasksService {
     return this.runningTasks.get(name)
   }
 
-  public clearRunning(name: string) {
+  public clearRunning(name: string, error?: unknown) {
     const task = this.getTask(name)
 
     if (!task) {
@@ -112,5 +157,134 @@ export class TasksService {
 
     task.running = false
     task.runningSince = null
+    task.lastCompletedAt = new Date()
+    task.lastStatus = error ? 'failed' : 'success'
+    task.lastError = error
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : null
+    this.persistTaskState(task)
+  }
+
+  public registerExternalJob(
+    name: string,
+    schedulerName: string,
+    schedule: string,
+    task: () => void | Promise<void>,
+  ) {
+    const existing = this.runningTasks.get(name)
+    if (existing) {
+      existing.schedulerName = schedulerName
+      existing.schedule = schedule
+      existing.task = task
+      return
+    }
+
+    this.runningTasks.set(name, {
+      name,
+      schedulerName,
+      schedule,
+      task,
+      running: false,
+      runningSince: null,
+      lastRunAt: null,
+      lastCompletedAt: null,
+      lastStatus: 'never',
+      lastError: null,
+    })
+  }
+
+  public async getTaskSummaries(): Promise<ScheduledTaskSummary[]> {
+    await Promise.all(this.persistenceQueue.values())
+    const persistedExecutions = new Map(
+      (await this.taskExecutionRepository.find()).map((execution) => [
+        execution.name,
+        execution,
+      ]),
+    )
+
+    return [...this.runningTasks.values()]
+      .map((task) => {
+        const job = this.schedulerRegistry.getCronJobs().get(task.schedulerName)
+        let nextRunAt: Date | null = null
+
+        try {
+          nextRunAt = job?.nextDate().toJSDate() ?? null
+        } catch {
+          nextRunAt = null
+        }
+
+        const persisted = persistedExecutions.get(task.name)
+        const persistedStatus =
+          persisted?.status === 'running' ? 'failed' : persisted?.status
+
+        return {
+          name: task.name,
+          schedule: task.schedule,
+          running: task.running,
+          runningSince: task.runningSince,
+          lastRunAt:
+            task.lastRunAt ?? persisted?.lastRunAt ?? job?.lastDate() ?? null,
+          nextRunAt,
+          lastStatus: task.lastRunAt
+            ? task.lastStatus
+            : (persistedStatus ?? task.lastStatus),
+          lastError:
+            task.lastError ??
+            (persisted?.status === 'running'
+              ? 'Interrupted by a server restart'
+              : (persisted?.error ?? null)),
+        }
+      })
+      .sort((left, right) => left.name.localeCompare(right.name))
+  }
+
+  public startTask(name: string) {
+    const task = this.runningTasks.get(name)
+    if (!task) throw new NotFoundException('Task not found')
+    if (task.running) {
+      throw new ConflictException(`${name} is already running`)
+    }
+
+    void Promise.resolve(task.task()).catch((error) => {
+      this.logger.error(`Manual execution of ${name} failed`, error)
+    })
+  }
+
+  @OnEvent(MaintainerrEvent.RuleHandler_Started)
+  private onRuleHandlerStarted() {
+    if (this.runningTasks.has('Rule Handler')) {
+      this.setRunning('Rule Handler')
+    }
+  }
+
+  @OnEvent(MaintainerrEvent.RuleHandler_Finished)
+  private onRuleHandlerFinished() {
+    if (this.runningTasks.has('Rule Handler')) {
+      this.clearRunning('Rule Handler')
+    }
+  }
+
+  private persistTaskState(task: TaskState) {
+    const snapshot: TaskExecution = {
+      name: task.name,
+      lastRunAt: task.lastRunAt,
+      lastCompletedAt: task.lastCompletedAt,
+      status: task.lastStatus,
+      error: task.lastError,
+    }
+    const previous = this.persistenceQueue.get(task.name) ?? Promise.resolve()
+    const next = previous
+      .then(async () => {
+        await this.taskExecutionRepository.upsert(snapshot, ['name'])
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Failed to persist task status for ${task.name}`,
+          error,
+        )
+      })
+    this.persistenceQueue.set(task.name, next)
   }
 }

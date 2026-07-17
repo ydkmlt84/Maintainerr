@@ -7,6 +7,8 @@ import {
   TmdbMovieDetails,
   TmdbPersonDetail,
   TmdbTvDetails,
+  TmdbTvSeasonDetails,
+  TmdbVideo,
 } from './interfaces/tmdb.interface'
 
 @Injectable()
@@ -98,6 +100,31 @@ export class TmdbApiService extends ExternalApiService {
     }
   }
 
+  public getTvSeason = async ({
+    tvId,
+    seasonNumber,
+    language = 'en',
+  }: {
+    tvId: number
+    seasonNumber: number
+    language?: string
+  }): Promise<TmdbTvSeasonDetails> => {
+    try {
+      return await this.get<TmdbTvSeasonDetails>(
+        `/tv/${tvId}/season/${seasonNumber}`,
+        {
+          params: { language, append_to_response: 'videos' },
+        },
+        43200,
+      )
+    } catch (e) {
+      this.logger.debug(
+        `Failed to fetch TV season ${seasonNumber} details for show ${tvId}: ${e.message}`,
+      )
+      return undefined
+    }
+  }
+
   // TODO: ADD CACHING!!!!
   public getImagePath = async ({
     tmdbId,
@@ -140,9 +167,11 @@ export class TmdbApiService extends ExternalApiService {
   public getMediaAssets = async ({
     tmdbId,
     type,
+    seasonNumber,
   }: {
     tmdbId: number
     type: 'movie' | 'show'
+    seasonNumber?: number
   }): Promise<{ backdropPath?: string; trailerUrl?: string }> => {
     const details =
       type === 'movie'
@@ -152,8 +181,27 @@ export class TmdbApiService extends ExternalApiService {
     const trailers = videos.filter(
       (video) => video.site === 'YouTube' && video.type === 'Trailer',
     )
-    const trailer =
-      trailers.find((video) => video.official) ?? trailers[0] ?? undefined
+    const isSeasonSpecific = (video: TmdbVideo) =>
+      /\bseason\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b|\b\d+(?:st|nd|rd|th)\s+season\b|\bs\d{1,2}\b/i.test(
+        video.name,
+      )
+    const chooseTrailer = (candidates: TmdbVideo[]) =>
+      candidates.find((video) => video.official) ?? candidates[0]
+
+    let trailer = chooseTrailer(
+      trailers.filter((video) => !isSeasonSpecific(video)),
+    )
+    if (!trailer && type === 'show' && seasonNumber !== undefined) {
+      const season = await this.getTvSeason({
+        tvId: tmdbId,
+        seasonNumber,
+      })
+      trailer = chooseTrailer(
+        (season?.videos?.results ?? []).filter(
+          (video) => video.site === 'YouTube' && video.type === 'Trailer',
+        ),
+      )
+    }
 
     return {
       backdropPath: details?.backdrop_path,

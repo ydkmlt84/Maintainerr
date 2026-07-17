@@ -80,13 +80,18 @@ export abstract class TaskBase
 
     this.abortController = abortController || new AbortController()
     this.taskService.setRunning(this.name)
+    let runningStateCleared = false
 
     try {
       abortController?.signal.throwIfAborted()
       await this.executeTask(this.abortController.signal)
+    } catch (error) {
+      this.taskService.clearRunning(this.name, error)
+      runningStateCleared = true
+      throw error
     } finally {
       this.abortController = undefined
-      this.taskService.clearRunning(this.name)
+      if (!runningStateCleared) this.taskService.clearRunning(this.name)
     }
   }
 

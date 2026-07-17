@@ -20,7 +20,7 @@ import {
   useRouteError,
 } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
-import GetApiHandler from '../../utils/ApiHandler'
+import GetApiHandler, { API_BASE_PATH } from '../../utils/ApiHandler'
 import AddModal from '../AddModal'
 import Button from '../Common/Button'
 import { SmallLoadingSpinner } from '../Common/LoadingSpinner'
@@ -389,11 +389,8 @@ const getSpotlightSecondary = (item: MediaItem): string => {
 const getSpotlightTmdbId = (item: MediaItem): string | undefined => {
   const parentItem = (item as MediaItemWithParent).parentItem
 
-  if (
-    (item.type === 'season' || item.type === 'episode') &&
-    parentItem?.providerIds?.tmdb?.[0]
-  ) {
-    return parentItem.providerIds.tmdb[0]
+  if (item.type === 'season' || item.type === 'episode') {
+    return parentItem?.providerIds?.tmdb?.[0]
   }
 
   return item.providerIds?.tmdb?.[0] ?? parentItem?.providerIds?.tmdb?.[0]
@@ -432,8 +429,20 @@ const getSpotlightTypeLabel = (item: MediaItem): string => {
 
 const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
   const [posterPath, setPosterPath] = useState<string>()
+  const [plexPosterFailed, setPlexPosterFailed] = useState(false)
   const tmdbId = getSpotlightTmdbId(item)
   const posterType = item.type === 'movie' ? 'movie' : 'show'
+  const plexPosterId =
+    item.type === 'season'
+      ? item.id
+      : item.type === 'episode'
+        ? item.grandparentId
+        : undefined
+  const plexPosterUrl = plexPosterId
+    ? `${API_BASE_PATH}/api/tautulli/image?path=${encodeURIComponent(
+        `/library/metadata/${plexPosterId}/thumb/0`,
+      )}`
+    : undefined
 
   useEffect(() => {
     if (!tmdbId) {
@@ -455,12 +464,22 @@ const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
     }
   }, [posterType, tmdbId])
 
-  return posterPath ? (
+  return (plexPosterUrl && !plexPosterFailed) || posterPath ? (
     <img
-      src={`https://image.tmdb.org/t/p/w92${posterPath}`}
+      src={
+        plexPosterUrl && !plexPosterFailed
+          ? plexPosterUrl
+          : `https://image.tmdb.org/t/p/w92${posterPath}`
+      }
       alt=""
       className="h-[4.5rem] w-12 flex-shrink-0 rounded-md object-cover shadow shadow-black/30"
-      onError={() => setPosterPath(undefined)}
+      onError={() => {
+        if (plexPosterUrl && !plexPosterFailed) {
+          setPlexPosterFailed(true)
+        } else {
+          setPosterPath(undefined)
+        }
+      }}
     />
   ) : (
     <span className="flex h-[4.5rem] w-12 flex-shrink-0 flex-col items-center justify-center gap-1 rounded-md border border-zinc-600 bg-zinc-950/70 text-zinc-500 shadow-inner shadow-black/20">
@@ -474,6 +493,7 @@ const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
 
 const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
   const [query, setQuery] = useState('')
+  const [submittedPlexId, setSubmittedPlexId] = useState<string>()
   const [results, setResults] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | undefined>()
@@ -490,6 +510,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
 
     queueMicrotask(() => {
       setQuery('')
+      setSubmittedPlexId(undefined)
       setResults([])
       setLoading(false)
     })
@@ -518,7 +539,15 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
     }
 
     const trimmedQuery = query.trim().toLowerCase()
-    if (trimmedQuery.length < 2) {
+    const isPlexIdQuery = /^\d+$/.test(trimmedQuery)
+    if (isPlexIdQuery && submittedPlexId !== trimmedQuery) {
+      queueMicrotask(() => {
+        setResults([])
+        setLoading(false)
+      })
+      return
+    }
+    if (!isPlexIdQuery && trimmedQuery.length < 2) {
       queueMicrotask(() => {
         setResults([])
         setLoading(false)
@@ -529,8 +558,16 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
     let active = true
     queueMicrotask(() => setLoading(true))
     const searchTimer = setTimeout(() => {
-      GetApiHandler(`/media-server/search/${encodeURIComponent(trimmedQuery)}`)
-        .then((resp: MediaItem[]) => {
+      const request = isPlexIdQuery
+        ? GetApiHandler<MediaItem | undefined>(
+            `/media-server/meta/${encodeURIComponent(trimmedQuery)}`,
+          ).then((item) => (item ? [item] : []))
+        : GetApiHandler<MediaItem[]>(
+            `/media-server/search/${encodeURIComponent(trimmedQuery)}`,
+          )
+
+      request
+        .then((resp) => {
           if (active) {
             setResults(resp ?? [])
           }
@@ -546,10 +583,14 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
       active = false
       clearTimeout(searchTimer)
     }
-  }, [query, open])
+  }, [query, open, submittedPlexId])
 
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setQuery(event.target.value)
+    const nextQuery = event.target.value
+    setQuery(nextQuery)
+    if (nextQuery.trim() !== submittedPlexId) {
+      setSubmittedPlexId(undefined)
+    }
   }
 
   const handleClose = () => {
@@ -576,7 +617,14 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
               type="search"
               value={query}
               onChange={handleQueryChange}
-              placeholder="Search media"
+              onKeyDown={(event) => {
+                const plexId = query.trim()
+                if (event.key === 'Enter' && /^\d+$/.test(plexId)) {
+                  event.preventDefault()
+                  setSubmittedPlexId(plexId)
+                }
+              }}
+              placeholder="Search media or Plex ID"
               className="min-w-0 flex-1 bg-transparent text-lg font-medium text-white placeholder-slate-400 outline-none"
             />
             <button
@@ -592,9 +640,14 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
               <div className="flex h-28 items-center justify-center">
                 <SmallLoadingSpinner />
               </div>
-            ) : query.trim().length < 2 ? (
+            ) : /^\d+$/.test(query.trim()) &&
+              submittedPlexId !== query.trim() ? (
               <div className="px-4 py-10 text-center text-sm text-slate-400">
-                Type at least two characters.
+                Press Enter to look up this Plex ID.
+              </div>
+            ) : !/^\d+$/.test(query.trim()) && query.trim().length < 2 ? (
+              <div className="px-4 py-10 text-center text-sm text-slate-400">
+                Search by title or enter a Plex ID.
               </div>
             ) : displayResults.length > 0 ? (
               <div>
@@ -622,7 +675,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
                             {getSpotlightTitle(item)}
                           </span>
                           <span className="mt-0.5 block truncate text-xs text-slate-500">
-                            {getSpotlightSecondary(item)}
+                            {getSpotlightSecondary(item)} / Plex ID {item.id}
                           </span>
                           <span className="mt-0.5 block truncate text-xs text-slate-400">
                             {getSpotlightMeta(item)}

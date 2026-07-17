@@ -6,7 +6,6 @@ import GetApiHandler, { PostApiHandler } from '../../../../utils/ApiHandler'
 import { camelCaseToPrettyText } from '../../../../utils/SettingsUtils'
 import LoadingSpinner from '../../../Common/LoadingSpinner'
 import Modal from '../../../Common/Modal'
-import ToggleItem from '../../../Common/ToggleButton'
 
 interface agentSpec {
   name: string
@@ -14,11 +13,6 @@ interface agentSpec {
   options: [
     { field: string; type: string; required: boolean; extraInfo: string },
   ]
-}
-
-interface typeSpec {
-  title: string
-  id: number
 }
 
 export interface AgentConfiguration {
@@ -40,25 +34,21 @@ interface CreateNotificationModal {
 
 const CreateNotificationModal = (props: CreateNotificationModal) => {
   const [availableAgents, setAvailableAgents] = useState<agentSpec[]>()
-  const [availableTypes, setAvailableTypes] = useState<typeSpec[]>()
   const nameRef = useRef<string>('')
   const aboutScaleRef = useRef<number>(3)
   const enabledRef = useRef<boolean>(false)
   const [formValues, setFormValues] = useState<any>()
 
   const [targetAgent, setTargetAgent] = useState<agentSpec>()
-  const [targetTypes, setTargetTypes] = useState<typeSpec[]>([])
 
   const handleSubmit = () => {
-    const types = targetTypes ? targetTypes.map((t) => t.id) : []
-
     if (targetAgent && nameRef.current !== '') {
       const payload: AgentConfiguration = {
         id: props.selected?.id,
         name: nameRef.current,
         agent: targetAgent.name,
         enabled: enabledRef.current,
-        types: types,
+        types: props.selected?.types ?? [],
         aboutScale: aboutScaleRef.current,
         options: formValues,
       }
@@ -70,14 +60,12 @@ const CreateNotificationModal = (props: CreateNotificationModal) => {
 
   const doTest = () => {
     if (targetAgent && nameRef.current !== '') {
-      const types = targetTypes ? targetTypes.map((t) => t.id) : []
-
       PostApiHandler(`/notifications/test`, {
         id: props.selected?.id,
         name: nameRef.current,
         agent: targetAgent.name,
         enabled: enabledRef.current,
-        types: types,
+        types: props.selected?.types ?? [],
         aboutScale: aboutScaleRef.current,
         options: formValues,
       }).then((resp) => {
@@ -106,21 +94,11 @@ const CreateNotificationModal = (props: CreateNotificationModal) => {
       }
     })
 
-    GetApiHandler('/notifications/types').then((types: typeSpec[]) => {
-      setAvailableTypes(types)
-
-      // load selected types if editing
-      if (props.selected && props.selected.types) {
-        setTargetTypes(
-          types.filter((type) => props.selected!.types.includes(type.id)),
-        )
-      }
-    })
-
     // load rest of data if editing
     if (props.selected) {
       nameRef.current = props.selected.name
       enabledRef.current = props.selected.enabled
+      aboutScaleRef.current = props.selected.aboutScale
       queueMicrotask(() => setFormValues(props.selected!.options))
     }
   }, [props.selected])
@@ -140,7 +118,7 @@ const CreateNotificationModal = (props: CreateNotificationModal) => {
     }))
   }
 
-  if (!availableAgents || !availableTypes) {
+  if (!availableAgents) {
     return (
       <span>
         <LoadingSpinner />
@@ -318,52 +296,6 @@ const CreateNotificationModal = (props: CreateNotificationModal) => {
                   </div>
                 )
               })}
-
-              {/* Select types */}
-              <div className="form-row">
-                <label className="text-label">Types *</label>
-                <div className="form-input">
-                  {availableTypes.map((n) => (
-                    <div key={n.id}>
-                      <ToggleItem
-                        label={n.title}
-                        toggled={props.selected?.types.includes(n.id)}
-                        onStateChange={(state) => {
-                          if (state) {
-                            setTargetTypes([...targetTypes, n])
-                          } else {
-                            setTargetTypes(
-                              targetTypes.filter((el) => el.id !== n.id),
-                            )
-                          }
-                        }}
-                      />
-                      {/* Show only when 'Media About To Be Handled' is selected */}
-                      {targetTypes.find((el) => el.id === 8) && n.id === 8 && (
-                        <div className="form-row mb-0 ml-9 mt-0">
-                          <label htmlFor="about-scale" className="text-label">
-                            Notify x days before removal
-                          </label>
-                          <div className="form-input">
-                            <div className="form-input-field">
-                              <input
-                                type="number"
-                                name="about-scale"
-                                defaultValue={props.selected?.aboutScale || 3}
-                                onChange={(
-                                  event: React.ChangeEvent<HTMLInputElement>,
-                                ) =>
-                                  (aboutScaleRef.current = +event.target.value)
-                                }
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </form>
         </div>

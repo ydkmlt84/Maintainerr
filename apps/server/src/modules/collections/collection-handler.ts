@@ -54,7 +54,7 @@ export class CollectionHandler {
     collection.handledMediaAmount++
 
     // save a log record for the handled media item
-    await this.collectionService.CollectionLogRecordForChild(
+    const mediaTitle = await this.collectionService.CollectionLogRecordForChild(
       media.mediaServerId,
       collection.id,
       'handle',
@@ -63,18 +63,23 @@ export class CollectionHandler {
     await this.collectionService.saveCollection(collection)
 
     if (library?.type === 'movie' && collection.radarrSettingsId) {
-      await this.radarrActionHandler.handleAction(collection, media)
+      await this.radarrActionHandler.handleAction(collection, media, mediaTitle)
     } else if (library?.type == 'show' && collection.sonarrSettingsId) {
-      await this.sonarrActionHandler.handleAction(collection, media)
+      await this.sonarrActionHandler.handleAction(collection, media, mediaTitle)
     } else if (!collection.radarrSettingsId && !collection.sonarrSettingsId) {
+      const mediaLabel = mediaTitle
+        ? `"${mediaTitle}" (Plex ID ${media.mediaServerId})`
+        : `Plex ID ${media.mediaServerId}`
       if (collection.arrAction !== ServarrAction.UNMONITOR) {
         this.logger.log(
-          `Couldn't utilize *arr to find and remove the media with id ${media.mediaServerId}. Attempting to remove from the filesystem via media server. No unmonitor action was taken.`,
+          `Couldn't utilize *arr to find and remove ${mediaLabel}. Attempting to remove it from the filesystem via the media server. No unmonitor action was taken.`,
         )
-        await mediaServer.deleteFromDisk(media.mediaServerId)
+        await (mediaTitle
+          ? mediaServer.deleteFromDisk(media.mediaServerId, mediaTitle)
+          : mediaServer.deleteFromDisk(media.mediaServerId))
       } else {
         this.logger.log(
-          `*arr unmonitor action isn't possible, since *arr is not available. Didn't unmonitor media with id ${media.mediaServerId}.}`,
+          `*arr unmonitor action isn't possible because *arr is not available. Didn't unmonitor ${mediaLabel}.`,
         )
       }
     }

@@ -20,6 +20,7 @@ import { TmdbApiModule } from '../modules/api/tmdb-api/tmdb.module'
 import { CollectionsModule } from '../modules/collections/collections.module'
 import { EventsModule } from '../modules/events/events.module'
 import { LogsModule } from '../modules/logging/logs.module'
+import { MediaIdAuditModule } from '../modules/media-id-audit/media-id-audit.module'
 import { NotificationsModule } from '../modules/notifications/notifications.module'
 import { NotificationService } from '../modules/notifications/notifications.service'
 import { RulesModule } from '../modules/rules/rules.module'
@@ -51,6 +52,7 @@ import ormConfig from './config/typeOrmConfig'
     CollectionsModule,
     StatsModule,
     NotificationsModule,
+    MediaIdAuditModule,
     EventsModule,
     ServeStaticModule.forRootAsync({
       useFactory: () => {

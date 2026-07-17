@@ -212,7 +212,7 @@ export interface IMediaServerService {
    * Delete an item from disk.
    * This is a destructive operation!
    */
-  deleteFromDisk(itemId: string): Promise<void>
+  deleteFromDisk(itemId: string, title?: string): Promise<void>
 
   /**
    * Get all media server IDs for a context action (add/remove from collection).

@@ -24,6 +24,7 @@ export class SonarrActionHandler {
   public async handleAction(
     collection: Collection,
     media: CollectionMedia,
+    mediaTitle?: string,
   ): Promise<void> {
     const mediaServer = await this.mediaServerFactory.getService()
     const sonarrApiClient = await this.servarrApi.getSonarrApiClient(
@@ -92,7 +93,9 @@ export class SonarrActionHandler {
         this.logger.log(
           `Couldn't find correct tvdb id. No Sonarr action was taken for show: https://www.themoviedb.org/tv/${media.tmdbId}. Attempting to remove from the filesystem via media server.`,
         )
-        await mediaServer.deleteFromDisk(media.mediaServerId)
+        await (mediaTitle
+          ? mediaServer.deleteFromDisk(media.mediaServerId, mediaTitle)
+          : mediaServer.deleteFromDisk(media.mediaServerId))
       } else {
         this.logger.log(
           `Couldn't find correct tvdb id. No unmonitor action was taken for show: https://www.themoviedb.org/tv/${media.tmdbId}`,

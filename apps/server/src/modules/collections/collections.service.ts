@@ -1390,7 +1390,6 @@ export class CollectionsService {
   ) {
     try {
       const mediaServer = await this.getMediaServer()
-      this.infoLogger(`Adding media with id ${childId} to collection..`)
 
       const tmdb = await this.tmdbIdHelper.getTmdbIdFromMediaServerId(childId)
 
@@ -1424,11 +1423,14 @@ export class CollectionsService {
           .execute()
 
         // log record
-        await this.CollectionLogRecordForChild(
+        const mediaTitle = await this.CollectionLogRecordForChild(
           childId,
           collectionIds.dbId,
           'add',
           logMeta,
+        )
+        this.infoLogger(
+          `Added ${mediaTitle ? `"${mediaTitle}" (` : ''}media server ID ${childId}${mediaTitle ? ')' : ''} to collection.`,
         )
       } catch (err) {
         this.logger.warn(`Couldn't add media to collection: ${err.message}`)
@@ -1470,7 +1472,10 @@ export class CollectionsService {
         ECollectionLogType.MEDIA,
         logMetaWithMedia,
       )
+      return subject
     }
+
+    return undefined
   }
 
   private async addMediaSnapshotToLogMeta(
@@ -1530,7 +1535,6 @@ export class CollectionsService {
   ) {
     try {
       const mediaServer = await this.getMediaServer()
-      this.infoLogger(`Removing media with id ${childId} from collection..`)
 
       try {
         await mediaServer.removeFromCollection(
@@ -1550,11 +1554,14 @@ export class CollectionsService {
           ])
           .execute()
 
-        await this.CollectionLogRecordForChild(
+        const mediaTitle = await this.CollectionLogRecordForChild(
           childId,
           collectionIds.dbId,
           'remove',
           logMeta,
+        )
+        this.infoLogger(
+          `Removed ${mediaTitle ? `"${mediaTitle}" (` : ''}media server ID ${childId}${mediaTitle ? ')' : ''} from collection.`,
         )
       } catch (err) {
         // 404 means media is not in collection, which is fine

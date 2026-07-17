@@ -82,11 +82,17 @@ describe('CollectionHandler', () => {
         id: collection.libraryId.toString(),
       }),
     )
+    collectionsService.CollectionLogRecordForChild.mockResolvedValue(
+      'Example Show',
+    )
 
     await collectionHandler.handleMedia(collection, collectionMedia)
 
     expect(collectionsService.removeFromCollection).toHaveBeenCalledTimes(1)
-    expect(mediaServer.deleteFromDisk).toHaveBeenCalled()
+    expect(mediaServer.deleteFromDisk).toHaveBeenCalledWith(
+      collectionMedia.mediaServerId,
+      'Example Show',
+    )
   })
 
   it('should call Radarr action handler', async () => {
@@ -103,11 +109,18 @@ describe('CollectionHandler', () => {
         type: 'movie',
       }),
     )
+    collectionsService.CollectionLogRecordForChild.mockResolvedValue(
+      'Example Movie',
+    )
 
     await collectionHandler.handleMedia(collection, collectionMedia)
 
     expect(collectionsService.removeFromCollection).toHaveBeenCalledTimes(1)
-    expect(radarrActionHandler.handleAction).toHaveBeenCalled()
+    expect(radarrActionHandler.handleAction).toHaveBeenCalledWith(
+      collection,
+      collectionMedia,
+      'Example Movie',
+    )
   })
 
   it('should call Sonarr action handler', async () => {
@@ -124,11 +137,18 @@ describe('CollectionHandler', () => {
         type: 'show',
       }),
     )
+    collectionsService.CollectionLogRecordForChild.mockResolvedValue(
+      'Example Show',
+    )
 
     await collectionHandler.handleMedia(collection, collectionMedia)
 
     expect(collectionsService.removeFromCollection).toHaveBeenCalledTimes(1)
-    expect(sonarrActionHandler.handleAction).toHaveBeenCalled()
+    expect(sonarrActionHandler.handleAction).toHaveBeenCalledWith(
+      collection,
+      collectionMedia,
+      'Example Show',
+    )
   })
 
   it('should call removeSeasonRequest for seasons', async () => {

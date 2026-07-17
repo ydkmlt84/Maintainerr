@@ -178,6 +178,10 @@ export interface TmdbTvSeasonResult {
   season_number: number
 }
 
+export interface TmdbTvSeasonDetails extends TmdbTvSeasonResult {
+  videos?: TmdbVideoResult
+}
+
 export interface TmdbTvDetails {
   id: number
   backdrop_path?: string

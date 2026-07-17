@@ -345,7 +345,7 @@ export class PlexAdapterService implements IMediaServerService {
     return playlists.map(PlexMapper.toMediaPlaylist)
   }
 
-  async deleteFromDisk(itemId: string): Promise<void> {
+  async deleteFromDisk(itemId: string, title?: string): Promise<void> {
     if (!itemId || itemId.trim() === '') {
       throw new Error(
         'deleteFromDisk called with empty itemId — aborting to prevent unintended deletion',
@@ -353,10 +353,17 @@ export class PlexAdapterService implements IMediaServerService {
     }
 
     try {
-      await this.plexApi.deleteMediaFromDisk(itemId)
-      this.logger.log(`Successfully deleted Plex item ${itemId} from disk`)
+      await (title
+        ? this.plexApi.deleteMediaFromDisk(itemId, title)
+        : this.plexApi.deleteMediaFromDisk(itemId))
+      this.logger.log(
+        `Successfully deleted ${title ? `"${title}" (` : ''}Plex ID ${itemId}${title ? ')' : ''} from disk`,
+      )
     } catch (error) {
-      this.logger.error(`Failed to delete item ${itemId} from disk`, error)
+      this.logger.error(
+        `Failed to delete ${title ? `"${title}" (` : ''}Plex ID ${itemId}${title ? ')' : ''} from disk`,
+        error,
+      )
       throw error
     }
   }
