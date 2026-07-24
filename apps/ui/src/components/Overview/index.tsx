@@ -1525,6 +1525,11 @@ const useHorizontalWheelScroll = () => {
 
     const handleWheel = (event: WheelEvent) => {
       const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth
+
+      if (maxScrollLeft <= 0) {
+        return
+      }
+
       const wheelDelta =
         Math.abs(event.deltaY) > Math.abs(event.deltaX)
           ? event.deltaY
