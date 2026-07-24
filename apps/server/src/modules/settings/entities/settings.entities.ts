@@ -79,4 +79,7 @@ export class Settings implements SettingDto {
 
   @Column({ nullable: false, default: '0 9 * * *' })
   media_id_audit_job_cron: string
+
+  @Column({ nullable: false, default: '' })
+  plex_trash_empty_job_cron: string
 }

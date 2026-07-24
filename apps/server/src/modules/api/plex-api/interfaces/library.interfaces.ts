@@ -16,6 +16,7 @@ export interface PlexLibraryItem {
   grandparentGuid?: string
   addedAt: number
   updatedAt: number
+  deletedAt?: number
   Guid?: {
     id: string
   }[]

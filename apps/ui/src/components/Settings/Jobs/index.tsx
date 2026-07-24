@@ -1,5 +1,7 @@
 import {
+  ClockIcon,
   DownloadIcon,
+  ExternalLinkIcon,
   PlayIcon,
   SaveIcon,
   TrashIcon,
@@ -18,13 +20,39 @@ import { PostApiHandler } from '../../../utils/ApiHandler'
 import Alert from '../../Common/Alert'
 import Button from '../../Common/Button'
 import LoadingSpinner from '../../Common/LoadingSpinner'
+import Modal from '../../Common/Modal'
 import DatabaseBackupModal from '../Main/DatabaseBackupModal'
+
+type CronBuilderMode =
+  | 'minutes'
+  | 'hours'
+  | 'days'
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+
+const cronIntervalMax = (mode: CronBuilderMode) => {
+  if (mode === 'minutes') return 59
+  if (mode === 'hours') return 23
+  return 30
+}
+
+const weekDays = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+]
 
 const taskDescriptions: Record<string, string> = {
   'Collection Handler': 'Processes pending collection additions and removals.',
   'Collection Log Cleaner': 'Removes expired collection activity logs.',
   'Media ID Audit': 'Compares Plex provider IDs with Radarr and Sonarr.',
   'Notification Timer': 'Sends notifications for media approaching removal.',
+  'Plex Trash Empty': 'Empties the recycling bin for all Plex libraries.',
   'Rule Handler': 'Evaluates active rule groups on the global schedule.',
   'Rule Maintenance':
     'Cleans stale exclusions, media, and orphaned collections.',
@@ -49,13 +77,14 @@ const formatRelative = (value: string | null) => {
 }
 
 const statusLabel = (task: ScheduledTask) => {
+  if (!task.enabled) return 'Disabled'
   if (task.running) return 'Running'
   if (task.lastStatus === 'failed') return 'Failed'
-  if (task.lastStatus === 'success') return 'Completed'
-  return 'Idle'
+  return 'Enabled'
 }
 
 const statusClasses = (task: ScheduledTask) => {
+  if (!task.enabled) return 'bg-zinc-500'
   if (task.running) return 'bg-sky-400'
   if (task.lastStatus === 'failed') return 'bg-red-500'
   if (task.lastStatus === 'success') return 'bg-emerald-500'
@@ -66,11 +95,13 @@ const JobSettings = () => {
   const ruleHandlerRef = useRef<HTMLInputElement>(null)
   const collectionHandlerRef = useRef<HTMLInputElement>(null)
   const mediaIdAuditRef = useRef<HTMLInputElement>(null)
+  const plexTrashEmptyRef = useRef<HTMLInputElement>(null)
   const emptyTrashButtonRef = useRef<HTMLDivElement>(null)
   const [cronValidity, setCronValidity] = useState({
     rules: true,
     collections: true,
     audit: true,
+    plexTrashEmpty: true,
   })
   const [missingValuesError, setMissingValuesError] = useState(false)
   const [cleanupPending, setCleanupPending] = useState(false)
@@ -83,11 +114,113 @@ const JobSettings = () => {
   const [showDatabaseBackup, setShowDatabaseBackup] = useState(false)
   const [runningTask, setRunningTask] = useState<string>()
   const [taskError, setTaskError] = useState<string>()
+  const [builderTarget, setBuilderTarget] = useState<{
+    label: string
+    inputRef: React.RefObject<HTMLInputElement | null>
+    validityKey: keyof typeof cronValidity
+  }>()
+  const [builderMode, setBuilderMode] = useState<CronBuilderMode>('daily')
+  const [builderInterval, setBuilderInterval] = useState<number | ''>(1)
+  const [builderHour, setBuilderHour] = useState(9)
+  const [builderMinute, setBuilderMinute] = useState(0)
+  const [builderWeekDay, setBuilderWeekDay] = useState(0)
+  const [builderMonthDay, setBuilderMonthDay] = useState(1)
   const { settings } = useSettingsOutletContext()
   const tasks = useScheduledTasks()
   const runScheduledTask = useRunScheduledTask()
   const runAudit = useRunMediaIdAudit()
   const updateSettings = usePatchSettings()
+  const normalizedBuilderInterval = builderInterval || 1
+
+  const builderExpression = (() => {
+    switch (builderMode) {
+      case 'minutes':
+        return `*/${normalizedBuilderInterval} * * * *`
+      case 'hours':
+        return `${builderMinute} */${normalizedBuilderInterval} * * *`
+      case 'days':
+        return `${builderMinute} ${builderHour} */${normalizedBuilderInterval} * *`
+      case 'weekly':
+        return `${builderMinute} ${builderHour} * * ${builderWeekDay}`
+      case 'monthly':
+        return `${builderMinute} ${builderHour} ${builderMonthDay} * *`
+      default:
+        return `${builderMinute} ${builderHour} * * *`
+    }
+  })()
+
+  const builderDescription = (() => {
+    const time = new Date(
+      2000,
+      0,
+      1,
+      builderHour,
+      builderMinute,
+    ).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    switch (builderMode) {
+      case 'minutes':
+        return `Every ${normalizedBuilderInterval} minute${normalizedBuilderInterval === 1 ? '' : 's'}`
+      case 'hours':
+        return `Every ${normalizedBuilderInterval} hour${normalizedBuilderInterval === 1 ? '' : 's'} at minute ${builderMinute}`
+      case 'days':
+        return `Every ${normalizedBuilderInterval} day${normalizedBuilderInterval === 1 ? '' : 's'} at ${time}`
+      case 'weekly':
+        return `Every ${weekDays[builderWeekDay]} at ${time}`
+      case 'monthly':
+        return `On day ${builderMonthDay} of every month at ${time}`
+      default:
+        return `Every day at ${time}`
+    }
+  })()
+
+  const applyBuilderExpression = () => {
+    if (!builderTarget?.inputRef.current) return
+    builderTarget.inputRef.current.value = builderExpression
+    setCronValidity((current) => ({
+      ...current,
+      [builderTarget.validityKey]: true,
+    }))
+    setBuilderTarget(undefined)
+  }
+
+  const openCronBuilder = (
+    label: string,
+    inputRef: React.RefObject<HTMLInputElement | null>,
+    validityKey: keyof typeof cronValidity,
+  ) => {
+    const [minute, hour, monthDay, , weekDay] =
+      inputRef.current?.value.trim().split(/\s+/) ?? []
+
+    if (minute?.startsWith('*/')) {
+      setBuilderMode('minutes')
+      setBuilderInterval(Number(minute.slice(2)) || 1)
+    } else if (hour?.startsWith('*/')) {
+      setBuilderMode('hours')
+      setBuilderInterval(Number(hour.slice(2)) || 1)
+      setBuilderMinute(Number(minute) || 0)
+    } else if (monthDay?.startsWith('*/')) {
+      setBuilderMode('days')
+      setBuilderInterval(Number(monthDay.slice(2)) || 1)
+      setBuilderHour(Number(hour) || 0)
+      setBuilderMinute(Number(minute) || 0)
+    } else if (monthDay && monthDay !== '*') {
+      setBuilderMode('monthly')
+      setBuilderMonthDay(Number(monthDay) || 1)
+      setBuilderHour(Number(hour) || 0)
+      setBuilderMinute(Number(minute) || 0)
+    } else if (weekDay && weekDay !== '*') {
+      setBuilderMode('weekly')
+      setBuilderWeekDay(Number(weekDay) || 0)
+      setBuilderHour(Number(hour) || 0)
+      setBuilderMinute(Number(minute) || 0)
+    } else {
+      setBuilderMode('daily')
+      setBuilderHour(Number.isFinite(Number(hour)) ? Number(hour) : 9)
+      setBuilderMinute(Number(minute) || 0)
+    }
+
+    setBuilderTarget({ label, inputRef, validityKey })
+  }
 
   useEffect(() => {
     if (!emptyTrashConfirm || emptyTrashPending) return
@@ -193,9 +326,13 @@ const JobSettings = () => {
     const rules = ruleHandlerRef.current?.value ?? ''
     const collections = collectionHandlerRef.current?.value ?? ''
     const audit = mediaIdAuditRef.current?.value ?? ''
+    const plexTrashEmpty = plexTrashEmptyRef.current?.value ?? ''
 
     if (
-      ![rules, collections, audit].every((value) => value && isValidCron(value))
+      ![rules, collections, audit].every(
+        (value) => value && isValidCron(value),
+      ) ||
+      ![plexTrashEmpty].every((value) => !value.trim() || isValidCron(value))
     ) {
       setMissingValuesError(true)
       return
@@ -205,6 +342,7 @@ const JobSettings = () => {
       rules_handler_job_cron: rules,
       collection_handler_job_cron: collections,
       media_id_audit_job_cron: audit,
+      plex_trash_empty_job_cron: plexTrashEmpty.trim(),
     })
     await tasks.refetch()
   }
@@ -216,15 +354,16 @@ const JobSettings = () => {
     inputRef: React.RefObject<HTMLInputElement | null>,
     defaultValue: string,
     validityKey: keyof typeof cronValidity,
+    optional = false,
   ) => (
     <div className="form-row">
       <label htmlFor={id} className="text-label">
         {label}
         <p className="text-xs font-normal">{description}</p>
       </label>
-      <div className="form-input">
+      <div className="form-input flex items-center gap-2">
         <div
-          className={`form-input-field ${
+          className={`form-input-field min-w-0 flex-1 ${
             !cronValidity[validityKey] ? 'border-2 border-red-700' : ''
           }`}
         >
@@ -234,14 +373,27 @@ const JobSettings = () => {
             type="text"
             ref={inputRef}
             defaultValue={defaultValue}
+            placeholder={optional ? 'Disabled - enter a cron schedule' : ''}
             onChange={(event) =>
               setCronValidity((current) => ({
                 ...current,
-                [validityKey]: isValidCron(event.target.value),
+                [validityKey]:
+                  (optional && !event.target.value.trim()) ||
+                  isValidCron(event.target.value),
               }))
             }
           />
         </div>
+        <Button
+          buttonType="default"
+          buttonSize="sm"
+          type="button"
+          title={`Build ${label} schedule`}
+          onClick={() => openCronBuilder(label, inputRef, validityKey)}
+        >
+          <ClockIcon className="mr-1 h-4 w-4" />
+          Build
+        </Button>
       </div>
     </div>
   )
@@ -250,6 +402,227 @@ const JobSettings = () => {
     <>
       <title>Tasks - Maintainerr</title>
       <div className="h-full w-full">
+        {builderTarget && (
+          <Modal
+            title={`Build ${builderTarget.label} Schedule`}
+            size="md"
+            okText="Apply Schedule"
+            onOk={applyBuilderExpression}
+            onCancel={() => setBuilderTarget(undefined)}
+          >
+            <div className="space-y-5">
+              <div>
+                <label
+                  htmlFor="cronBuilderMode"
+                  className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                >
+                  Frequency
+                </label>
+                <select
+                  id="cronBuilderMode"
+                  value={builderMode}
+                  onChange={(event) => {
+                    const mode = event.target.value as CronBuilderMode
+                    setBuilderMode(mode)
+                    setBuilderInterval((current) =>
+                      current === ''
+                        ? ''
+                        : Math.min(current, cronIntervalMax(mode)),
+                    )
+                  }}
+                  className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                >
+                  <option value="minutes">Every N minutes</option>
+                  <option value="hours">Every N hours</option>
+                  <option value="days">Every N days</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              {(builderMode === 'minutes' ||
+                builderMode === 'hours' ||
+                builderMode === 'days') && (
+                <div>
+                  <label
+                    htmlFor="cronBuilderInterval"
+                    className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                  >
+                    Interval
+                  </label>
+                  <input
+                    id="cronBuilderInterval"
+                    type="number"
+                    min="1"
+                    max={cronIntervalMax(builderMode)}
+                    value={builderInterval}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setBuilderInterval(
+                        value === ''
+                          ? ''
+                          : Math.max(
+                              1,
+                              Math.min(
+                                cronIntervalMax(builderMode),
+                                Number(value),
+                              ),
+                            ),
+                      )
+                    }}
+                    onBlur={() => {
+                      if (builderInterval === '') setBuilderInterval(1)
+                    }}
+                    className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                  />
+                </div>
+              )}
+
+              {builderMode === 'weekly' && (
+                <div>
+                  <label
+                    htmlFor="cronBuilderWeekDay"
+                    className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                  >
+                    Day
+                  </label>
+                  <select
+                    id="cronBuilderWeekDay"
+                    value={builderWeekDay}
+                    onChange={(event) =>
+                      setBuilderWeekDay(Number(event.target.value))
+                    }
+                    className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                  >
+                    {weekDays.map((day, index) => (
+                      <option key={day} value={index}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {builderMode === 'monthly' && (
+                <div>
+                  <label
+                    htmlFor="cronBuilderMonthDay"
+                    className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                  >
+                    Day of month
+                  </label>
+                  <input
+                    id="cronBuilderMonthDay"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={builderMonthDay}
+                    onChange={(event) =>
+                      setBuilderMonthDay(
+                        Math.max(1, Math.min(31, Number(event.target.value))),
+                      )
+                    }
+                    className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                  />
+                </div>
+              )}
+
+              {builderMode === 'hours' && (
+                <div>
+                  <label
+                    htmlFor="cronBuilderMinute"
+                    className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                  >
+                    Minute
+                  </label>
+                  <input
+                    id="cronBuilderMinute"
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={builderMinute}
+                    onChange={(event) =>
+                      setBuilderMinute(
+                        Math.max(0, Math.min(59, Number(event.target.value))),
+                      )
+                    }
+                    className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                  />
+                </div>
+              )}
+
+              {(builderMode === 'daily' ||
+                builderMode === 'days' ||
+                builderMode === 'weekly' ||
+                builderMode === 'monthly') && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label
+                      htmlFor="cronBuilderHour"
+                      className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                    >
+                      Hour
+                    </label>
+                    <input
+                      id="cronBuilderHour"
+                      type="number"
+                      min="0"
+                      max="23"
+                      value={builderHour}
+                      onChange={(event) =>
+                        setBuilderHour(
+                          Math.max(0, Math.min(23, Number(event.target.value))),
+                        )
+                      }
+                      className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="cronBuilderMinute"
+                      className="mb-1 block text-xs font-medium uppercase text-zinc-400"
+                    >
+                      Minute
+                    </label>
+                    <input
+                      id="cronBuilderMinute"
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={builderMinute}
+                      onChange={(event) =>
+                        setBuilderMinute(
+                          Math.max(0, Math.min(59, Number(event.target.value))),
+                        )
+                      }
+                      className="w-full rounded-md border-zinc-600 bg-zinc-800 text-zinc-100"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-zinc-600 pt-4">
+                {builderMode === 'hours' && (
+                  <p className="mb-3 text-xs text-zinc-400">
+                    Hour intervals repeat within each calendar day and reset at
+                    midnight.
+                  </p>
+                )}
+                {builderMode === 'days' && (
+                  <p className="mb-3 text-xs text-zinc-400">
+                    Day intervals repeat within each calendar month and reset
+                    on the first day of the month.
+                  </p>
+                )}
+                <div className="text-zinc-100">{builderDescription}</div>
+                <code className="mt-1 block font-mono text-base text-orange-400">
+                  {builderExpression}
+                </code>
+              </div>
+            </div>
+          </Modal>
+        )}
         {showDatabaseBackup && (
           <DatabaseBackupModal onClose={() => setShowDatabaseBackup(false)} />
         )}
@@ -348,7 +721,7 @@ const JobSettings = () => {
 
         {taskError && <Alert type="error" title={taskError} />}
 
-        <div className="section overflow-hidden rounded-md border border-zinc-700 bg-zinc-900/40 p-0 shadow-sm shadow-black/20">
+        <div className="section w-full max-w-5xl overflow-hidden rounded-md border border-zinc-700 bg-zinc-900/40 p-0 shadow-sm shadow-black/20">
           {tasks.isLoading ? (
             <div className="flex min-h-40 items-center justify-center">
               <LoadingSpinner />
@@ -412,17 +785,21 @@ const JobSettings = () => {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button
-                            buttonType="default"
-                            buttonSize="sm"
-                            type="button"
-                            title={`Run ${task.name}`}
-                            aria-label={`Run ${task.name}`}
-                            disabled={task.running || runningTask === task.name}
-                            onClick={() => void executeTask(task.name)}
-                          >
-                            <PlayIcon className="h-4 w-4" />
-                          </Button>
+                          {task.name !== 'Plex Trash Empty' && (
+                            <Button
+                              buttonType="default"
+                              buttonSize="sm"
+                              type="button"
+                              title={`Run ${task.name}`}
+                              aria-label={`Run ${task.name}`}
+                              disabled={
+                                task.running || runningTask === task.name
+                              }
+                              onClick={() => void executeTask(task.name)}
+                            >
+                              <PlayIcon className="h-4 w-4" />
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -445,17 +822,19 @@ const JobSettings = () => {
                           {taskDescriptions[task.name] ?? task.schedule}
                         </div>
                       </div>
-                      <Button
-                        buttonType="default"
-                        buttonSize="sm"
-                        type="button"
-                        title={`Run ${task.name}`}
-                        aria-label={`Run ${task.name}`}
-                        disabled={task.running || runningTask === task.name}
-                        onClick={() => void executeTask(task.name)}
-                      >
-                        <PlayIcon className="h-4 w-4" />
-                      </Button>
+                      {task.name !== 'Plex Trash Empty' && (
+                        <Button
+                          buttonType="default"
+                          buttonSize="sm"
+                          type="button"
+                          title={`Run ${task.name}`}
+                          aria-label={`Run ${task.name}`}
+                          disabled={task.running || runningTask === task.name}
+                          onClick={() => void executeTask(task.name)}
+                        >
+                          <PlayIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                       <div>
@@ -488,9 +867,20 @@ const JobSettings = () => {
         </div>
 
         <div className="section">
-          <h3 className="heading underline decoration-zinc-600 underline-offset-4">
-            Task Schedules
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="heading underline decoration-zinc-600 underline-offset-4">
+              Task Schedules
+            </h3>
+            <a
+              href="https://crontab.guru/"
+              target="_blank"
+              rel="noreferrer"
+              className="flex shrink-0 items-center gap-1 text-sm text-orange-400 hover:text-orange-300 hover:underline"
+            >
+              Cron help
+              <ExternalLinkIcon className="h-4 w-4" />
+            </a>
+          </div>
           {missingValuesError && (
             <Alert
               type="error"
@@ -530,6 +920,15 @@ const JobSettings = () => {
               mediaIdAuditRef,
               settings.media_id_audit_job_cron,
               'audit',
+            )}
+            {cronField(
+              'plexTrashEmpty',
+              'Plex Trash Empty',
+              'Empties all Plex library trash. Leave blank to disable.',
+              plexTrashEmptyRef,
+              settings.plex_trash_empty_job_cron,
+              'plexTrashEmpty',
+              true,
             )}
             <div className="actions mt-5 flex justify-end">
               <Button

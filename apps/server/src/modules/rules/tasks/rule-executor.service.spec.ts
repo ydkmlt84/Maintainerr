@@ -2,6 +2,7 @@ import { MaintainerrEvent, MediaServerType } from '@maintainerr/contracts'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { createMockLogger } from '../../../../test/utils/data'
 import { MediaServerFactory } from '../../api/media-server/media-server.factory'
+import { PlexApiService } from '../../api/plex-api/plex-api.service'
 import { CollectionsService } from '../../collections/collections.service'
 import { SettingsService } from '../../settings/settings.service'
 import { RuleComparatorServiceFactory } from '../helpers/rule.comparator.service'
@@ -26,6 +27,12 @@ describe('RuleExecutorService', () => {
     const mediaServerFactory = {
       getService: jest.fn().mockResolvedValue(mediaServer),
     } as unknown as jest.Mocked<MediaServerFactory>
+    const plexApiService = {
+      getLibraryContents: jest.fn().mockResolvedValue({
+        totalSize: 0,
+        items: [],
+      }),
+    } as unknown as jest.Mocked<PlexApiService>
 
     const collectionService = {
       getCollection: jest.fn().mockResolvedValue({
@@ -91,6 +98,7 @@ describe('RuleExecutorService', () => {
     const service = new RuleExecutorService(
       rulesService,
       mediaServerFactory,
+      plexApiService,
       collectionService,
       settings,
       comparatorFactory,
@@ -103,6 +111,7 @@ describe('RuleExecutorService', () => {
       service,
       rulesService,
       mediaServerFactory,
+      plexApiService,
       mediaServer,
       collectionService,
       settings,
@@ -113,6 +122,31 @@ describe('RuleExecutorService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  it('loads Plex trash IDs for rule eligibility filtering', async () => {
+    const { service, plexApiService } = createService(MediaServerType.PLEX)
+    plexApiService.getLibraryContents.mockResolvedValue({
+      totalSize: 1,
+      items: [{ ratingKey: 'trashed-1' }],
+    } as never)
+
+    const ids = await (
+      service as unknown as {
+        getTrashedMediaIds: (
+          libraryId: string,
+          abortSignal: AbortSignal,
+        ) => Promise<Set<string>>
+      }
+    ).getTrashedMediaIds('1', new AbortController().signal)
+
+    expect(ids).toEqual(new Set(['trashed-1']))
+    expect(plexApiService.getLibraryContents).toHaveBeenCalledWith(
+      '1',
+      { offset: 0, size: 500, trash: true },
+      undefined,
+      false,
+    )
   })
 
   it('does not remove collection items when Jellyfin returns empty children (sync delay workaround)', async () => {

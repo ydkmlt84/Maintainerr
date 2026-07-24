@@ -4,11 +4,15 @@ import {
   Post,
   ServiceUnavailableException,
 } from '@nestjs/common'
-import { PlexApiService } from './plex-api.service'
+import { PlexApiService } from '../api/plex-api/plex-api.service'
+import { PlexTrashService } from './plex-trash.service'
 
 @Controller('api/plex/maintenance')
-export class PlexMaintenanceController {
-  constructor(private readonly plexApiService: PlexApiService) {}
+export class PlexTrashController {
+  constructor(
+    private readonly plexApiService: PlexApiService,
+    private readonly plexTrashService: PlexTrashService,
+  ) {}
 
   @Post('empty-trash')
   async emptyTrash() {
@@ -17,7 +21,7 @@ export class PlexMaintenanceController {
     }
 
     try {
-      return await this.plexApiService.emptyTrash()
+      return await this.plexTrashService.empty()
     } catch (error) {
       throw new InternalServerErrorException(
         error instanceof Error ? error.message : 'Could not empty Plex trash',

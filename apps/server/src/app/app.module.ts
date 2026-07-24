@@ -23,6 +23,7 @@ import { LogsModule } from '../modules/logging/logs.module'
 import { MediaIdAuditModule } from '../modules/media-id-audit/media-id-audit.module'
 import { NotificationsModule } from '../modules/notifications/notifications.module'
 import { NotificationService } from '../modules/notifications/notifications.service'
+import { PlexTrashModule } from '../modules/plex-trash/plex-trash.module'
 import { RulesModule } from '../modules/rules/rules.module'
 import { SettingsModule } from '../modules/settings/settings.module'
 import { SettingsService } from '../modules/settings/settings.service'
@@ -53,6 +54,7 @@ import ormConfig from './config/typeOrmConfig'
     StatsModule,
     NotificationsModule,
     MediaIdAuditModule,
+    PlexTrashModule,
     EventsModule,
     ServeStaticModule.forRootAsync({
       useFactory: () => {

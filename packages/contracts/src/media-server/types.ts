@@ -96,6 +96,7 @@ export interface MediaItem {
   parentIndex?: number
   collections?: string[]
   labels?: string[]
+  isTrashed?: boolean
   maintainerrExclusionType?: 'specific' | 'global'
   maintainerrExclusionId?: number
   maintainerrIsManual?: boolean

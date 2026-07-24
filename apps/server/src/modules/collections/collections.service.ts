@@ -1390,6 +1390,13 @@ export class CollectionsService {
   ) {
     try {
       const mediaServer = await this.getMediaServer()
+      const metadata = await mediaServer.getMetadata(childId)
+      if (metadata?.isTrashed) {
+        this.infoLogger(
+          `Skipped "${metadata.title}" (media server ID ${childId}) because it is in Plex trash.`,
+        )
+        return
+      }
 
       const tmdb = await this.tmdbIdHelper.getTmdbIdFromMediaServerId(childId)
 

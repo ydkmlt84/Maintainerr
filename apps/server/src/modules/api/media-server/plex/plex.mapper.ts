@@ -194,6 +194,7 @@ export class PlexMapper {
       parentIndex: plex.parentIndex,
       collections: plex.Collection?.map((c) => c.tag),
       labels: plex.Label?.map((l) => l.tag),
+      isTrashed: Boolean(plex.deletedAt),
     }
   }
 
@@ -244,6 +245,7 @@ export class PlexMapper {
       parentIndex: plex.parentIndex,
       collections: plex.Collection?.map((c) => c.tag),
       labels: plex.Label?.map((l) => l.tag),
+      isTrashed: Boolean(plex.deletedAt),
     }
   }
 

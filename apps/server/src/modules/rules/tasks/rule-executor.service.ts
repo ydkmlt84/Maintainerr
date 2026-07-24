@@ -12,6 +12,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import cacheManager from '../../api/lib/cache'
 import { MediaServerFactory } from '../../api/media-server/media-server.factory'
 import { IMediaServerService } from '../../api/media-server/media-server.interface'
+import { PlexApiService } from '../../api/plex-api/plex-api.service'
 import { CollectionsService } from '../../collections/collections.service'
 import { Collection } from '../../collections/entities/collection.entities'
 import { AddRemoveCollectionMedia } from '../../collections/interfaces/collection-media.interface'
@@ -55,6 +56,7 @@ export class RuleExecutorService {
   constructor(
     private readonly rulesService: RulesService,
     private readonly mediaServerFactory: MediaServerFactory,
+    private readonly plexApiService: PlexApiService,
     private readonly collectionService: CollectionsService,
     private readonly settings: SettingsService,
     private readonly comparatorFactory: RuleComparatorServiceFactory,
@@ -150,11 +152,15 @@ export class RuleExecutorService {
           this.mediaData = { page: 0, finished: false, data: [] }
 
           this.mediaDataType = ruleGroup.dataType || undefined
+          const trashedMediaIds = await this.getTrashedMediaIds(
+            ruleGroup.libraryId,
+            abortSignal,
+          )
 
           // Run rules data chunks of 50
           while (!this.mediaData.finished) {
             abortSignal.throwIfAborted()
-            await this.getMediaData(ruleGroup.libraryId)
+            await this.getMediaData(ruleGroup.libraryId, trashedMediaIds)
 
             const ruleResult = await comparator.executeRulesWithData(
               ruleGroup,
@@ -673,7 +679,44 @@ export class RuleExecutorService {
     await this.collectionService.saveCollection(collection)
   }
 
-  private async getMediaData(libraryId: string): Promise<void> {
+  private async getTrashedMediaIds(
+    libraryId: string,
+    abortSignal: AbortSignal,
+  ): Promise<Set<string>> {
+    if (this.settings.media_server_type !== MediaServerType.PLEX) {
+      return new Set()
+    }
+
+    const ids = new Set<string>()
+    const size = 500
+    let offset = 0
+    let totalSize = 0
+
+    do {
+      abortSignal.throwIfAborted()
+      const response = await this.plexApiService.getLibraryContents(
+        libraryId,
+        { offset, size, trash: true },
+        undefined,
+        false,
+      )
+      if (!response) {
+        throw new Error(`Could not fetch Plex trash for library ${libraryId}`)
+      }
+
+      response.items.forEach((item) => ids.add(item.ratingKey))
+      totalSize = response.totalSize ?? 0
+      offset += response.items.length
+      if (response.items.length === 0) break
+    } while (offset < totalSize)
+
+    return ids
+  }
+
+  private async getMediaData(
+    libraryId: string,
+    trashedMediaIds: Set<string>,
+  ): Promise<void> {
     const size = 50
     const mediaServer = await this.getMediaServer()
     const response = await mediaServer.getLibraryContents(libraryId, {
@@ -683,7 +726,10 @@ export class RuleExecutorService {
     })
 
     if (response) {
-      this.mediaData.data = response.items ? response.items : []
+      this.mediaData.data =
+        response.items?.filter(
+          (item) => !item.isTrashed && !trashedMediaIds.has(item.id),
+        ) ?? []
 
       if ((+this.mediaData.page + 1) * size >= response.totalSize) {
         this.mediaData.finished = true

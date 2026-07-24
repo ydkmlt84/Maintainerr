@@ -5,6 +5,7 @@ import GetApiHandler from '../utils/ApiHandler'
 export interface ScheduledTask {
   name: string
   schedule: string
+  enabled: boolean
   running: boolean
   runningSince: string | null
   lastRunAt: string | null

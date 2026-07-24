@@ -7,7 +7,7 @@ import {
 import { OnEvent } from '@nestjs/event-emitter'
 import { CronExpression, SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
-import { CronJob, CronTime } from 'cron'
+import { CronJob } from 'cron'
 import { Repository } from 'typeorm'
 import { MaintainerrLogger } from '../logging/logs.service'
 import { TaskExecution } from './entities/task-execution.entities'
@@ -18,6 +18,7 @@ interface TaskState {
   name: string
   schedulerName: string
   schedule: string
+  enabled: boolean
   task: () => void | Promise<void>
   running: boolean
   runningSince: Date | null
@@ -30,6 +31,7 @@ interface TaskState {
 export interface ScheduledTaskSummary {
   name: string
   schedule: string
+  enabled: boolean
   running: boolean
   runningSince: Date | null
   lastRunAt: Date | null
@@ -56,36 +58,47 @@ export class TasksService {
   public createJob(
     name: string,
     cronExp: CronExpression | string,
-    task: () => void,
+    task: () => void | Promise<void>,
   ): Status {
     try {
-      if (this.schedulerRegistry.getCronJobs().has(name)) {
+      if (
+        this.schedulerRegistry.getCronJobs().has(name) ||
+        this.runningTasks.has(name)
+      ) {
         throw new Error(`Task ${name} already exists.`)
       }
 
-      const job = new CronJob(cronExp, () => {
-        task()
+      const schedule = cronExp.toString().trim()
+      const enabled = schedule.length > 0
+      this.runningTasks.set(name, {
+        name,
+        schedulerName: name,
+        schedule,
+        enabled,
+        task,
+        running: false,
+        runningSince: null,
+        lastRunAt: null,
+        lastCompletedAt: null,
+        lastStatus: 'never',
+        lastError: null,
       })
 
-      this.schedulerRegistry.addCronJob(name, job)
-      job.start()
-
-      if (!this.runningTasks.has(name)) {
-        this.runningTasks.set(name, {
-          name,
-          schedulerName: name,
-          schedule: cronExp.toString(),
-          task,
-          running: false,
-          runningSince: null,
-          lastRunAt: null,
-          lastCompletedAt: null,
-          lastStatus: 'never',
-          lastError: null,
+      if (enabled) {
+        const job = new CronJob(schedule, () => {
+          void Promise.resolve()
+            .then(task)
+            .catch((error) => {
+              this.logger.error(`Scheduled execution of ${name} failed`, error)
+            })
         })
+        this.schedulerRegistry.addCronJob(name, job)
+        job.start()
       }
 
-      this.logger.log(`Task ${name} created successfully`)
+      this.logger.log(
+        `Task ${name} created successfully${enabled ? '' : ' (disabled)'}`,
+      )
       return this.status.createStatus(true, `Task ${name} created successfully`)
     } catch (e) {
       const message = `An error occurred while creating the ${name} task.`
@@ -99,22 +112,39 @@ export class TasksService {
     cronExp: CronExpression | string,
   ): Promise<Status> {
     try {
-      const job = this.schedulerRegistry.getCronJobs().get(name)
+      const task = this.runningTasks.get(name)
 
-      if (!job) {
+      if (!task) {
         const message = `Task ${name} does not exist.`
         this.logger.error(message)
         return this.status.createStatus(false, message)
       }
 
-      await job.stop()
-      job.setTime(new CronTime(cronExp))
-      job.start()
+      const existingJob = this.schedulerRegistry.getCronJobs().get(name)
+      if (existingJob) {
+        await existingJob.stop()
+        this.schedulerRegistry.deleteCronJob(name)
+      }
 
-      const task = this.runningTasks.get(name)
-      if (task) task.schedule = cronExp.toString()
+      const schedule = cronExp.toString().trim()
+      task.schedule = schedule
+      task.enabled = schedule.length > 0
 
-      this.logger.log(`Task ${name} updated successfully`)
+      if (task.enabled) {
+        const job = new CronJob(schedule, () => {
+          void Promise.resolve()
+            .then(() => task.task())
+            .catch((error) => {
+              this.logger.error(`Scheduled execution of ${name} failed`, error)
+            })
+        })
+        this.schedulerRegistry.addCronJob(name, job)
+        job.start()
+      }
+
+      this.logger.log(
+        `Task ${name} updated successfully${task.enabled ? '' : ' (disabled)'}`,
+      )
       return this.status.createStatus(true, `Task ${name} updated successfully`)
     } catch (e) {
       const message = `An error occurred while updating the ${name} task.`
@@ -177,6 +207,7 @@ export class TasksService {
     if (existing) {
       existing.schedulerName = schedulerName
       existing.schedule = schedule
+      existing.enabled = schedule.trim().length > 0
       existing.task = task
       return
     }
@@ -185,6 +216,7 @@ export class TasksService {
       name,
       schedulerName,
       schedule,
+      enabled: schedule.trim().length > 0,
       task,
       running: false,
       runningSince: null,
@@ -222,6 +254,7 @@ export class TasksService {
         return {
           name: task.name,
           schedule: task.schedule,
+          enabled: task.enabled,
           running: task.running,
           runningSince: task.runningSince,
           lastRunAt:

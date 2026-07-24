@@ -125,14 +125,42 @@ describe('TasksService', () => {
 
   it('updates the cron timing for an existing job', async () => {
     tasksService.createJob('update-me', '* * * * * *', () => undefined)
-    const job = schedulerRegistry.getCronJobs().get('update-me')
-    expect(job).toBeDefined()
-    const setTimeSpy = jest.spyOn(job as CronJob, 'setTime')
 
     const result = await tasksService.updateJob('update-me', '*/2 * * * * *')
 
     expect(result.code).toBe(1)
-    expect(setTimeSpy).toHaveBeenCalled()
+    expect(tasksService.getTask('update-me')).toMatchObject({
+      schedule: '*/2 * * * * *',
+      enabled: true,
+    })
+    expect(schedulerRegistry.getCronJobs().has('update-me')).toBe(true)
+  })
+
+  it('registers a task with a blank schedule as disabled', async () => {
+    const result = tasksService.createJob('disabled', '', () => undefined)
+
+    expect(result.code).toBe(1)
+    expect(schedulerRegistry.getCronJobs().has('disabled')).toBe(false)
+    expect(tasksService.getTask('disabled')?.enabled).toBe(false)
+
+    const summaries = await tasksService.getTaskSummaries()
+    expect(summaries[0]).toMatchObject({
+      name: 'disabled',
+      enabled: false,
+      nextRunAt: null,
+    })
+  })
+
+  it('can disable and re-enable an existing task', async () => {
+    tasksService.createJob('toggle-me', '* * * * * *', () => undefined)
+
+    await tasksService.updateJob('toggle-me', '')
+    expect(tasksService.getTask('toggle-me')?.enabled).toBe(false)
+    expect(schedulerRegistry.getCronJobs().has('toggle-me')).toBe(false)
+
+    await tasksService.updateJob('toggle-me', '*/2 * * * * *')
+    expect(tasksService.getTask('toggle-me')?.enabled).toBe(true)
+    expect(schedulerRegistry.getCronJobs().has('toggle-me')).toBe(true)
   })
 
   it('persists execution state and exposes task timing', async () => {
@@ -145,6 +173,7 @@ describe('TasksService', () => {
     expect(taskExecutionRepository.upsert).toHaveBeenCalledTimes(2)
     expect(summaries[0]).toMatchObject({
       name: 'tracked',
+      enabled: true,
       running: false,
       lastStatus: 'success',
     })

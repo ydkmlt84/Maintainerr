@@ -50,4 +50,6 @@ export class SettingDto {
   rules_handler_job_cron: string
 
   media_id_audit_job_cron: string
+
+  plex_trash_empty_job_cron: string
 }

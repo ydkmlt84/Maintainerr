@@ -225,6 +225,16 @@ describe('PlexMapper', () => {
       expect(result.labels).toEqual(['HD'])
     })
 
+    it('should expose Plex trash state', () => {
+      expect(PlexMapper.toMediaItem(basePlexItem).isTrashed).toBe(false)
+      expect(
+        PlexMapper.toMediaItem({
+          ...basePlexItem,
+          deletedAt: 1784786400,
+        }).isTrashed,
+      ).toBe(true)
+    })
+
     it('should convert ratings correctly', () => {
       const result = PlexMapper.toMediaItem(basePlexItem)
 
@@ -274,6 +284,23 @@ describe('PlexMapper', () => {
       expect(result.year).toBe(2021)
       expect(result.durationMs).toBe(5526353)
       expect(result.library).toEqual({ id: '18', title: 'Movies' })
+    })
+
+    it('should expose Plex trash state from metadata', () => {
+      const metadata = {
+        ratingKey: '12345',
+        guid: 'plex://movie/12345',
+        type: 'movie',
+        title: 'Test Movie',
+        Guid: [],
+        addedAt: 1609459200,
+        updatedAt: 1609545600,
+        deletedAt: 1784786400,
+        media: [],
+        Media: [],
+      } as PlexMetadata
+
+      expect(PlexMapper.metadataToMediaItem(metadata).isTrashed).toBe(true)
     })
   })
 
