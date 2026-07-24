@@ -1646,9 +1646,9 @@ const DashboardPoster = ({
       )}
       {trashOverlay ? (
         <>
-          <div className="absolute inset-0 bg-zinc-950/35" />
-          <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 shadow-lg shadow-black/40">
-            <TrashIcon className="h-4 w-4 text-white" />
+          <div className="absolute inset-0 bg-zinc-950/45" />
+          <span className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 shadow-lg shadow-black/50">
+            <TrashIcon className="h-5 w-5 text-white" />
           </span>
         </>
       ) : undefined}
