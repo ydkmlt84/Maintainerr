@@ -19,7 +19,7 @@ import {
   useNavigate,
   useRouteError,
 } from 'react-router-dom'
-import { ToastContainer } from 'react-toastify'
+import { toast, ToastContainer } from 'react-toastify'
 import GetApiHandler, { API_BASE_PATH } from '../../utils/ApiHandler'
 import AddModal from '../AddModal'
 import Button from '../Common/Button'
@@ -805,7 +805,28 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
           type={mediaAction.item.type}
           modalType={mediaAction.type}
           onCancel={() => setMediaAction(undefined)}
-          onSubmit={() => setMediaAction(undefined)}
+          onSubmit={(result) => {
+            const title = getSpotlightTitle(mediaAction.item)
+            const collection = result.collectionTitle
+              ? ` ${result.collectionTitle}`
+              : ''
+            const message =
+              result.modalType === 'exclude'
+                ? result.action === 'add'
+                  ? `Exclusion added for ${title}.`
+                  : `Exclusion removed for ${title}.`
+                : result.action === 'add'
+                  ? `${title} added to${collection}.`
+                  : `${title} removed from${collection}.`
+
+            toast.success(message)
+            setMediaAction(undefined)
+          }}
+          onError={() => {
+            toast.error(
+              `Unable to update ${getSpotlightTitle(mediaAction.item)}.`,
+            )
+          }}
         />
       ) : undefined}
     </>

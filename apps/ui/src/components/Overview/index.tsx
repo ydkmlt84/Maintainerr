@@ -5,6 +5,7 @@ import {
   ExternalLinkIcon,
   LightningBoltIcon,
   ServerIcon,
+  TrashIcon,
 } from '@heroicons/react/outline'
 import {
   type LogEvent,
@@ -36,6 +37,7 @@ interface AppStats {
   biggestItems?: AppLibraryRankingItem[]
   collections?: AppCollectionPreview[]
   leavingSoon?: AppLeavingSoonItem[]
+  plexTrash?: AppPlexTrashItem[]
   tasks?: AppTaskStats[]
   configuredServices?: AppConfiguredService[]
   recentActivity?: AppRecentActivityItem[]
@@ -159,6 +161,15 @@ interface AppLeavingSoonItem {
   collectionTitle: string
   deleteDate: string
   daysLeft: number
+}
+
+interface AppPlexTrashItem {
+  plexId: string
+  title: string
+  year?: number
+  library: string
+  type: 'movie' | 'show' | 'season' | 'episode' | 'collection'
+  posterPath?: string
 }
 
 interface AppTaskStats {
@@ -860,6 +871,22 @@ const Overview = () => {
           ))}
         </PosterRow>
 
+        {stats?.plexTrash?.length ? (
+          <PosterRow title="Plex Trash" emptyText="">
+            {stats.plexTrash.map((item) => (
+              <DashboardPoster
+                key={`${item.library}-${item.plexId}`}
+                title={item.title}
+                subtitle={`${item.library}${item.year ? ` - ${item.year}` : ''}`}
+                mediaType={item.type}
+                posterType={item.type === 'movie' ? 'movie' : 'show'}
+                posterUrl={getTautulliImageUrl(item.posterPath)}
+                trashOverlay
+              />
+            ))}
+          </PosterRow>
+        ) : undefined}
+
         <RecentActivityRow activity={stats?.recentActivity ?? []} />
 
         <WeekRow
@@ -1559,6 +1586,7 @@ const DashboardPoster = ({
   posterUrl,
   tone = 'default',
   daysLeft,
+  trashOverlay = false,
   onSelect,
 }: {
   title: string
@@ -1569,6 +1597,7 @@ const DashboardPoster = ({
   posterUrl?: string
   tone?: 'default' | 'danger'
   daysLeft?: number
+  trashOverlay?: boolean
   onSelect?: () => void
 }) => {
   const posterRequestKey = `${posterType}:${tmdbId ?? ''}`
@@ -1615,6 +1644,14 @@ const DashboardPoster = ({
           {mediaType}
         </div>
       )}
+      {trashOverlay ? (
+        <>
+          <div className="absolute inset-0 bg-zinc-950/35" />
+          <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 shadow-lg shadow-black/40">
+            <TrashIcon className="h-4 w-4 text-white" />
+          </span>
+        </>
+      ) : undefined}
       <span
         className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white ${
           tone === 'danger' ? 'bg-red-700/90' : 'bg-zinc-900/90'

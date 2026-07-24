@@ -10,5 +10,6 @@ import { PlexTrashService } from './plex-trash.service'
   imports: [PlexApiModule, NotificationsModule, TasksModule],
   controllers: [PlexTrashController],
   providers: [PlexTrashService, PlexTrashEmptyTask],
+  exports: [PlexTrashService],
 })
 export class PlexTrashModule {}

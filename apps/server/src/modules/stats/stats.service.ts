@@ -28,6 +28,10 @@ import {
 import { CollectionsService } from '../collections/collections.service'
 import { CollectionLog } from '../collections/entities/collection_log.entities'
 import { CollectionMedia } from '../collections/entities/collection_media.entities'
+import {
+  PlexTrashItem,
+  PlexTrashService,
+} from '../plex-trash/plex-trash.service'
 import { RuleGroup } from '../rules/entities/rule-group.entities'
 import { SonarrSettings } from '../settings/entities/sonarr_settings.entities'
 import { SettingsService } from '../settings/settings.service'
@@ -44,6 +48,7 @@ export interface AppStatsResponse {
   biggestItems: AppLibraryRankingItem[]
   collections: AppCollectionPreview[]
   leavingSoon: AppLeavingSoonItem[]
+  plexTrash: PlexTrashItem[]
   tasks: AppTaskStats[]
   configuredServices: AppConfiguredService[]
   recentActivity: AppRecentActivityItem[]
@@ -285,6 +290,7 @@ export class StatsService {
     private readonly servarrService: ServarrService,
     private readonly tautulliApiService: TautulliApiService,
     private readonly collectionsService: CollectionsService,
+    private readonly plexTrashService: PlexTrashService,
     private readonly settingsService: SettingsService,
     private readonly schedulerRegistry: SchedulerRegistry,
     @InjectRepository(RuleGroup)
@@ -313,6 +319,7 @@ export class StatsService {
       leavingSoon,
       recentActivity,
       tasks,
+      plexTrash,
     ] = await Promise.all([
       this.getRecentlyAdded(libraries),
       this.getPopularityStats(),
@@ -320,6 +327,9 @@ export class StatsService {
       this.getLeavingSoon(),
       this.getRecentActivity(),
       this.getTaskStats(),
+      this.plexApiService.isPlexSetup()
+        ? this.plexTrashService.getItems()
+        : Promise.resolve([]),
     ])
 
     return {
@@ -334,6 +344,7 @@ export class StatsService {
       biggestItems: libraryRankings.biggest,
       collections,
       leavingSoon,
+      plexTrash,
       tasks,
       configuredServices: await this.getConfiguredServices(),
       recentActivity,

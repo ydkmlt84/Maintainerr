@@ -2,10 +2,17 @@ import { MediaItemType } from '@maintainerr/contracts'
 
 export interface IAddModal {
   onCancel: () => void
-  onSubmit: () => void
+  onSubmit: (result: IAddModalResult) => void
+  onError?: () => void
   libraryId?: string
   type?: MediaItemType
   mediaServerId: number | string
+  modalType: 'add' | 'exclude'
+}
+
+export interface IAddModalResult {
+  action: 'add' | 'remove'
+  collectionTitle?: string
   modalType: 'add' | 'exclude'
 }
 

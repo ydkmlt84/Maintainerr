@@ -69,47 +69,73 @@ const AddModal = (props: IAddModal) => {
     props.onCancel()
   }
 
-  const handleOk = () => {
+  const handleOk = async () => {
     if (selectedCollection !== undefined) {
       const mediaDto: IAlterableMediaDto = {
         id: selectedMediaId,
         type: selectedContext,
       }
 
-      if (props.modalType === 'add') {
-        PostApiHandler(`/collections/media/add`, {
-          mediaId: props.mediaServerId,
-          context: mediaDto,
-          collectionId: selectedCollection,
-          action: selectedAction,
-        })
-      } else {
-        PostApiHandler('/rules/exclusion', {
-          mediaId: props.mediaServerId,
-          context: mediaDto,
-          collectionId:
-            selectedCollection !== -1 ? selectedCollection : undefined,
-          action: selectedAction,
-        })
-      }
+      try {
+        if (props.modalType === 'add') {
+          await PostApiHandler(`/collections/media/add`, {
+            mediaId: props.mediaServerId,
+            context: mediaDto,
+            collectionId: selectedCollection,
+            action: selectedAction,
+          })
+        } else {
+          await PostApiHandler('/rules/exclusion', {
+            mediaId: props.mediaServerId,
+            context: mediaDto,
+            collectionId:
+              selectedCollection !== -1 ? selectedCollection : undefined,
+            action: selectedAction,
+          })
+        }
 
-      props.onSubmit()
+        props.onSubmit({
+          action: selectedAction === 0 ? 'add' : 'remove',
+          collectionTitle: collectionOptions.find(
+            (collection) => collection.id === selectedCollection,
+          )?.title,
+          modalType: props.modalType,
+        })
+      } catch (error) {
+        if (props.onError) {
+          props.onError()
+          return
+        }
+        throw error
+      }
     } else {
       setAlert(true)
     }
   }
 
-  const handleForceRemoval = () => {
+  const handleForceRemoval = async () => {
     setForceRemovalCheck(false)
-    if (props.modalType === 'add') {
-      PostApiHandler(`/collections/media/add`, {
-        mediaId: props.mediaServerId,
-        context: { id: -1, type: props.type },
-        collectionId: undefined,
-        action: 1,
+    try {
+      if (props.modalType === 'add') {
+        await PostApiHandler(`/collections/media/add`, {
+          mediaId: props.mediaServerId,
+          context: { id: -1, type: props.type },
+          collectionId: undefined,
+          action: 1,
+        })
+      }
+      props.onSubmit({
+        action: 'remove',
+        collectionTitle: 'all collections',
+        modalType: props.modalType,
       })
+    } catch (error) {
+      if (props.onError) {
+        props.onError()
+        return
+      }
+      throw error
     }
-    props.onSubmit()
   }
 
   useEffect(() => {

@@ -2,8 +2,10 @@ import { Transition } from '@headlessui/react'
 import { DocumentAddIcon, DocumentRemoveIcon } from '@heroicons/react/solid'
 import { MediaItemType } from '@maintainerr/contracts'
 import React, { memo, useCallback, useEffect, useState } from 'react'
+import { toast } from 'react-toastify'
 import GetApiHandler from '../../../utils/ApiHandler'
 import AddModal from '../../AddModal'
+import { IAddModalResult } from '../../AddModal/interfaces'
 import RemoveFromCollectionBtn from '../../Collection/CollectionDetail/RemoveFromCollectionBtn'
 import Button from '../Button'
 import MediaModalContent from './MediaModal'
@@ -62,6 +64,22 @@ const MediaCard: React.FC<IMediaCard> = ({
 
   const closeMediaModal = () => setShowMediaModal(false)
 
+  const showActionToast = (result: IAddModalResult) => {
+    const collection = result.collectionTitle
+      ? ` ${result.collectionTitle}`
+      : ''
+    const message =
+      result.modalType === 'exclude'
+        ? result.action === 'add'
+          ? `Exclusion added for ${title}.`
+          : `Exclusion removed for ${title}.`
+        : result.action === 'add'
+          ? `${title} added to${collection}.`
+          : `${title} removed from${collection}.`
+
+    toast.success(message)
+  }
+
   const getExclusions = useCallback(() => {
     if (!collectionPage) {
       GetApiHandler(`/rules/exclusion?mediaServerId=${id}`).then((resp: []) =>
@@ -92,9 +110,11 @@ const MediaCard: React.FC<IMediaCard> = ({
           mediaServerId={id}
           {...(libraryId ? { libraryId: libraryId } : {})}
           {...(type ? { type: type } : {})}
-          onSubmit={() => {
+          onSubmit={(result) => {
+            showActionToast(result)
             setExcludeModal(false)
           }}
+          onError={() => toast.error(`Unable to update ${title}.`)}
           onCancel={() => setExcludeModal(false)}
           modalType="exclude"
         />
@@ -105,9 +125,11 @@ const MediaCard: React.FC<IMediaCard> = ({
           mediaServerId={id}
           {...(libraryId ? { libraryId: libraryId } : {})}
           {...(type ? { type: type } : {})}
-          onSubmit={() => {
+          onSubmit={(result) => {
+            showActionToast(result)
             setAddModal(false)
           }}
+          onError={() => toast.error(`Unable to update ${title}.`)}
           onCancel={() => setAddModal(false)}
           modalType="add"
         />

@@ -6,11 +6,13 @@ import { MaintainerrLogger } from '../logging/logs.service'
 import { NotificationService } from '../notifications/notifications.service'
 import { NotificationType } from '../notifications/notifications-interfaces'
 
-interface PlexTrashItem {
+export interface PlexTrashItem {
   plexId: string
   title: string
   year?: number
   library: string
+  type: 'movie' | 'show' | 'season' | 'episode' | 'collection'
+  posterPath?: string
 }
 
 @Injectable()
@@ -55,6 +57,8 @@ export class PlexTrashService {
             title: item.title,
             year: item.year,
             library: library.title,
+            type: item.type,
+            posterPath: item.grandparentThumb || item.thumb,
           })),
         )
         offset += response.items.length
