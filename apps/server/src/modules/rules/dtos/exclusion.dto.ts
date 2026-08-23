@@ -5,6 +5,7 @@ export class ExclusionDto {
   ruleGroupId?: number
   collectionId?: number
   action?: ExclusionAction
+  expiresInDays?: number
 }
 
 export interface ExclusionContextDto {
@@ -13,6 +14,7 @@ export interface ExclusionContextDto {
   collectionId: number
   ruleGroupId: number
   action: 0 | 1
+  expiresInDays?: number
 }
 export enum ExclusionAction {
   ADD,

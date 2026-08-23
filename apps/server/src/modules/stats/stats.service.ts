@@ -28,11 +28,13 @@ import {
 import { CollectionsService } from '../collections/collections.service'
 import { CollectionLog } from '../collections/entities/collection_log.entities'
 import { CollectionMedia } from '../collections/entities/collection_media.entities'
+import { ServarrAction } from '../collections/interfaces/collection.interface'
 import {
   PlexTrashItem,
   PlexTrashService,
 } from '../plex-trash/plex-trash.service'
 import { RuleGroup } from '../rules/entities/rule-group.entities'
+import { Exclusion } from '../rules/entities/exclusion.entities'
 import { SonarrSettings } from '../settings/entities/sonarr_settings.entities'
 import { SettingsService } from '../settings/settings.service'
 
@@ -122,13 +124,42 @@ interface AppCollectionPreviewMedia {
   image_path?: string
 }
 
-interface AppLeavingSoonItem {
+export interface AppLeavingSoonItem {
   media: MediaItem | MediaItemWithParent
   collectionId: number
   collectionTitle: string
   deleteDate: string
   daysLeft: number
 }
+
+export interface AppActionableExclusionItem {
+  media: MediaItem | MediaItemWithParent
+  exclusionId: number
+  scope: 'global' | 'collection'
+  collectionId?: number
+  collectionTitle?: string
+  expiresAt?: string
+}
+
+export interface AppManuallyAddedItem {
+  media: MediaItem | MediaItemWithParent
+}
+
+export const dedupeLeavingSoonCandidates = <
+  T extends { mediaServerId: string; deleteDate: Date },
+>(
+  items: T[],
+): T[] => [
+  ...items
+    .reduce((uniqueItems, item) => {
+      const current = uniqueItems.get(item.mediaServerId)
+      if (!current || item.deleteDate < current.deleteDate) {
+        uniqueItems.set(item.mediaServerId, item)
+      }
+      return uniqueItems
+    }, new Map<string, T>())
+    .values(),
+]
 
 interface AppTaskStats {
   name: string
@@ -295,6 +326,8 @@ export class StatsService {
     private readonly schedulerRegistry: SchedulerRegistry,
     @InjectRepository(RuleGroup)
     private readonly ruleGroupRepository: Repository<RuleGroup>,
+    @InjectRepository(Exclusion)
+    private readonly exclusionRepository: Repository<Exclusion>,
     @InjectRepository(SonarrSettings)
     private readonly sonarrSettingsRepository: Repository<SonarrSettings>,
     @InjectRepository(CollectionLog)
@@ -324,7 +357,7 @@ export class StatsService {
       this.getRecentlyAdded(libraries),
       this.getPopularityStats(),
       this.getLibraryRankings(libraries),
-      this.getLeavingSoon(),
+      this.getLeavingSoon(undefined, 24),
       this.getRecentActivity(),
       this.getTaskStats(),
       this.plexApiService.isPlexSetup()
@@ -851,8 +884,12 @@ export class StatsService {
       .slice(0, 12)
   }
 
-  private async getLeavingSoon(): Promise<AppLeavingSoonItem[]> {
-    const collections = (await this.collectionsService.getCalendarData()) ?? []
+  public async getLeavingSoon(
+    libraryId?: string,
+    limit?: number,
+  ): Promise<AppLeavingSoonItem[]> {
+    const collections =
+      (await this.collectionsService.getCalendarData(libraryId)) ?? []
     const mediaServer = await this.mediaServerFactory.getService()
     const candidates = collections
       .flatMap((collection) =>
@@ -870,7 +907,11 @@ export class StatsService {
       )
       .filter((item) => Number.isFinite(item.deleteDate.getTime()))
       .sort((a, b) => a.deleteDate.getTime() - b.deleteDate.getTime())
-    const selectedCandidates = this.pickLeavingSoonCandidates(candidates, 24)
+    const uniqueCandidates = dedupeLeavingSoonCandidates(candidates)
+    const selectedCandidates =
+      limit === undefined
+        ? uniqueCandidates
+        : this.pickLeavingSoonCandidates(uniqueCandidates, limit)
 
     return (
       await Promise.all(
@@ -908,6 +949,132 @@ export class StatsService {
         }),
       )
     ).filter((item): item is AppLeavingSoonItem => item !== undefined)
+  }
+
+  public async getActionableExclusions(
+    libraryId?: string,
+  ): Promise<AppActionableExclusionItem[]> {
+    const [ruleGroups, exclusions] = await Promise.all([
+      this.ruleGroupRepository.find({ relations: { collection: true } }),
+      this.exclusionRepository
+        .createQueryBuilder('exclusion')
+        .where('(exclusion.expiresAt IS NULL OR exclusion.expiresAt > :now)', {
+          now: new Date(),
+        })
+        .orderBy('exclusion.id', 'DESC')
+        .getMany(),
+    ])
+    const actionableGroups = ruleGroups.filter(
+      (group) =>
+        group.isActive &&
+        group.collection?.isActive &&
+        group.collection.arrAction !== ServarrAction.DO_NOTHING &&
+        (!libraryId || group.libraryId === libraryId),
+    )
+    const groupsById = new Map(
+      actionableGroups.map((group) => [group.id, group]),
+    )
+    const mediaServer = await this.mediaServerFactory.getService()
+
+    const isTypeRelevant = (exclusion: Exclusion, group: RuleGroup) => {
+      const acceptedTypes: MediaItemType[] = [group.dataType]
+      if (group.dataType === 'season') acceptedTypes.push('show')
+      if (group.dataType === 'episode') acceptedTypes.push('show', 'season')
+      return exclusion.type ? acceptedTypes.includes(exclusion.type) : true
+    }
+
+    const exclusionFamilies = [
+      ...exclusions
+        .reduce((families, exclusion) => {
+          const key = `${exclusion.ruleGroupId ?? 'global'}:${exclusion.parent ?? exclusion.mediaServerId}`
+          const family = families.get(key) ?? []
+          family.push(exclusion)
+          families.set(key, family)
+          return families
+        }, new Map<string, Exclusion[]>())
+        .values(),
+    ]
+
+    return (
+      await Promise.all(
+        exclusionFamilies.map(async (family) => {
+          const exclusion =
+            family.find(
+              (item) =>
+                item.mediaServerId === (item.parent ?? item.mediaServerId),
+            ) ?? family[0]
+          const matchingGroup = exclusion.ruleGroupId
+            ? groupsById.get(exclusion.ruleGroupId)
+            : actionableGroups.find((group) => isTypeRelevant(exclusion, group))
+          if (!matchingGroup || !isTypeRelevant(exclusion, matchingGroup)) {
+            return undefined
+          }
+
+          const media = await mediaServer.getMetadata(exclusion.mediaServerId)
+          if (!media) return undefined
+
+          return {
+            media,
+            exclusionId: exclusion.id,
+            scope: exclusion.ruleGroupId
+              ? ('collection' as const)
+              : ('global' as const),
+            ...(exclusion.ruleGroupId
+              ? {
+                  collectionId: matchingGroup.collectionId,
+                  collectionTitle: matchingGroup.collection?.title,
+                }
+              : {}),
+            ...(exclusion.expiresAt
+              ? { expiresAt: exclusion.expiresAt.toISOString() }
+              : {}),
+          }
+        }),
+      )
+    ).filter((item): item is AppActionableExclusionItem => item !== undefined)
+  }
+
+  public async getManuallyAdded(
+    libraryId?: string,
+  ): Promise<AppManuallyAddedItem[]> {
+    const query = this.collectionMediaRepository
+      .createQueryBuilder('media')
+      .innerJoin('media.collection', 'collection')
+      .select('media.mediaServerId', 'mediaServerId')
+      .where('media.isManual = :isManual', { isManual: true })
+      .groupBy('media.mediaServerId')
+
+    if (libraryId) {
+      query.andWhere('collection.libraryId = :libraryId', { libraryId })
+    }
+
+    const rows = await query.getRawMany<{ mediaServerId: string }>()
+    const mediaServer = await this.mediaServerFactory.getService()
+
+    return (
+      await Promise.all(
+        rows.map(async ({ mediaServerId }) => {
+          const media = await mediaServer.getMetadata(mediaServerId)
+          if (!media) return undefined
+
+          const parentId =
+            media.type === 'episode'
+              ? media.grandparentId
+              : media.type === 'season'
+                ? media.parentId
+                : undefined
+          const parentItem = parentId
+            ? await mediaServer.getMetadata(parentId)
+            : undefined
+
+          return {
+            media: parentItem
+              ? ({ ...media, parentItem } as MediaItemWithParent)
+              : media,
+          }
+        }),
+      )
+    ).filter((item): item is AppManuallyAddedItem => item !== undefined)
   }
 
   private pickLeavingSoonCandidates<T extends { deleteDate: Date }>(

@@ -188,13 +188,11 @@ export class MediaIdAuditService {
       )
 
       items.push(
-        ...libraryItems.map((item) =>
-          mapPlexItemForAudit(
-            PlexMapper.toMediaItem(item),
-            library,
-            trashRatingKeys.has(item.ratingKey),
+        ...libraryItems
+          .filter((item) => !trashRatingKeys.has(item.ratingKey))
+          .map((item) =>
+            mapPlexItemForAudit(PlexMapper.toMediaItem(item), library, false),
           ),
-        ),
       )
     }
 
@@ -296,7 +294,10 @@ export class MediaIdAuditService {
   ): { findings: MediaIdAuditFinding[]; resolvedCount: number } {
     const previousCurrent = new Map(
       previousFindings
-        .filter((finding) => finding.state === 'current')
+        .filter(
+          (finding) =>
+            finding.state === 'current' && finding.category !== 'plex_trash',
+        )
         .map((finding) => [finding.fingerprint, finding]),
     )
     const currentFingerprints = new Set(
@@ -340,14 +341,13 @@ export class MediaIdAuditService {
   }
 
   private async sendDigest(run: MediaIdAuditRun) {
-    const priority = [
+    const priority: MediaIdAuditCategory[] = [
       'probable_mismatch',
       'missing_plex_id',
       'duplicate_plex_id',
       'ambiguous_title_match',
-      'plex_trash',
       'not_found_in_arr',
-    ] satisfies MediaIdAuditCategory[]
+    ]
     const current = run.findings
       .filter((finding) => finding.state === 'current')
       .sort(

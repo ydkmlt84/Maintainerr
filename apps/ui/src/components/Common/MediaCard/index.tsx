@@ -1,13 +1,14 @@
 import { Transition } from '@headlessui/react'
-import { DocumentAddIcon, DocumentRemoveIcon } from '@heroicons/react/solid'
+import { AdjustmentsIcon } from '@heroicons/react/outline'
 import { MediaItemType } from '@maintainerr/contracts'
-import React, { memo, useCallback, useEffect, useState } from 'react'
-import { toast } from 'react-toastify'
+import React, { memo, useCallback, useEffect, useId, useState } from 'react'
 import GetApiHandler from '../../../utils/ApiHandler'
-import AddModal from '../../AddModal'
-import { IAddModalResult } from '../../AddModal/interfaces'
-import RemoveFromCollectionBtn from '../../Collection/CollectionDetail/RemoveFromCollectionBtn'
 import Button from '../Button'
+import CollectionMembershipTooltip from '../CollectionMembershipTooltip'
+import ExclusionBadges from '../ExclusionBadges'
+import ManageMediaModal, {
+  type MediaManagementContext,
+} from '../ManageMediaModal'
 import MediaModalContent from './MediaModal'
 
 interface IMediaCard {
@@ -27,8 +28,14 @@ interface IMediaCard {
   daysLeft?: number
   exclusionId?: number
   exclusionType?: 'global' | 'specific' | undefined
+  exclusionCollectionTitle?: string
+  exclusionExpiresAt?: string
+  reviewExclusion?: boolean
   collectionId?: number
   isManual?: boolean
+  manualFilter?: boolean
+  leavingSoonFilter?: boolean
+  countdownCollectionNames?: string[]
   onRemove?: (id: string) => void
 }
 
@@ -48,15 +55,40 @@ const MediaCard: React.FC<IMediaCard> = ({
   userScore,
   collectionPage = false,
   exclusionType = undefined,
+  exclusionCollectionTitle,
+  exclusionExpiresAt,
+  reviewExclusion = false,
   isManual = false,
+  manualFilter = false,
+  leavingSoonFilter = false,
+  countdownCollectionNames = [],
   onRemove = () => {},
 }) => {
   const [showDetail, setShowDetail] = useState(false)
   const [image, setImage] = useState<string | null>(null)
-  const [excludeModal, setExcludeModal] = useState(false)
-  const [addModal, setAddModal] = useState(false)
-  const [hasExclusion, setHasExclusion] = useState(false)
+  const [exclusions, setExclusions] = useState<
+    MediaManagementContext['exclusions']
+  >(() =>
+    reviewExclusion && exclusionId
+      ? [
+          {
+            id: exclusionId,
+            scope: exclusionType === 'global' ? 'global' : 'collection',
+            collectionId,
+            collectionTitle: exclusionCollectionTitle ?? null,
+            ruleGroupName: null,
+            expiresAt: exclusionExpiresAt ?? null,
+          },
+        ]
+      : [],
+  )
+  const [manageModal, setManageModal] = useState(false)
   const [showMediaModal, setShowMediaModal] = useState(false)
+  const [hasManualMembership, setHasManualMembership] = useState(isManual)
+  const [memberships, setMemberships] = useState<
+    MediaManagementContext['memberships']
+  >([])
+  const daysLeftTooltipId = useId().replace(/:/g, '')
 
   const openMediaModal = () => {
     setShowMediaModal(true)
@@ -64,29 +96,32 @@ const MediaCard: React.FC<IMediaCard> = ({
 
   const closeMediaModal = () => setShowMediaModal(false)
 
-  const showActionToast = (result: IAddModalResult) => {
-    const collection = result.collectionTitle
-      ? ` ${result.collectionTitle}`
-      : ''
-    const message =
-      result.modalType === 'exclude'
-        ? result.action === 'add'
-          ? `Exclusion added for ${title}.`
-          : `Exclusion removed for ${title}.`
-        : result.action === 'add'
-          ? `${title} added to${collection}.`
-          : `${title} removed from${collection}.`
-
-    toast.success(message)
-  }
-
   const getExclusions = useCallback(() => {
-    if (!collectionPage) {
-      GetApiHandler(`/rules/exclusion?mediaServerId=${id}`).then((resp: []) =>
-        resp.length > 0 ? setHasExclusion(true) : setHasExclusion(false),
+    GetApiHandler<MediaManagementContext>(`/collections/media-context/${id}`)
+      .then((context) => {
+        setExclusions(context.exclusions)
+        setMemberships(context.memberships)
+        setHasManualMembership(
+          context.memberships.some((membership) => membership.isManual),
+        )
+      })
+      .catch(() => {
+        setExclusions([])
+        setMemberships([])
+        setHasManualMembership(isManual)
+      })
+  }, [id, isManual])
+
+  const handleContextChanged = useCallback(
+    (context: MediaManagementContext) => {
+      setExclusions(context.exclusions)
+      setMemberships(context.memberships)
+      setHasManualMembership(
+        context.memberships.some((membership) => membership.isManual),
       )
-    }
-  }, [collectionPage, id])
+    },
+    [],
+  )
 
   useEffect(() => {
     if (tmdbid) {
@@ -105,33 +140,29 @@ const MediaCard: React.FC<IMediaCard> = ({
 
   return (
     <div className={'w-full'}>
-      {excludeModal ? (
-        <AddModal
+      {manageModal ? (
+        <ManageMediaModal
           mediaServerId={id}
-          {...(libraryId ? { libraryId: libraryId } : {})}
-          {...(type ? { type: type } : {})}
-          onSubmit={(result) => {
-            showActionToast(result)
-            setExcludeModal(false)
-          }}
-          onError={() => toast.error(`Unable to update ${title}.`)}
-          onCancel={() => setExcludeModal(false)}
-          modalType="exclude"
-        />
-      ) : undefined}
-
-      {addModal ? (
-        <AddModal
-          mediaServerId={id}
-          {...(libraryId ? { libraryId: libraryId } : {})}
-          {...(type ? { type: type } : {})}
-          onSubmit={(result) => {
-            showActionToast(result)
-            setAddModal(false)
-          }}
-          onError={() => toast.error(`Unable to update ${title}.`)}
-          onCancel={() => setAddModal(false)}
-          modalType="add"
+          title={title}
+          type={type}
+          libraryId={libraryId}
+          contextCollectionId={collectionId || undefined}
+          contextCollectionTitle={exclusionCollectionTitle}
+          contextExclusionId={reviewExclusion ? exclusionId : undefined}
+          removeFromViewWhenNoManualMemberships={manualFilter}
+          removeFromViewWhenNoExclusions={reviewExclusion}
+          removeFromViewAfterExclusion={
+            leavingSoonFilter || (collectionPage && !reviewExclusion)
+          }
+          onClose={() => setManageModal(false)}
+          onContextChanged={handleContextChanged}
+          onRemoveFromView={() =>
+            onRemove(
+              reviewExclusion && exclusionId
+                ? `exclusion:${exclusionId}`
+                : id.toString(),
+            )
+          }
         />
       ) : undefined}
       <div
@@ -173,52 +204,25 @@ const MediaCard: React.FC<IMediaCard> = ({
               </div>
             </div>
           </div>
-          {hasExclusion && !collectionPage ? (
-            <div className="absolute right-0 flex items-center justify-between p-2">
-              <div
-                className={`pointer-events-none z-40 rounded-full shadow ${
-                  mediaType === 'movie'
-                    ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
-                    : mediaType === 'show'
-                      ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
-                      : mediaType === 'season'
-                        ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
-                        : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
-                }`}
-              >
-                <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
-                  {'EXCL'}
-                </div>
-              </div>
-            </div>
-          ) : undefined}
+          <ExclusionBadges
+            exclusions={exclusions}
+            className={daysLeft !== 9999 ? 'top-7' : ''}
+          />
 
-          {/* on collection page and for manually added */}
-          {collectionPage && isManual && !showDetail ? (
-            <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 transform items-center justify-between p-2">
-              <div
-                className={`pointer-events-none z-40 rounded-full shadow ${
-                  mediaType === 'movie'
-                    ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
-                    : mediaType === 'show'
-                      ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
-                      : mediaType === 'season'
-                        ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
-                        : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
-                }`}
-              >
-                <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
-                  {'MANUAL'}
-                </div>
-              </div>
+          {hasManualMembership ? (
+            <div className="pointer-events-none absolute bottom-0 left-0 h-14 w-14 overflow-hidden">
+              <span className="absolute -left-5 bottom-3 w-20 rotate-45 bg-maintainerrdark-700/90 py-0.5 text-center text-[8px] font-semibold uppercase tracking-wider text-maintainerr-100">
+                Manual
+              </span>
             </div>
-          ) : undefined}
+          ) : null}
 
           {/* on collection page and for the media items */}
-          {collectionPage && !exclusionType && daysLeft !== 9999 ? (
-            <div className="absolute right-0 flex items-center justify-between p-2">
+          {!exclusionType && daysLeft !== 9999 ? (
+            <div className="absolute right-0 z-40 flex items-center justify-between p-2">
               <div
-                className={`pointer-events-none z-40 rounded-full shadow ${
+                data-tooltip-id={daysLeftTooltipId}
+                className={`pointer-events-auto z-40 rounded-full shadow ${
                   daysLeft < 0
                     ? 'bg-red-700'
                     : mediaType === 'movie'
@@ -236,27 +240,17 @@ const MediaCard: React.FC<IMediaCard> = ({
               </div>
             </div>
           ) : undefined}
-
-          {/* on collection page and for the exclusions */}
-          {collectionPage && exclusionType === 'global' ? (
-            <div className="absolute right-0 flex items-center justify-between p-2">
-              <div
-                className={`pointer-events-none z-40 rounded-full shadow ${
-                  mediaType === 'movie'
-                    ? 'bg-slate-950/90 ring-1 ring-slate-500/30'
-                    : mediaType === 'show'
-                      ? 'bg-maintainerrdark/90 ring-1 ring-maintainerr-600/30'
-                      : mediaType === 'season'
-                        ? 'bg-maintainerr-800/90 ring-1 ring-maintainerr-500/30'
-                        : 'bg-indigo-900/90 ring-1 ring-indigo-400/30'
-                }`}
-              >
-                <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-200 sm:h-5">
-                  {exclusionType.toUpperCase()}
-                </div>
-              </div>
-            </div>
-          ) : undefined}
+          {!exclusionType && daysLeft !== 9999 ? (
+            <CollectionMembershipTooltip
+              id={daysLeftTooltipId}
+              memberships={memberships}
+              fallbackCollectionNames={
+                exclusionCollectionTitle
+                  ? [exclusionCollectionTitle, ...countdownCollectionNames]
+                  : countdownCollectionNames
+              }
+            />
+          ) : null}
 
           <Transition
             as="div"
@@ -314,54 +308,32 @@ const MediaCard: React.FC<IMediaCard> = ({
                     </div>
                   )}
 
-                  {!collectionPage ? (
-                    <div>
-                      <Button
-                        buttonType="twin-primary-l"
-                        buttonSize="md"
-                        className="mb-1 mt-2 h-6 w-1/2 text-zinc-200 shadow-md"
-                        onClick={(e) => {
-                          e.stopPropagation() // Stops the MediaModal from also showing when clicked.
-                          setAddModal(true)
-                        }}
-                      >
-                        {<DocumentAddIcon className="m-auto ml-3 h-3" />}{' '}
-                        <p className="rules-button-text m-auto mr-2">{'Add'}</p>
-                      </Button>
-                      <Button
-                        buttonSize="md"
-                        buttonType="twin-primary-r"
-                        className="mt-2 h-6 w-1/2"
-                        onClick={(e) => {
-                          e.stopPropagation() // Stops the MediaModal from also showing when clicked.
-                          setExcludeModal(true)
-                        }}
-                      >
-                        {<DocumentRemoveIcon className="m-auto ml-3 h-3" />}{' '}
-                        <p className="rules-button-text m-auto mr-2">
-                          {'Excl'}
-                        </p>
-                      </Button>
-                    </div>
-                  ) : (
-                    <RemoveFromCollectionBtn
-                      mediaServerId={id}
-                      popup={exclusionType && exclusionType === 'global'}
-                      onRemove={() => onRemove(id.toString())}
-                      collectionId={collectionId}
-                      exclusionId={exclusionId}
-                    />
-                  )}
+                  <Button
+                    buttonType="primary"
+                    buttonSize="md"
+                    className="mb-1 mt-2 h-7 w-full text-zinc-100 shadow-md"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setManageModal(true)
+                    }}
+                  >
+                    <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
+                    Manage
+                  </Button>
                 </div>
               </div>
             </div>
           </Transition>
         </div>
       </div>
-      {!addModal && !excludeModal && showMediaModal && (
+      {!manageModal && showMediaModal && (
         <MediaModalContent
           id={id}
           onClose={closeMediaModal}
+          onManage={() => {
+            setShowMediaModal(false)
+            setManageModal(true)
+          }}
           title={title}
           summary={summary || 'No description available.'}
           mediaType={mediaType}
@@ -373,6 +345,5 @@ const MediaCard: React.FC<IMediaCard> = ({
     </div>
   )
 }
-const propsEqual = (prev: IMediaCard, next: IMediaCard) => prev.id === next.id
 
-export default memo(MediaCard, propsEqual)
+export default memo(MediaCard)

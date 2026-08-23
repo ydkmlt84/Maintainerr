@@ -66,10 +66,13 @@ export interface MediaMaintainerrContext {
     collectionId: number
     collectionTitle: string
     collectionActive: boolean
+    ruleGroupActive: boolean | null
+    isDirect: boolean
     addedAt: Date
     isManual: boolean
     deleteAfterDays: number | null
     scheduledFor: Date | null
+    arrAction: number
     ruleGroupName: string | null
   }[]
   exclusions: {
@@ -78,6 +81,7 @@ export interface MediaMaintainerrContext {
     collectionId: number | null
     collectionTitle: string | null
     ruleGroupName: string | null
+    expiresAt: Date | null
   }[]
   recentActivity: {
     id: number
@@ -86,6 +90,11 @@ export interface MediaMaintainerrContext {
     collectionId: number
     collectionTitle: string
   }[]
+}
+
+export interface WeeklyDeletionDigest {
+  deleted: string[]
+  upcoming: string[]
 }
 
 interface addCollectionDbResponse {
@@ -174,7 +183,32 @@ export class CollectionsService {
 
   public async getMediaMaintainerrContext(
     mediaServerId: string,
+    includeRelated = false,
   ): Promise<MediaMaintainerrContext> {
+    let membershipMediaIds = [mediaServerId]
+    if (includeRelated) {
+      try {
+        const mediaServer = await this.getMediaServer()
+        const metadata = await mediaServer.getMetadata(mediaServerId)
+        if (metadata?.type) {
+          membershipMediaIds = [
+            ...new Set([
+              mediaServerId,
+              ...(await mediaServer.getAllIdsForContextAction(
+                undefined,
+                { type: metadata.type, id: mediaServerId },
+                mediaServerId,
+              )),
+            ]),
+          ]
+        }
+      } catch (error) {
+        this.logger.debug(
+          `Unable to resolve related collection memberships for media ${mediaServerId}: ${error.message}`,
+        )
+      }
+    }
+
     const membershipsQuery = this.CollectionMediaRepo.createQueryBuilder(
       'media',
     )
@@ -182,12 +216,17 @@ export class CollectionsService {
       .leftJoin('collection.ruleGroup', 'ruleGroup')
       .select('media.collectionId', 'collectionId')
       .addSelect('collection.title', 'collectionTitle')
+      .addSelect('media.mediaServerId', 'membershipMediaServerId')
       .addSelect('collection.isActive', 'collectionActive')
+      .addSelect('ruleGroup.isActive', 'ruleGroupActive')
       .addSelect('media.addDate', 'addedAt')
       .addSelect('media.isManual', 'isManual')
       .addSelect('collection.deleteAfterDays', 'deleteAfterDays')
+      .addSelect('collection.arrAction', 'arrAction')
       .addSelect('ruleGroup.name', 'ruleGroupName')
-      .where('media.mediaServerId = :mediaServerId', { mediaServerId })
+      .where('media.mediaServerId IN (:...membershipMediaIds)', {
+        membershipMediaIds,
+      })
       .orderBy('media.addDate', 'DESC')
 
     const exclusionsQuery = this.exclusionRepo
@@ -199,11 +238,20 @@ export class CollectionsService {
         'collection.id = ruleGroup.collectionId',
       )
       .select('exclusion.id', 'id')
+      .addSelect('exclusion.mediaServerId', 'mediaServerId')
+      .addSelect('exclusion.parent', 'parent')
       .addSelect('exclusion.ruleGroupId', 'ruleGroupId')
       .addSelect('collection.id', 'collectionId')
       .addSelect('collection.title', 'collectionTitle')
       .addSelect('ruleGroup.name', 'ruleGroupName')
-      .where('exclusion.mediaServerId = :mediaServerId', { mediaServerId })
+      .addSelect('exclusion.expiresAt', 'expiresAt')
+      .where(
+        '(exclusion.mediaServerId = :mediaServerId OR exclusion.parent = :mediaServerId)',
+        { mediaServerId },
+      )
+      .andWhere('(exclusion.expiresAt IS NULL OR exclusion.expiresAt > :now)', {
+        now: new Date(),
+      })
       .orderBy('exclusion.id', 'DESC')
 
     const activityQuery = this.CollectionLogRepo.createQueryBuilder('log')
@@ -227,18 +275,24 @@ export class CollectionsService {
       membershipsQuery.getRawMany<{
         collectionId: number
         collectionTitle: string
+        membershipMediaServerId: string
         collectionActive: boolean | number
+        ruleGroupActive: boolean | number | null
         addedAt: Date | string
         isManual: boolean | number | null
         deleteAfterDays: number | null
+        arrAction: number
         ruleGroupName: string | null
       }>(),
       exclusionsQuery.getRawMany<{
         id: number
+        mediaServerId: string
+        parent: string | null
         ruleGroupId: number | null
         collectionId: number | null
         collectionTitle: string | null
         ruleGroupName: string | null
+        expiresAt: Date | string | null
       }>(),
       activityQuery.getRawMany<{
         id: number
@@ -250,7 +304,21 @@ export class CollectionsService {
     ])
 
     return {
-      memberships: membershipRows.map((row) => {
+      memberships: [
+        ...membershipRows
+          .reduce((memberships, row) => {
+            const collectionId = Number(row.collectionId)
+            const current = memberships.get(collectionId)
+            if (
+              !current ||
+              String(row.membershipMediaServerId) === mediaServerId
+            ) {
+              memberships.set(collectionId, row)
+            }
+            return memberships
+          }, new Map<number, (typeof membershipRows)[number]>())
+          .values(),
+      ].map((row) => {
         const addedAt = new Date(row.addedAt)
         const deleteAfterDays =
           row.deleteAfterDays === null ? null : Number(row.deleteAfterDays)
@@ -266,20 +334,40 @@ export class CollectionsService {
           collectionTitle: row.collectionTitle,
           collectionActive:
             row.collectionActive === true || Number(row.collectionActive) === 1,
+          ruleGroupActive:
+            row.ruleGroupActive === null
+              ? null
+              : row.ruleGroupActive === true ||
+                Number(row.ruleGroupActive) === 1,
           addedAt,
           isManual: row.isManual === true || Number(row.isManual) === 1,
           deleteAfterDays,
           scheduledFor,
+          arrAction: Number(row.arrAction),
           ruleGroupName: row.ruleGroupName,
+          isDirect: String(row.membershipMediaServerId) === mediaServerId,
         }
       }),
-      exclusions: exclusionRows.map((row) => ({
+      exclusions: [
+        ...exclusionRows
+          .reduce((families, row) => {
+            const familyRoot = row.parent ?? row.mediaServerId
+            const key = `${row.ruleGroupId ?? 'global'}:${familyRoot}`
+            const current = families.get(key)
+            if (!current || row.mediaServerId === familyRoot) {
+              families.set(key, row)
+            }
+            return families
+          }, new Map<string, (typeof exclusionRows)[number]>())
+          .values(),
+      ].map((row) => ({
         id: Number(row.id),
         scope: row.ruleGroupId === null ? 'global' : 'collection',
         collectionId:
           row.collectionId === null ? null : Number(row.collectionId),
         collectionTitle: row.collectionTitle,
         ruleGroupName: row.ruleGroupName,
+        expiresAt: row.expiresAt ? new Date(row.expiresAt) : null,
       })),
       recentActivity: activityRows.map((row) => ({
         id: Number(row.id),
@@ -518,6 +606,10 @@ export class CollectionsService {
           }),
         )
         .andWhere('exclusion.type IN (:...validTypes)', { validTypes })
+        .andWhere(
+          '(exclusion.expiresAt IS NULL OR exclusion.expiresAt > :now)',
+          { now: new Date() },
+        )
         .orderBy('id', 'DESC')
         .skip(offset)
         .take(size)
@@ -653,6 +745,63 @@ export class CollectionsService {
       )
       this.logger.debug(err)
       return undefined
+    }
+  }
+
+  public async getWeeklyDeletionDigest(
+    since: Date,
+    until: Date,
+  ): Promise<WeeklyDeletionDigest> {
+    const [handledLogs, collections] = await Promise.all([
+      this.CollectionLogRepo.createQueryBuilder('log')
+        .innerJoinAndSelect('log.collection', 'collection')
+        .where('log.type = :type', { type: ECollectionLogType.MEDIA })
+        .andWhere('log.timestamp >= :since', { since })
+        .andWhere("log.message LIKE 'Successfully handled%'")
+        .andWhere('collection.arrAction != :unmonitorAction', {
+          unmonitorAction: ServarrAction.UNMONITOR,
+        })
+        .orderBy('log.timestamp', 'ASC')
+        .getMany(),
+      this.getCalendarData(),
+    ])
+    const now = Date.now()
+    const mediaServer = await this.getMediaServer()
+    const upcomingCandidates = (collections ?? []).flatMap((collection) => {
+      if (collection.arrAction === ServarrAction.UNMONITOR) return []
+
+      return collection.media
+        .map((media) => ({
+          mediaServerId: media.mediaServerId,
+          collectionTitle: collection.title,
+          scheduledAt:
+            new Date(media.addDate).getTime() +
+            collection.deleteAfterDays * 86400000,
+        }))
+        .filter(
+          (item) =>
+            item.scheduledAt >= now && item.scheduledAt <= until.getTime(),
+        )
+    })
+    const upcoming = (
+      await Promise.all(
+        upcomingCandidates.map(async (item) => {
+          const media = await mediaServer.getMetadata(item.mediaServerId)
+          if (!media) return undefined
+          const title =
+            media.grandparentTitle || media.parentTitle || media.title
+          return `${title} - ${item.collectionTitle} - ${new Date(
+            item.scheduledAt,
+          ).toLocaleDateString()}`
+        }),
+      )
+    ).filter((item): item is string => item !== undefined)
+
+    return {
+      deleted: handledLogs.map(
+        (log) => `${log.message} - ${log.collection.title}`,
+      ),
+      upcoming,
     }
   }
 

@@ -1,11 +1,5 @@
-import { ChartBarIcon } from '@heroicons/react/outline'
-import {
-  DocumentAddIcon,
-  DocumentRemoveIcon,
-  PhotographIcon,
-  SearchIcon,
-  XIcon,
-} from '@heroicons/react/solid'
+import { AdjustmentsIcon, ChartBarIcon } from '@heroicons/react/outline'
+import { PhotographIcon, SearchIcon, XIcon } from '@heroicons/react/solid'
 import {
   type MediaItem,
   type MediaItemWithParent,
@@ -19,11 +13,11 @@ import {
   useNavigate,
   useRouteError,
 } from 'react-router-dom'
-import { toast, ToastContainer } from 'react-toastify'
+import { ToastContainer } from 'react-toastify'
 import GetApiHandler, { API_BASE_PATH } from '../../utils/ApiHandler'
-import AddModal from '../AddModal'
 import Button from '../Common/Button'
 import { SmallLoadingSpinner } from '../Common/LoadingSpinner'
+import ManageMediaModal from '../Common/ManageMediaModal'
 import MediaModalContent from '../Common/MediaCard/MediaModal'
 import NavBar from './NavBar'
 
@@ -497,10 +491,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
   const [results, setResults] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | undefined>()
-  const [mediaAction, setMediaAction] = useState<{
-    item: MediaItem
-    type: 'add' | 'exclude'
-  }>()
+  const [managedMedia, setManagedMedia] = useState<MediaItem>()
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -596,7 +587,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
   const handleClose = () => {
     onClose()
     setSelectedMedia(undefined)
-    setMediaAction(undefined)
+    setManagedMedia(undefined)
   }
 
   const displayResults = results.slice(0, 40)
@@ -742,30 +733,17 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
                       <span className="hidden text-sm text-slate-300 md:block">
                         {formatSpotlightDate(item.lastViewedAt)}
                       </span>
-                      <span className="flex w-full overflow-hidden rounded-md border-t border-zinc-700 pt-2 shadow-md md:border-0 md:pt-0">
+                      <span className="flex w-full border-t border-zinc-700 pt-2 md:border-0 md:pt-0">
                         <Button
                           type="button"
-                          buttonType="twin-primary-l"
+                          buttonType="primary"
                           buttonSize="sm"
-                          aria-label={`Add ${getSpotlightTitle(item)}`}
-                          className="h-8 min-w-0 flex-1 px-2 text-zinc-200"
-                          onClick={() => setMediaAction({ item, type: 'add' })}
+                          aria-label={`Manage ${getSpotlightTitle(item)}`}
+                          className="h-8 w-full px-2 text-zinc-200"
+                          onClick={() => setManagedMedia(item)}
                         >
-                          <DocumentAddIcon className="mr-1.5 h-3.5 w-3.5" />
-                          <span>Add</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          buttonType="twin-primary-r"
-                          buttonSize="sm"
-                          aria-label={`Exclude ${getSpotlightTitle(item)}`}
-                          className="h-8 min-w-0 flex-1 px-2 text-zinc-200"
-                          onClick={() =>
-                            setMediaAction({ item, type: 'exclude' })
-                          }
-                        >
-                          <DocumentRemoveIcon className="mr-1.5 h-3.5 w-3.5" />
-                          <span>Excl</span>
+                          <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
+                          <span>Manage</span>
                         </Button>
                       </span>
                     </div>
@@ -790,6 +768,10 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
         <MediaModalContent
           id={selectedMedia.id}
           onClose={() => setSelectedMedia(undefined)}
+          onManage={() => {
+            setManagedMedia(selectedMedia)
+            setSelectedMedia(undefined)
+          }}
           title={getSpotlightTitle(selectedMedia)}
           summary={selectedMedia.summary || 'No description available.'}
           mediaType={selectedMedia.type}
@@ -798,35 +780,13 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
           userScore={getSpotlightAudienceRating(selectedMedia)}
         />
       ) : undefined}
-      {mediaAction ? (
-        <AddModal
-          mediaServerId={mediaAction.item.id}
-          libraryId={mediaAction.item.library?.id}
-          type={mediaAction.item.type}
-          modalType={mediaAction.type}
-          onCancel={() => setMediaAction(undefined)}
-          onSubmit={(result) => {
-            const title = getSpotlightTitle(mediaAction.item)
-            const collection = result.collectionTitle
-              ? ` ${result.collectionTitle}`
-              : ''
-            const message =
-              result.modalType === 'exclude'
-                ? result.action === 'add'
-                  ? `Exclusion added for ${title}.`
-                  : `Exclusion removed for ${title}.`
-                : result.action === 'add'
-                  ? `${title} added to${collection}.`
-                  : `${title} removed from${collection}.`
-
-            toast.success(message)
-            setMediaAction(undefined)
-          }}
-          onError={() => {
-            toast.error(
-              `Unable to update ${getSpotlightTitle(mediaAction.item)}.`,
-            )
-          }}
+      {managedMedia ? (
+        <ManageMediaModal
+          mediaServerId={managedMedia.id}
+          libraryId={managedMedia.library?.id}
+          type={managedMedia.type}
+          title={getSpotlightTitle(managedMedia)}
+          onClose={() => setManagedMedia(undefined)}
         />
       ) : undefined}
     </>

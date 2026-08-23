@@ -1,9 +1,28 @@
 import { PlexLibraryItem } from '../api/plex-api/interfaces/library.interfaces'
 import { TautulliRecentlyAddedItem } from '../api/tautulli-api/tautulli-api.service'
 import {
+  dedupeLeavingSoonCandidates,
   mapPlexLibraryRankingItem,
   mapTautulliRecentlyAddedItem,
 } from './stats.service'
+
+describe('dedupeLeavingSoonCandidates', () => {
+  it('keeps one entry per media item using the earliest action date', () => {
+    const later = new Date('2026-08-30T00:00:00.000Z')
+    const earlier = new Date('2026-08-24T00:00:00.000Z')
+
+    expect(
+      dedupeLeavingSoonCandidates([
+        { mediaServerId: '1', deleteDate: later, collectionId: 10 },
+        { mediaServerId: '2', deleteDate: later, collectionId: 20 },
+        { mediaServerId: '1', deleteDate: earlier, collectionId: 30 },
+      ]),
+    ).toEqual([
+      { mediaServerId: '1', deleteDate: earlier, collectionId: 30 },
+      { mediaServerId: '2', deleteDate: later, collectionId: 20 },
+    ])
+  })
+})
 
 describe('mapTautulliRecentlyAddedItem', () => {
   it('maps episode indexes and metadata without additional lookups', () => {

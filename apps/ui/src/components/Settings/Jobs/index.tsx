@@ -53,6 +53,8 @@ const taskDescriptions: Record<string, string> = {
   'Media ID Audit': 'Compares Plex provider IDs with Radarr and Sonarr.',
   'Notification Timer': 'Sends notifications for media approaching removal.',
   'Plex Trash Empty': 'Empties the recycling bin for all Plex libraries.',
+  'Weekly Deletion Digest':
+    'Sends a Sunday summary of the previous week’s deletions and the next week’s scheduled removals.',
   'Rule Handler': 'Evaluates active rule groups on the global schedule.',
   'Rule Maintenance':
     'Cleans stale exclusions, media, and orphaned collections.',
@@ -611,8 +613,8 @@ const JobSettings = () => {
                 )}
                 {builderMode === 'days' && (
                   <p className="mb-3 text-xs text-zinc-400">
-                    Day intervals repeat within each calendar month and reset
-                    on the first day of the month.
+                    Day intervals repeat within each calendar month and reset on
+                    the first day of the month.
                   </p>
                 )}
                 <div className="text-zinc-100">{builderDescription}</div>

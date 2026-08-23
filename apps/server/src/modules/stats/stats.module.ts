@@ -9,6 +9,7 @@ import { PlexTrashModule } from '../plex-trash/plex-trash.module'
 import { CollectionLog } from '../collections/entities/collection_log.entities'
 import { CollectionMedia } from '../collections/entities/collection_media.entities'
 import { RuleGroup } from '../rules/entities/rule-group.entities'
+import { Exclusion } from '../rules/entities/exclusion.entities'
 import { SonarrSettings } from '../settings/entities/sonarr_settings.entities'
 import { StatsController } from './stats.controller'
 import { StatsService } from './stats.service'
@@ -25,6 +26,7 @@ import { StatsService } from './stats.service'
       CollectionLog,
       CollectionMedia,
       RuleGroup,
+      Exclusion,
       SonarrSettings,
     ]),
   ],

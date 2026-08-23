@@ -1,4 +1,5 @@
 import {
+  AdjustmentsIcon,
   CalendarIcon,
   ChartBarIcon,
   CollectionIcon,
@@ -13,15 +14,16 @@ import {
   type MediaItemType,
   type MediaItemWithParent,
 } from '@maintainerr/contracts'
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReconnectingEventSource from 'reconnecting-eventsource'
-import GetApiHandler, {
-  API_BASE_PATH,
-  DeleteApiHandler,
-  PostApiHandler,
-} from '../../utils/ApiHandler'
+import GetApiHandler, { API_BASE_PATH } from '../../utils/ApiHandler'
+import CollectionMembershipTooltip from '../Common/CollectionMembershipTooltip'
 import LoadingSpinner from '../Common/LoadingSpinner'
+import ExclusionBadges from '../Common/ExclusionBadges'
+import ManageMediaModal, {
+  type MediaManagementContext,
+} from '../Common/ManageMediaModal'
 import Modal from '../Common/Modal'
 import type { ICollectionMedia } from '../Collection'
 
@@ -161,6 +163,12 @@ interface AppLeavingSoonItem {
   collectionTitle: string
   deleteDate: string
   daysLeft: number
+}
+
+interface ManagedOverviewMedia {
+  media: MediaItem | MediaItemWithParent
+  collectionId?: number
+  collectionTitle?: string
 }
 
 interface AppPlexTrashItem {
@@ -680,14 +688,12 @@ const Overview = () => {
     startOfWeekSunday(new Date()),
   )
   const [loading, setLoading] = useState(true)
-  const [selectedLeavingSoon, setSelectedLeavingSoon] =
-    useState<AppLeavingSoonItem>()
+  const [managedMedia, setManagedMedia] = useState<ManagedOverviewMedia>()
   const [selectedCalendarEntry, setSelectedCalendarEntry] =
     useState<SelectedCalendarEntry>()
   const [calendarModalItems, setCalendarModalItems] =
     useState<CalendarModalItem[]>()
   const [calendarModalLoading, setCalendarModalLoading] = useState(false)
-  const [excluding, setExcluding] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -754,12 +760,14 @@ const Overview = () => {
 
   useEffect(() => {
     if (!selectedCalendarEntry) {
-      setCalendarModalItems(undefined)
+      queueMicrotask(() => setCalendarModalItems(undefined))
       return
     }
 
     let active = true
-    setCalendarModalLoading(true)
+    queueMicrotask(() => {
+      if (active) setCalendarModalLoading(true)
+    })
 
     fetchCalendarModalItems(selectedCalendarEntry, calendarCollectionsById)
       .then((items) => {
@@ -777,42 +785,6 @@ const Overview = () => {
       active = false
     }
   }, [calendarCollectionsById, selectedCalendarEntry])
-  const excludeSelectedLeavingSoon = async () => {
-    if (!selectedLeavingSoon) {
-      return
-    }
-
-    setExcluding(true)
-
-    try {
-      await DeleteApiHandler(
-        `/collections/media?mediaId=${selectedLeavingSoon.media.id}&collectionId=${selectedLeavingSoon.collectionId}`,
-      )
-      await PostApiHandler('/rules/exclusion', {
-        collectionId: selectedLeavingSoon.collectionId,
-        mediaId: selectedLeavingSoon.media.id,
-        action: 0,
-      })
-      setStats((current) =>
-        current
-          ? {
-              ...current,
-              leavingSoon: current.leavingSoon?.filter(
-                (item) =>
-                  !(
-                    item.collectionId === selectedLeavingSoon.collectionId &&
-                    item.media.id === selectedLeavingSoon.media.id
-                  ),
-              ),
-            }
-          : current,
-      )
-      setSelectedLeavingSoon(undefined)
-    } finally {
-      setExcluding(false)
-    }
-  }
-
   if (loading) {
     return (
       <>
@@ -863,10 +835,19 @@ const Overview = () => {
               subtitle={getMediaContext(item.media)}
               mediaType={item.media.type}
               posterType={getPosterType(item.media)}
+              mediaServerId={item.media.id}
               tmdbId={getTmdbId(item.media)}
               tone="danger"
               daysLeft={item.daysLeft}
-              onSelect={() => setSelectedLeavingSoon(item)}
+              collectionNames={[item.collectionTitle]}
+              manageOnPosterClick
+              onSelect={() =>
+                setManagedMedia({
+                  media: item.media,
+                  collectionId: item.collectionId,
+                  collectionTitle: item.collectionTitle,
+                })
+              }
             />
           ))}
         </PosterRow>
@@ -911,8 +892,10 @@ const Overview = () => {
               subtitle={getMediaContext(item)}
               mediaType={item.type}
               posterType={getPosterType(item)}
+              mediaServerId={item.id}
               tmdbId={getTmdbId(item)}
               posterUrl={getTautulliImageUrl(item.tautulliPosterPath)}
+              onSelect={() => setManagedMedia({ media: item })}
             />
           ))}
         </PosterRow>
@@ -949,12 +932,32 @@ const Overview = () => {
           />
         </div>
       </div>
-      {selectedLeavingSoon ? (
-        <LeavingSoonModal
-          item={selectedLeavingSoon}
-          excluding={excluding}
-          onClose={() => setSelectedLeavingSoon(undefined)}
-          onExclude={excludeSelectedLeavingSoon}
+      {managedMedia ? (
+        <ManageMediaModal
+          mediaServerId={managedMedia.media.id}
+          title={getMediaTitle(managedMedia.media)}
+          type={managedMedia.media.type}
+          libraryId={managedMedia.media.library.id}
+          contextCollectionId={managedMedia.collectionId}
+          contextCollectionTitle={managedMedia.collectionTitle}
+          removeFromViewAfterExclusion
+          onClose={() => setManagedMedia(undefined)}
+          onRemoveFromView={(change) => {
+            if (!managedMedia.collectionId) return
+            setStats((current) =>
+              current
+                ? {
+                    ...current,
+                    leavingSoon: current.leavingSoon?.filter(
+                      (item) =>
+                        item.media.id !== managedMedia.media.id ||
+                        (change?.exclusionScope !== 'global' &&
+                          item.collectionId !== managedMedia.collectionId),
+                    ),
+                  }
+                : current,
+            )
+          }}
         />
       ) : undefined}
       {selectedCalendarEntry ? (
@@ -1587,29 +1590,42 @@ const DashboardPoster = ({
   subtitle,
   mediaType,
   posterType,
+  mediaServerId,
   tmdbId,
   posterUrl,
   tone = 'default',
   daysLeft,
+  collectionNames = [],
   trashOverlay = false,
+  manageOnPosterClick = false,
   onSelect,
 }: {
   title: string
   subtitle?: string
   mediaType: string
   posterType: 'movie' | 'show'
+  mediaServerId?: number | string
   tmdbId?: string
   posterUrl?: string
   tone?: 'default' | 'danger'
   daysLeft?: number
+  collectionNames?: string[]
   trashOverlay?: boolean
+  manageOnPosterClick?: boolean
   onSelect?: () => void
 }) => {
+  const daysLeftTooltipId = useId().replace(/:/g, '')
   const posterRequestKey = `${posterType}:${tmdbId ?? ''}`
   const [resolvedPoster, setResolvedPoster] = useState<{
     key: string
     path: string
   }>()
+  const [exclusions, setExclusions] = useState<
+    MediaManagementContext['exclusions']
+  >([])
+  const [memberships, setMemberships] = useState<
+    MediaManagementContext['memberships']
+  >([])
 
   useEffect(() => {
     if (posterUrl || !tmdbId) {
@@ -1629,6 +1645,30 @@ const DashboardPoster = ({
       active = false
     }
   }, [posterRequestKey, posterType, posterUrl, tmdbId])
+
+  useEffect(() => {
+    if (!mediaServerId) return
+    let active = true
+    GetApiHandler<MediaManagementContext>(
+      `/collections/media-context/${mediaServerId}`,
+    )
+      .then((context) => {
+        if (active) {
+          setExclusions(context.exclusions)
+          setMemberships(context.memberships)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setExclusions([])
+          setMemberships([])
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [mediaServerId])
 
   const posterPath =
     resolvedPoster?.key === posterRequestKey ? resolvedPoster.path : undefined
@@ -1666,6 +1706,7 @@ const DashboardPoster = ({
       </span>
       {daysLeft !== undefined ? (
         <span
+          data-tooltip-id={daysLeftTooltipId}
           className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-zinc-100 shadow ${
             daysLeft < 0
               ? 'bg-red-700'
@@ -1681,6 +1722,17 @@ const DashboardPoster = ({
           {daysLeft}
         </span>
       ) : undefined}
+      {daysLeft !== undefined ? (
+        <CollectionMembershipTooltip
+          id={daysLeftTooltipId}
+          memberships={memberships}
+          fallbackCollectionNames={collectionNames}
+        />
+      ) : null}
+      <ExclusionBadges
+        exclusions={exclusions}
+        className={daysLeft !== undefined ? 'top-7' : ''}
+      />
       <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-transparent px-3 pb-3 pt-10 transition duration-200 group-hover:translate-y-0">
         <p className="line-clamp-2 text-sm font-bold leading-4 text-white">
           {title}
@@ -1690,18 +1742,29 @@ const DashboardPoster = ({
             {subtitle}
           </p>
         ) : undefined}
+        {onSelect && !manageOnPosterClick ? (
+          <button
+            type="button"
+            className="mt-2 flex h-7 w-full items-center justify-center rounded-md bg-maintainerr-600 px-2 text-xs font-medium text-white shadow transition hover:bg-maintainerr-500 focus:outline-none focus:ring-2 focus:ring-maintainerr-400"
+            onClick={onSelect}
+            aria-label={`Manage ${title}`}
+          >
+            <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
+            Manage
+          </button>
+        ) : null}
       </div>
     </div>
   )
 
   return (
     <div className="w-28 flex-shrink-0 xs:w-32">
-      {onSelect ? (
+      {onSelect && manageOnPosterClick ? (
         <button
           type="button"
-          className="group block w-full text-left"
+          className="group block w-full text-left focus:outline-none focus:ring-2 focus:ring-maintainerr-400"
           onClick={onSelect}
-          aria-label={`Open ${title}`}
+          aria-label={`Manage ${title}`}
         >
           {poster}
         </button>
@@ -1811,58 +1874,6 @@ function RankedMediaPanel<T extends RankedMediaItem>({
     </section>
   )
 }
-
-const LeavingSoonModal = ({
-  item,
-  excluding,
-  onClose,
-  onExclude,
-}: {
-  item: AppLeavingSoonItem
-  excluding: boolean
-  onClose: () => void
-  onExclude: () => void
-}) => (
-  <Modal
-    title={getMediaTitle(item.media)}
-    size="sm"
-    onCancel={onClose}
-    onOk={onExclude}
-    okText={excluding ? 'Excluding...' : 'Exclude from Collection'}
-    okButtonType="danger"
-    okDisabled={excluding}
-    cancelText="Close"
-    backgroundClickable={!excluding}
-  >
-    <div className="rounded-lg bg-zinc-800 p-3">
-      {getMediaContext(item.media) ? (
-        <>
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Media
-          </p>
-          <p className="mt-1 text-base font-bold text-zinc-100">
-            {getMediaContext(item.media)}
-          </p>
-        </>
-      ) : undefined}
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        Collection
-      </p>
-      <Link
-        to={`/collections/${item.collectionId}`}
-        className="mt-1 inline-block text-base font-bold text-maintainerr-400 transition hover:text-maintainerr-300"
-        onClick={onClose}
-      >
-        {item.collectionTitle}
-      </Link>
-      <p className="mt-2 text-sm text-zinc-400">
-        {item.daysLeft <= 0
-          ? 'Scheduled for removal now.'
-          : `${item.daysLeft} days left before removal.`}
-      </p>
-    </div>
-  </Modal>
-)
 
 const CalendarItemsModal = ({
   entry,

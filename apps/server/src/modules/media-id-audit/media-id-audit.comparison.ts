@@ -62,25 +62,17 @@ export const compareMediaIds = (
   ])
   const duplicateCounts = new Map<string, number>()
 
-  for (const item of plexItems) {
+  const auditablePlexItems = plexItems.filter((item) => !item.inPlexTrash)
+
+  for (const item of auditablePlexItems) {
     for (const providerId of item.providerIds) {
       const key = `${item.mediaType}:${providerId}`
       duplicateCounts.set(key, (duplicateCounts.get(key) ?? 0) + 1)
     }
   }
 
-  for (const item of plexItems) {
+  for (const item of auditablePlexItems) {
     const matchingArrItems = arrByType.get(item.mediaType) ?? []
-
-    if (item.inPlexTrash) {
-      findings.push({
-        ...baseFinding(item, 'plex_trash'),
-        confidence: 'info',
-        reason:
-          'Plex reports this item in the library trash, so it is not expected to exist in Radarr or Sonarr.',
-      })
-      continue
-    }
 
     if (
       item.providerIds.some(

@@ -4,6 +4,7 @@ import {
 } from '@maintainerr/contracts'
 import { debounce } from 'lodash-es'
 import { useEffect, useRef } from 'react'
+import { PhotographIcon } from '@heroicons/react/outline'
 import { ICollectionMedia } from '../../Collection'
 import LoadingSpinner, {
   SmallLoadingSpinner,
@@ -22,6 +23,23 @@ interface IMediaContent {
   collectionPage?: boolean
   collectionInfo?: ICollectionMedia[]
   collectionId?: number
+  emptyTitle?: string
+}
+
+type ScheduledMediaItem = MediaItem & {
+  maintainerrManualFilter?: boolean
+  maintainerrLeavingSoon?: {
+    collectionId: number
+    collectionTitle?: string
+    daysLeft: number
+  }
+  maintainerrExcluded?: {
+    exclusionId: number
+    scope: 'global' | 'collection'
+    collectionId?: number
+    collectionTitle?: string
+    expiresAt?: string
+  }
 }
 
 /**
@@ -119,6 +137,16 @@ const MediaContent = (props: IMediaContent) => {
     return undefined
   }
 
+  const getCountdownCollectionNames = (mediaId: string) =>
+    Array.from(
+      new Set(
+        (collectionInfo ?? [])
+          .filter((item) => item.mediaServerId === mediaId)
+          .map((item) => item.collection?.title)
+          .filter((title): title is string => Boolean(title)),
+      ),
+    )
+
   /**
    * Get the parent year from a MediaItem.
    * For episodes/seasons, this is the show's year.
@@ -165,7 +193,7 @@ const MediaContent = (props: IMediaContent) => {
   if (props.data && props.data.length > 0) {
     return (
       <ul className="cards-vertical">
-        {props.data.map((el, index) => (
+        {props.data.map((el: ScheduledMediaItem, index) => (
           <li key={`${getMediaItemIdentity(el)}:${index}`}>
             <MediaCard
               id={el.id}
@@ -204,19 +232,52 @@ const MediaContent = (props: IMediaContent) => {
                   : undefined
               }
               tmdbid={extractTmdbId(el)}
-              collectionPage={
-                props.collectionPage ? props.collectionPage : false
+              collectionPage={Boolean(
+                props.collectionPage || el.maintainerrExcluded,
+              )}
+              exclusionType={
+                el.maintainerrExcluded
+                  ? el.maintainerrExcluded.scope === 'global'
+                    ? 'global'
+                    : 'specific'
+                  : el.maintainerrExclusionType
               }
-              exclusionType={el.maintainerrExclusionType}
               onRemove={props.onRemove}
               collectionId={props.collectionId}
               isManual={el.maintainerrIsManual ? el.maintainerrIsManual : false}
+              manualFilter={el.maintainerrManualFilter}
+              leavingSoonFilter={Boolean(el.maintainerrLeavingSoon)}
               {...(props.collectionInfo
                 ? {
                     daysLeft: getDaysLeft(el.id),
                     collectionId: props.collectionInfo.find(
                       (colEl) => colEl.mediaServerId === el.id,
                     )?.collectionId,
+                    countdownCollectionNames: getCountdownCollectionNames(
+                      el.id,
+                    ),
+                  }
+                : undefined)}
+              {...(el.maintainerrLeavingSoon
+                ? {
+                    daysLeft: el.maintainerrLeavingSoon.daysLeft,
+                    collectionId: el.maintainerrLeavingSoon.collectionId,
+                    exclusionCollectionTitle:
+                      el.maintainerrLeavingSoon.collectionTitle,
+                    countdownCollectionNames: el.maintainerrLeavingSoon
+                      .collectionTitle
+                      ? [el.maintainerrLeavingSoon.collectionTitle]
+                      : [],
+                  }
+                : undefined)}
+              {...(el.maintainerrExcluded
+                ? {
+                    exclusionId: el.maintainerrExcluded.exclusionId,
+                    collectionId: el.maintainerrExcluded.collectionId ?? 0,
+                    exclusionCollectionTitle:
+                      el.maintainerrExcluded.collectionTitle,
+                    exclusionExpiresAt: el.maintainerrExcluded.expiresAt,
+                    reviewExclusion: true,
                   }
                 : undefined)}
             />
@@ -226,6 +287,20 @@ const MediaContent = (props: IMediaContent) => {
       </ul>
     )
   }
-  return <></>
+  return (
+    <div className="flex min-h-[45vh] items-center justify-center px-6 text-center">
+      <div>
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-maintainerr-400 ring-1 ring-zinc-700">
+          <PhotographIcon className="h-6 w-6" />
+        </span>
+        <h3 className="mt-3 text-base font-semibold text-zinc-200">
+          {props.emptyTitle ?? 'No media found'}
+        </h3>
+        <p className="mt-1 text-sm text-zinc-500">
+          There is nothing to display for this view.
+        </p>
+      </div>
+    </div>
+  )
 }
 export default MediaContent

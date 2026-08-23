@@ -1,4 +1,5 @@
 import {
+  AdjustmentsIcon,
   CalendarIcon,
   ClockIcon,
   DatabaseIcon,
@@ -13,11 +14,13 @@ import {
 import { MediaItem } from '@maintainerr/contracts'
 import React, { memo, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { useMediaServerType } from '../../../../hooks/useMediaServerType'
 import GetApiHandler from '../../../../utils/ApiHandler'
 
 interface ModalContentProps {
   onClose: () => void
+  onManage?: () => void
   id: number | string
   image?: string
   userScore?: number
@@ -43,10 +46,13 @@ interface MediaMaintainerrContext {
     collectionId: number
     collectionTitle: string
     collectionActive: boolean
+    ruleGroupActive: boolean | null
+    isDirect: boolean
     addedAt: string
     isManual: boolean
     deleteAfterDays: number | null
     scheduledFor: string | null
+    arrAction: number
     ruleGroupName: string | null
   }[]
   exclusions: {
@@ -55,6 +61,7 @@ interface MediaMaintainerrContext {
     collectionId: number | null
     collectionTitle: string | null
     ruleGroupName: string | null
+    expiresAt: string | null
   }[]
 }
 
@@ -104,18 +111,24 @@ const formatBytes = (value?: number): string => {
   return `${(value / 1024 ** index).toFixed(index > 2 ? 1 : 0)} ${units[index]}`
 }
 
-const getScheduleLabel = (scheduledFor: string | null): string | null => {
+const getScheduleLabel = (
+  scheduledFor: string | null,
+  arrAction: number,
+): string | null => {
   if (!scheduledFor) return null
+  if (arrAction === 4) return null
+
   const scheduled = new Date(scheduledFor)
   if (Number.isNaN(scheduled.getTime())) return null
   const days = Math.ceil((scheduled.getTime() - Date.now()) / 86400000)
-  if (days < 0) return `Eligible since ${formatDate(scheduled)}`
-  if (days === 0) return 'Eligible today'
-  return `Eligible in ${days} day${days === 1 ? '' : 's'}`
+  const action = arrAction === 3 ? 'Unmonitor' : 'Removal'
+  if (days < 0) return `${action} overdue since ${formatDate(scheduled)}`
+  if (days === 0) return `${action} scheduled today`
+  return `${action} in ${days} day${days === 1 ? '' : 's'}`
 }
 
 const MediaModalContent: React.FC<ModalContentProps> = memo(
-  ({ onClose, mediaType, id, summary, year, title, tmdbid }) => {
+  ({ onClose, onManage, mediaType, id, summary, year, title, tmdbid }) => {
     const { isPlex, isJellyfin } = useMediaServerType()
     const [loading, setLoading] = useState<boolean>(true)
     const [backdrop, setBackdrop] = useState<string | null>(null)
@@ -202,7 +215,9 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
           setGrandparentMetadata(null)
         })
         .finally(() => setLoading(false))
-      GetApiHandler<MediaMaintainerrContext>(`/collections/media-context/${id}`)
+      GetApiHandler<MediaMaintainerrContext>(
+        `/collections/media-context/${id}?includeRelated=true`,
+      )
         .then(setMaintainerrContext)
         .catch(() => setMaintainerrContext(null))
         .finally(() => setContextLoading(false))
@@ -711,18 +726,28 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                         </h4>
                         <div className="mt-2 divide-y divide-zinc-800 border-y border-zinc-800">
                           {maintainerrContext.memberships.map((membership) => {
-                            const scheduleLabel = getScheduleLabel(
-                              membership.scheduledFor,
-                            )
+                            const isActive =
+                              membership.collectionActive &&
+                              membership.ruleGroupActive !== false
+                            const scheduleLabel = isActive
+                              ? getScheduleLabel(
+                                  membership.scheduledFor,
+                                  membership.arrAction,
+                                )
+                              : null
                             return (
                               <div
                                 key={membership.collectionId}
                                 className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
                               >
                                 <div className="min-w-0">
-                                  <div className="truncate text-sm font-medium text-zinc-100">
+                                  <Link
+                                    to={`/collections/${membership.collectionId}`}
+                                    className="block truncate text-sm font-medium text-maintainerr-400 transition hover:text-maintainerr-300"
+                                    onClick={onClose}
+                                  >
                                     {membership.collectionTitle}
-                                  </div>
+                                  </Link>
                                   <div className="mt-0.5 text-xs text-zinc-500">
                                     Added {formatDate(membership.addedAt)}
                                     {membership.ruleGroupName
@@ -732,22 +757,23 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2 text-xs">
                                   <span className="text-zinc-400">
-                                    {membership.isManual ? 'Manual' : 'Rule'}
+                                    {membership.isManual
+                                      ? membership.isDirect
+                                        ? 'Added manually'
+                                        : 'Related media added manually'
+                                      : membership.isDirect
+                                        ? 'Added by rule'
+                                        : 'Related media added by rule'}
                                   </span>
-                                  {scheduleLabel ? (
+                                  {!isActive ? (
+                                    <span className="rounded bg-zinc-800 px-2 py-1 font-semibold text-zinc-400">
+                                      Inactive
+                                    </span>
+                                  ) : scheduleLabel ? (
                                     <span className="text-amber-400">
                                       {scheduleLabel}
                                     </span>
-                                  ) : (
-                                    <span className="text-zinc-500">
-                                      No timed action
-                                    </span>
-                                  )}
-                                  {!membership.collectionActive && (
-                                    <span className="text-zinc-500">
-                                      Inactive
-                                    </span>
-                                  )}
+                                  ) : null}
                                 </div>
                               </div>
                             )
@@ -773,6 +799,9 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                                 : exclusion.collectionTitle ||
                                   exclusion.ruleGroupName ||
                                   'Collection exclusion'}
+                              {exclusion.expiresAt
+                                ? ` until ${formatDate(exclusion.expiresAt)}`
+                                : ''}
                             </span>
                           ))}
                         </div>
@@ -807,14 +836,16 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                   })}
                 </div>
               )}
-              <div className="ml-auto flex space-x-3">
+              {onManage ? (
                 <button
-                  onClick={onClose}
-                  className="rounded bg-maintainerr-600 px-4 py-2 text-white shadow-lg shadow-maintainerr-950/30 hover:bg-maintainerr focus:outline-none"
+                  type="button"
+                  onClick={onManage}
+                  className="ml-auto flex items-center rounded bg-maintainerr-600 px-4 py-2 font-medium text-white shadow-lg shadow-maintainerr-950/30 hover:bg-maintainerr focus:outline-none"
                 >
-                  Close
+                  <AdjustmentsIcon className="mr-2 h-4 w-4" />
+                  Manage
                 </button>
-              </div>
+              ) : null}
             </div>
           </div>
         </div>

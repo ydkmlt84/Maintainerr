@@ -8,6 +8,7 @@ export interface IAddModal {
   type?: MediaItemType
   mediaServerId: number | string
   modalType: 'add' | 'exclude'
+  addOnly?: boolean
 }
 
 export interface IAddModalResult {

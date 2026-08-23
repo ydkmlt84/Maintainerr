@@ -9,7 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import axios from 'axios'
 import _ from 'lodash'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, IsNull, LessThanOrEqual, Repository } from 'typeorm'
 import cacheManager from '../api/lib/cache'
 import { MediaServerFactory } from '../api/media-server/media-server.factory'
 import { IMediaServerService } from '../api/media-server/media-server.interface'
@@ -600,6 +600,9 @@ export class RulesService {
       )
       handleMedia = ids.map((id) => ({ mediaServerId: id }))
     }
+    const expiresAt = data.expiresInDays
+      ? new Date(Date.now() + data.expiresInDays * 86400000)
+      : null
     let activeMediaTitle: string | undefined
     try {
       // add all items
@@ -628,6 +631,7 @@ export class RulesService {
             parent: data.mediaId ? data.mediaId : null,
             // set media type
             type: metaData?.type,
+            expiresAt,
           },
         ])
 
@@ -690,6 +694,31 @@ export class RulesService {
       return this.createReturnStatus(true, 'Success')
     } catch (e) {
       this.logger.warn(`Removing exclusion with id ${id} failed.`)
+      this.logger.debug(e)
+      return this.createReturnStatus(false, 'Failed')
+    }
+  }
+
+  async removeExclusionFamily(id: number) {
+    try {
+      const exclusion = await this.exclusionRepo.findOne({ where: { id } })
+      if (!exclusion) return this.createReturnStatus(false, 'Not found')
+
+      const familyRoot = exclusion.parent ?? exclusion.mediaServerId
+      const ruleGroupId = exclusion.ruleGroupId ?? IsNull()
+      const family = await this.exclusionRepo.find({
+        where: [
+          { parent: familyRoot, ruleGroupId },
+          { mediaServerId: familyRoot, ruleGroupId },
+        ],
+      })
+      await this.exclusionRepo.delete(family.map((item) => item.id))
+      this.logger.log(
+        `Removed ${family.length} related exclusion record${family.length === 1 ? '' : 's'} for media server ID ${familyRoot}`,
+      )
+      return this.createReturnStatus(true, 'Success')
+    } catch (e) {
+      this.logger.warn(`Removing exclusion family for id ${id} failed.`)
       this.logger.debug(e)
       return this.createReturnStatus(false, 'Failed')
     }
@@ -806,6 +835,7 @@ export class RulesService {
     mediaServerId?: string,
   ): Promise<Exclusion[]> {
     try {
+      await this.removeExpiredExclusions()
       if (rulegroupId || mediaServerId) {
         let exclusions: Exclusion[] = []
         if (rulegroupId) {
@@ -844,12 +874,19 @@ export class RulesService {
 
   async getAllExclusions(): Promise<Exclusion[]> {
     try {
+      await this.removeExpiredExclusions()
       return await this.exclusionRepo.find()
     } catch (e) {
       this.logger.warn(`Rules - Action failed : ${e.message}`)
       this.logger.debug(e)
       return []
     }
+  }
+
+  private async removeExpiredExclusions(): Promise<void> {
+    await this.exclusionRepo.delete({
+      expiresAt: LessThanOrEqual(new Date()),
+    })
   }
 
   private validateRule(rule: RuleDto): ReturnStatus {

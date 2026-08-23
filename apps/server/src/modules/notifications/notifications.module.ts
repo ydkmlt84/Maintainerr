@@ -9,6 +9,7 @@ import { NotificationTimerService } from './notifications-timer.service'
 import { TasksModule } from '../tasks/tasks.module'
 import { CollectionsModule } from '../collections/collections.module'
 import { MediaServerModule } from '../api/media-server/media-server.module'
+import { WeeklyDeletionDigestTask } from './weekly-deletion-digest.task'
 
 @Module({
   imports: [
@@ -18,7 +19,11 @@ import { MediaServerModule } from '../api/media-server/media-server.module'
     MediaServerModule,
     TypeOrmModule.forFeature([Notification, RuleGroup]),
   ],
-  providers: [NotificationService, NotificationTimerService],
+  providers: [
+    NotificationService,
+    NotificationTimerService,
+    WeeklyDeletionDigestTask,
+  ],
   controllers: [NotificationsController],
   exports: [NotificationService],
 })

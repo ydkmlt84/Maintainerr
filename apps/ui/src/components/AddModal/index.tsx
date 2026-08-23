@@ -6,7 +6,12 @@ import FormItem from '../Common/FormItem'
 import Modal from '../Common/Modal'
 import { IAddModal, IAlterableMediaDto, ICollectionMedia } from './interfaces'
 
+const getCollectionLabel = (collection: ICollectionMedia): string =>
+  `${collection.title}${collection.isActive === false ? ' (Inactive)' : ''}`
+
 const AddModal = (props: IAddModal) => {
+  const selectClassName =
+    'mt-1 block w-full rounded-md border-zinc-600 bg-zinc-900 text-sm text-zinc-100 shadow-sm focus:border-maintainerr-500 focus:ring-maintainerr-500'
   const [selectedCollection, setSelectedCollection] = useState<
     number | string
   >()
@@ -14,6 +19,7 @@ const AddModal = (props: IAddModal) => {
   const [alert, setAlert] = useState(false)
   const [forceRemovalcheck, setForceRemovalCheck] = useState(false)
   const [selectedAction, setSelectedAction] = useState<number>(0)
+  const [expiresInDays, setExpiresInDays] = useState<number | undefined>()
   // For show only
   const [selectedSeasons, setSelectedSeasons] = useState<number | string>(-1)
   const [selectedEpisodes, setSelectedEpisodes] = useState<number | string>(-1)
@@ -48,14 +54,20 @@ const AddModal = (props: IAddModal) => {
   )
 
   const selectedMediaId = useMemo(() => {
+    if (props.type === 'season' || props.type === 'episode') {
+      return props.mediaServerId
+    }
     return props.type === 'movie'
       ? -1
       : selectedEpisodes !== -1
         ? selectedEpisodes
         : selectedSeasons
-  }, [props.type, selectedSeasons, selectedEpisodes])
+  }, [props.mediaServerId, props.type, selectedSeasons, selectedEpisodes])
 
   const selectedContext = useMemo((): MediaItemType => {
+    if (props.type === 'season' || props.type === 'episode') {
+      return props.type
+    }
     return props.type === 'show'
       ? selectedEpisodes !== -1
         ? 'episode'
@@ -91,6 +103,7 @@ const AddModal = (props: IAddModal) => {
             collectionId:
               selectedCollection !== -1 ? selectedCollection : undefined,
             action: selectedAction,
+            ...(selectedAction === 0 && expiresInDays ? { expiresInDays } : {}),
           })
         }
 
@@ -200,44 +213,35 @@ const AddModal = (props: IAddModal) => {
   // fetch correct collections based on selected type
   useEffect(() => {
     queueMicrotask(() => setLoading(true))
+    let active = true
+    const collectionTypes: MediaItemType[] =
+      props.type === 'show'
+        ? selectedEpisodes !== -1
+          ? ['episode']
+          : selectedSeasons !== -1
+            ? ['season', 'episode']
+            : ['show', 'season', 'episode']
+        : props.type === 'season'
+          ? ['season', 'episode']
+          : props.type === 'episode'
+            ? ['episode']
+            : ['movie']
 
-    if (props.type === 'show') {
-      if (selectedEpisodes !== -1) {
-        GetApiHandler(`/collections?typeId=episode`).then((resp) => {
-          // get collections for episodes
-          setCollectionOptions([...origCollectionOptions, ...resp])
-          setLoading(false)
-        })
-      } else if (selectedSeasons !== -1) {
-        GetApiHandler(`/collections?typeId=season`).then((resp) => {
-          // get collections for episodes and seasons
-          GetApiHandler(`/collections?typeId=episode`).then((resp2) => {
-            setCollectionOptions([...origCollectionOptions, ...resp, ...resp2])
-            setLoading(false)
-          })
-        })
-      } else {
-        GetApiHandler(`/collections?typeId=show`).then((resp) => {
-          // get collections for episodes, seasons and shows
-          GetApiHandler(`/collections?typeId=season`).then((resp2) => {
-            GetApiHandler(`/collections?typeId=episode`).then((resp3) => {
-              setCollectionOptions([
-                ...origCollectionOptions,
-                ...resp,
-                ...resp2,
-                ...resp3,
-              ])
-              setLoading(false)
-            })
-          })
-        })
-      }
-    } else {
-      GetApiHandler(`/collections?typeId=movie`).then((resp) => {
-        // get collections for movies
-        setCollectionOptions([...origCollectionOptions, ...resp])
-        setLoading(false)
+    Promise.all(
+      collectionTypes.map((type) =>
+        GetApiHandler<ICollectionMedia[]>(`/collections?typeId=${type}`),
+      ),
+    )
+      .then((responses) => {
+        if (!active) return
+        setCollectionOptions([...origCollectionOptions, ...responses.flat()])
       })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
     }
   }, [origCollectionOptions, selectedSeasons, selectedEpisodes, props.type])
 
@@ -248,24 +252,29 @@ const AddModal = (props: IAddModal) => {
         backgroundClickable={false}
         onCancel={handleCancel}
         onOk={handleOk}
-        okDisabled={false}
+        okDisabled={selectedCollection === undefined}
         title={
-          props.modalType === 'add' ? 'Add / Remove Media' : 'Exclude Media'
+          props.modalType === 'add' && props.addOnly
+            ? 'Add Media to Collection'
+            : props.modalType === 'add'
+              ? 'Add / Remove Media'
+              : 'Exclude Media'
         }
-        okText={'Submit'}
+        okText={props.addOnly ? 'Add to Collection' : 'Submit'}
         okButtonType={'primary'}
         onSecondary={() => {}}
         specialButtonType="warning"
-        specialDisabled={props.modalType !== 'add'}
+        specialDisabled={props.modalType !== 'add' || props.addOnly}
         specialText={'Remove from all collections'}
         onSpecial={
-          props.modalType === 'add'
+          props.modalType === 'add' && !props.addOnly
             ? () => {
                 setForceRemovalCheck(true)
               }
             : undefined
         }
         iconSvg={''}
+        size="2xl"
       >
         {forceRemovalcheck ? (
           <Modal
@@ -289,25 +298,48 @@ const AddModal = (props: IAddModal) => {
           <Alert title="Please select a collection" type="warning" />
         ) : undefined}
 
-        <div className="mt-6">
-          <FormItem label="Action">
-            <select
-              name={`Action-field`}
-              id={`Action-field`}
-              value={selectedAction}
-              onChange={(e: { target: { value: string } }) => {
-                setSelectedAction(+e.target.value)
-              }}
-            >
-              <option value={0}>Add</option>
-              <option value={1}>Remove</option>
-            </select>
-          </FormItem>
+        <div className="space-y-4 rounded-lg border border-zinc-600 bg-zinc-800 p-4">
+          {!props.addOnly ? (
+            <FormItem label="Action">
+              <select
+                className={selectClassName}
+                name={`Action-field`}
+                id={`Action-field`}
+                value={selectedAction}
+                onChange={(e: { target: { value: string } }) => {
+                  setSelectedAction(+e.target.value)
+                }}
+              >
+                <option value={0}>Add</option>
+                <option value={1}>Remove</option>
+              </select>
+            </FormItem>
+          ) : null}
+
+          {props.modalType === 'exclude' && selectedAction === 0 ? (
+            <FormItem label="Duration">
+              <select
+                className={selectClassName}
+                name="Exclusion-duration-field"
+                id="Exclusion-duration-field"
+                value={expiresInDays ?? 0}
+                onChange={(e: { target: { value: string } }) =>
+                  setExpiresInDays(
+                    e.target.value === '0' ? undefined : +e.target.value,
+                  )
+                }
+              >
+                <option value={0}>Permanent</option>
+                <option value={7}>7 days</option>
+              </select>
+            </FormItem>
+          ) : null}
 
           {/* For shows */}
           {props.type === 'show' ? (
             <FormItem label="Seasons">
               <select
+                className={selectClassName}
                 name={`Seasons-field`}
                 id={`Seasons-field`}
                 value={selectedSeasons}
@@ -330,6 +362,7 @@ const AddModal = (props: IAddModal) => {
           {props.type === 'show' && selectedSeasons !== -1 ? (
             <FormItem label="Episodes">
               <select
+                className={selectClassName}
                 name={`Episodes-field`}
                 id={`Episodes-field`}
                 value={selectedEpisodes}
@@ -351,6 +384,7 @@ const AddModal = (props: IAddModal) => {
 
           <FormItem label="Collection">
             <select
+              className={selectClassName}
               name={`Collection-field`}
               id={`Collection-field`}
               value={selectedCollection}
@@ -361,12 +395,17 @@ const AddModal = (props: IAddModal) => {
               {collectionOptions?.map((e: ICollectionMedia) => {
                 return (
                   <option key={e?.id} value={e?.id}>
-                    {e?.title}
+                    {getCollectionLabel(e)}
                   </option>
                 )
               })}
             </select>
           </FormItem>
+          {collectionOptions.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              No compatible collections are available for this media type.
+            </p>
+          ) : null}
         </div>
       </Modal>
     </>

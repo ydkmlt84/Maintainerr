@@ -261,6 +261,13 @@ export class RulesController {
     return await this.rulesService.removeExclusion(id)
   }
 
+  @Delete('/exclusion-family/:id')
+  async removeExclusionFamily(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ReturnStatus> {
+    return this.rulesService.removeExclusionFamily(id)
+  }
+
   @Delete('/exclusions/:mediaServerId')
   async removeAllExclusion(
     @Param('mediaServerId') mediaServerId: string,

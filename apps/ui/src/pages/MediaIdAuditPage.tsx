@@ -48,10 +48,20 @@ const MediaIdAuditPage = () => {
   const [state, setState] = useState<'all' | 'current' | 'resolved'>('current')
   const [search, setSearch] = useState('')
   const run = selectedRunId ? selected.data : latest.data
-
+  const reportFindings = useMemo(
+    () =>
+      (run?.findings ?? []).filter(
+        (finding) => finding.category !== 'plex_trash',
+      ),
+    [run?.findings],
+  )
+  const currentFindings = useMemo(
+    () => reportFindings.filter((finding) => finding.state === 'current'),
+    [reportFindings],
+  )
   const findings = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return (run?.findings ?? []).filter(
+    return reportFindings.filter(
       (finding) =>
         (category === 'all' || finding.category === category) &&
         (state === 'all' || finding.state === state) &&
@@ -61,7 +71,7 @@ const MediaIdAuditPage = () => {
           finding.plexProviderId?.toLowerCase().includes(term) ||
           finding.arrProviderId?.toLowerCase().includes(term)),
     )
-  }, [category, run?.findings, search, state])
+  }, [category, reportFindings, search, state])
 
   if (latest.isLoading || history.isLoading || selected.isLoading) {
     return <LoadingSpinner />
@@ -113,15 +123,17 @@ const MediaIdAuditPage = () => {
               {[
                 ['Plex media', run.totalPlexItems],
                 ['Matched', run.matchedCount],
-                ['Current', run.findingCount],
-                ['New', run.newCount],
+                ['Current', currentFindings.length],
+                [
+                  'New',
+                  currentFindings.filter((finding) => finding.isNew).length,
+                ],
                 ['Resolved', run.resolvedCount],
                 ['Probable mismatch', run.probableMismatchCount],
                 ['Missing Plex ID', run.missingPlexIdCount],
                 ['Not found in Arr', run.notFoundInArrCount],
                 ['Duplicate Plex ID', run.duplicatePlexIdCount],
                 ['Ambiguous', run.ambiguousTitleMatchCount],
-                ['Plex trash', run.plexTrashCount],
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -156,11 +168,13 @@ const MediaIdAuditPage = () => {
                   }
                 >
                   <option value="all">All categories</option>
-                  {Object.entries(categoryLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
+                  {Object.entries(categoryLabels)
+                    .filter(([value]) => value !== 'plex_trash')
+                    .map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
                 </select>
                 <select
                   className="rounded border-zinc-600 bg-zinc-800 text-sm text-zinc-100"

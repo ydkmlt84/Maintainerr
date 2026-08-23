@@ -18,5 +18,8 @@ export class Exclusion {
   @Column({ nullable: true }) // nullable because old exclusions don't have the type. They'll be added by a maintenance task
   type: MediaItemType | undefined
 
+  @Column({ type: 'datetime', nullable: true, default: null })
+  expiresAt: Date | null
+
   mediaData: MediaItemWithParent
 }

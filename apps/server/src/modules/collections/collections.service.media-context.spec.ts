@@ -4,6 +4,8 @@ import { CollectionsService } from './collections.service'
 import { CollectionLog } from './entities/collection_log.entities'
 import { CollectionMedia } from './entities/collection_media.entities'
 import { Exclusion } from '../rules/entities/exclusion.entities'
+import { MediaServerFactory } from '../api/media-server/media-server.factory'
+import { IMediaServerService } from '../api/media-server/media-server.interface'
 
 const queryBuilder = (rows: unknown[]) => ({
   innerJoin: jest.fn().mockReturnThis(),
@@ -22,6 +24,7 @@ describe('CollectionsService media context', () => {
   let collectionMediaRepo: Mocked<Repository<CollectionMedia>>
   let exclusionRepo: Mocked<Repository<Exclusion>>
   let collectionLogRepo: Mocked<Repository<CollectionLog>>
+  let mediaServerFactory: Mocked<MediaServerFactory>
 
   beforeEach(async () => {
     const { unit, unitRef } =
@@ -31,6 +34,7 @@ describe('CollectionsService media context', () => {
     collectionMediaRepo = unitRef.get('CollectionMediaRepository')
     exclusionRepo = unitRef.get('ExclusionRepository')
     collectionLogRepo = unitRef.get('CollectionLogRepository')
+    mediaServerFactory = unitRef.get(MediaServerFactory)
   })
 
   it('combines memberships, exclusions, and recent activity from local data', async () => {
@@ -39,10 +43,13 @@ describe('CollectionsService media context', () => {
         {
           collectionId: 12,
           collectionTitle: 'Leaving Soon',
+          membershipMediaServerId: '117455',
           collectionActive: 1,
+          ruleGroupActive: 1,
           addedAt: '2026-07-01T00:00:00.000Z',
           isManual: 0,
           deleteAfterDays: 14,
+          arrAction: 0,
           ruleGroupName: 'Unwatched movies',
         },
       ]) as never,
@@ -51,6 +58,17 @@ describe('CollectionsService media context', () => {
       queryBuilder([
         {
           id: 5,
+          mediaServerId: '117455',
+          parent: '117454',
+          ruleGroupId: null,
+          collectionId: null,
+          collectionTitle: null,
+          ruleGroupName: null,
+        },
+        {
+          id: 4,
+          mediaServerId: '117456',
+          parent: '117454',
           ruleGroupId: null,
           collectionId: null,
           collectionTitle: null,
@@ -70,14 +88,24 @@ describe('CollectionsService media context', () => {
       ]) as never,
     )
 
-    const result = await service.getMediaMaintainerrContext('117454')
+    mediaServerFactory.getService.mockResolvedValue({
+      getMetadata: jest.fn().mockResolvedValue({ type: 'show' }),
+      getAllIdsForContextAction: jest
+        .fn()
+        .mockResolvedValue(['117454', '117455']),
+    } as unknown as Mocked<IMediaServerService>)
+
+    const result = await service.getMediaMaintainerrContext('117454', true)
 
     expect(result.memberships[0]).toMatchObject({
       collectionId: 12,
       collectionTitle: 'Leaving Soon',
       collectionActive: true,
+      ruleGroupActive: true,
+      isDirect: false,
       isManual: false,
       deleteAfterDays: 14,
+      arrAction: 0,
       ruleGroupName: 'Unwatched movies',
     })
     expect(result.memberships[0].scheduledFor).toEqual(
@@ -87,6 +115,7 @@ describe('CollectionsService media context', () => {
       id: 5,
       scope: 'global',
     })
+    expect(result.exclusions).toHaveLength(1)
     expect(result.recentActivity[0]).toMatchObject({
       id: 9,
       collectionTitle: 'Leaving Soon',

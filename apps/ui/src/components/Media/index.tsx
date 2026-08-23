@@ -4,13 +4,20 @@ import {
   type MediaLibrarySortParams,
 } from '@maintainerr/contracts'
 import {
+  FilterIcon,
+  RefreshIcon,
+  SortAscendingIcon,
+} from '@heroicons/react/outline'
+import {
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMediaServerLibraries } from '../../api/media-server'
 import SearchContext from '../../contexts/search-context'
 import GetApiHandler from '../../utils/ApiHandler'
@@ -27,7 +34,36 @@ import MediaContent from './Content'
 
 const mediaLibraryStorageKey = 'maintainerr.media.selectedLibraryId'
 const defaultFilterValue = 'all'
-const filterOptions = [{ value: defaultFilterValue, label: 'All items' }]
+const leavingSoonFilterValue = 'leaving-soon'
+const excludedFilterValue = 'excluded'
+const manuallyAddedFilterValue = 'manually-added'
+const filterOptions = [
+  { value: defaultFilterValue, label: 'All items' },
+  { value: leavingSoonFilterValue, label: 'Leaving Soon' },
+  { value: excludedFilterValue, label: 'Excluded' },
+  { value: manuallyAddedFilterValue, label: 'Manually Added' },
+]
+
+type LeavingSoonItem = {
+  media: MediaItem
+  collectionId: number
+  collectionTitle: string
+  deleteDate: string
+  daysLeft: number
+}
+
+type ActionableExclusionItem = {
+  media: MediaItem
+  exclusionId: number
+  scope: 'global' | 'collection'
+  collectionId?: number
+  collectionTitle?: string
+  expiresAt?: string
+}
+
+type ManuallyAddedItem = {
+  media: MediaItem
+}
 
 const getStoredMediaLibraryId = (): string | undefined => {
   if (typeof window === 'undefined') {
@@ -38,6 +74,7 @@ const getStoredMediaLibraryId = (): string | undefined => {
 }
 
 const Media = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
   // const [isLoading, setIsLoading] = useState<Boolean>(false)
   const loadingRef = useRef<boolean>(false)
   const [isLoading, setIsLoadingState] = useState(false)
@@ -55,7 +92,15 @@ const Media = () => {
   )
   const selectedLibraryRef = useRef<string | undefined>(undefined)
   const [searchUsed, setSearchUsed] = useState<boolean>(false)
-  const [filterValue, setFilterValue] = useState(defaultFilterValue)
+  const requestedFilter = searchParams.get('filter')
+  const [filterValue, setFilterValue] = useState(
+    requestedFilter === leavingSoonFilterValue ||
+      requestedFilter === excludedFilterValue ||
+      requestedFilter === manuallyAddedFilterValue
+      ? requestedFilter
+      : defaultFilterValue,
+  )
+  const filterValueRef = useRef(filterValue)
 
   const pageData = useRef<number>(0)
   const [pageDataCount, setPageDataCount] = useState(0)
@@ -100,6 +145,10 @@ const Media = () => {
 
   const fetchData = useCallback(
     async (requestedSortParams: MediaLibrarySortParams = sortParams) => {
+      if (filterValueRef.current !== defaultFilterValue) {
+        return
+      }
+
       if (
         selectedLibraryRef.current &&
         SearchCtx.search.text === '' &&
@@ -185,7 +234,7 @@ const Media = () => {
           setIsLoading(false)
         },
       )
-    } else {
+    } else if (filterValue === defaultFilterValue) {
       pageData.current = 0
       queueMicrotask(() => {
         setSearchUsed(false)
@@ -196,7 +245,79 @@ const Media = () => {
         fetchData()
       })
     }
-  }, [SearchCtx.search.text, fetchData, libraries, sortParams])
+  }, [SearchCtx.search.text, fetchData, filterValue, libraries, sortParams])
+
+  useEffect(() => {
+    filterValueRef.current = filterValue
+
+    if (
+      ![
+        leavingSoonFilterValue,
+        excludedFilterValue,
+        manuallyAddedFilterValue,
+      ].includes(filterValue) ||
+      !selectedLibrary ||
+      SearchCtx.search.text !== ''
+    ) {
+      return
+    }
+
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      setIsLoading(true)
+      setData([])
+      setTotalSize(999)
+    })
+
+    const endpoint =
+      filterValue === leavingSoonFilterValue
+        ? '/stats/leaving-soon'
+        : filterValue === excludedFilterValue
+          ? '/stats/excluded'
+          : '/stats/manually-added'
+
+    GetApiHandler<
+      LeavingSoonItem[] | ActionableExclusionItem[] | ManuallyAddedItem[]
+    >(
+      `${endpoint}?${new URLSearchParams({
+        libraryId: selectedLibrary,
+      }).toString()}`,
+    )
+      .then((items) => {
+        if (!active) return
+
+        const filteredMedia = items.map((item) => {
+          if (filterValue === leavingSoonFilterValue) {
+            return { ...item.media, maintainerrLeavingSoon: item }
+          }
+          if (filterValue === excludedFilterValue) {
+            return { ...item.media, maintainerrExcluded: item }
+          }
+          return {
+            ...item.media,
+            maintainerrIsManual: true,
+            maintainerrManualFilter: true,
+          }
+        })
+        const visibleMedia =
+          filterValue === leavingSoonFilterValue ||
+          filterValue === excludedFilterValue
+            ? dedupeMediaItems(filteredMedia)
+            : filteredMedia
+        setData(visibleMedia)
+        setTotalSize(visibleMedia.length)
+        pageData.current = visibleMedia.length
+        setPageDataCount(visibleMedia.length)
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [SearchCtx.search.text, filterValue, selectedLibrary])
 
   useEffect(() => {
     selectedLibraryRef.current = selectedLibrary
@@ -217,7 +338,7 @@ const Media = () => {
       return
     }
 
-    if (SearchCtx.search.text !== '') {
+    if (SearchCtx.search.text !== '' || filterValue !== defaultFilterValue) {
       setData((currentData) =>
         sortMediaItems(currentData, nextSortState.sortParams),
       )
@@ -231,6 +352,26 @@ const Media = () => {
     dataRef.current = []
     setIsLoading(true)
     fetchData(nextSortState.sortParams)
+  }
+
+  const handleFilterChange = (nextFilterValue: string) => {
+    filterValueRef.current = nextFilterValue
+    setFilterValue(nextFilterValue)
+    const nextParams = new URLSearchParams(searchParams)
+
+    if (nextFilterValue === defaultFilterValue) {
+      nextParams.delete('filter')
+    } else {
+      nextParams.set('filter', nextFilterValue)
+    }
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  const resetSort = () => handleSortChange(sortConfig.defaultValue)
+  const resetFilter = () => handleFilterChange(defaultFilterValue)
+  const resetAll = () => {
+    handleFilterChange(defaultFilterValue)
+    handleSortChange(sortConfig.defaultValue)
   }
 
   return (
@@ -257,7 +398,7 @@ const Media = () => {
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto lg:justify-end">
               <div className="relative w-full sm:w-[18rem]">
                 {hasCustomSortSelected ? (
-                  <span className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-zinc-300 shadow-[0_0_10px_rgba(212,212,216,0.7)]" />
+                  <span className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-maintainerr-500 shadow-[0_0_10px_rgba(245,158,11,0.75)]" />
                 ) : null}
                 <MediaLibrarySortControl
                   ariaLabel="Sort media items"
@@ -269,13 +410,13 @@ const Media = () => {
               </div>
               <div className="relative w-full sm:w-[12rem]">
                 {hasCustomFilterSelected ? (
-                  <span className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-zinc-300 shadow-[0_0_10px_rgba(212,212,216,0.7)]" />
+                  <span className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-maintainerr-500 shadow-[0_0_10px_rgba(245,158,11,0.75)]" />
                 ) : null}
                 <Select
                   aria-label="Filter media items"
                   name="filter"
                   value={filterValue}
-                  onChange={(event) => setFilterValue(event.target.value)}
+                  onChange={(event) => handleFilterChange(event.target.value)}
                 >
                   {filterOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -284,12 +425,38 @@ const Media = () => {
                   ))}
                 </Select>
               </div>
+              <div className="flex h-9 shrink-0 overflow-hidden rounded-md border border-zinc-600 bg-zinc-800 shadow-sm">
+                <ResetControl
+                  label="Reset sort"
+                  disabled={!hasCustomSortSelected}
+                  onClick={resetSort}
+                >
+                  <SortAscendingIcon className="h-4 w-4" />
+                </ResetControl>
+                <ResetControl
+                  label="Reset filter"
+                  disabled={!hasCustomFilterSelected}
+                  onClick={resetFilter}
+                >
+                  <FilterIcon className="h-4 w-4" />
+                </ResetControl>
+                <ResetControl
+                  label="Reset sort and filter"
+                  disabled={!hasCustomSortSelected && !hasCustomFilterSelected}
+                  onClick={resetAll}
+                >
+                  <RefreshIcon className="h-4 w-4" />
+                </ResetControl>
+              </div>
             </div>
           </div>
         ) : undefined}
         {selectedLibrary ? (
           <MediaContent
-            dataFinished={!(totalSize >= pageDataCount * fetchAmount)}
+            dataFinished={
+              filterValue !== defaultFilterValue ||
+              !(totalSize >= pageDataCount * fetchAmount)
+            }
             fetchData={() => {
               setLoadingExtra(true)
               fetchData()
@@ -302,10 +469,60 @@ const Media = () => {
             }
             data={data}
             libraryId={selectedLibrary!}
+            emptyTitle={
+              filterValue === leavingSoonFilterValue
+                ? 'Nothing is leaving soon'
+                : filterValue === excludedFilterValue
+                  ? 'No excluded media'
+                  : filterValue === manuallyAddedFilterValue
+                    ? 'No manually added media'
+                    : 'No media found'
+            }
+            onRemove={(id) =>
+              setData((currentData) => {
+                if (id.startsWith('exclusion:')) {
+                  const exclusionId = Number(id.slice('exclusion:'.length))
+                  return currentData.filter(
+                    (item) =>
+                      (
+                        item as MediaItem & {
+                          maintainerrExcluded?: { exclusionId: number }
+                        }
+                      ).maintainerrExcluded?.exclusionId !== exclusionId,
+                  )
+                }
+
+                return currentData.filter((item) => item.id.toString() !== id)
+              })
+            }
           />
         ) : undefined}
       </div>
     </>
   )
 }
+
+const ResetControl = ({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string
+  disabled: boolean
+  onClick: () => void
+  children: ReactNode
+}) => (
+  <button
+    type="button"
+    title={label}
+    aria-label={label}
+    disabled={disabled}
+    onClick={onClick}
+    className="flex h-9 w-9 items-center justify-center border-l border-zinc-600 text-zinc-300 transition first:border-l-0 hover:bg-maintainerr-600 hover:text-white disabled:cursor-default disabled:text-zinc-600 disabled:hover:bg-transparent"
+  >
+    {children}
+  </button>
+)
+
 export default Media

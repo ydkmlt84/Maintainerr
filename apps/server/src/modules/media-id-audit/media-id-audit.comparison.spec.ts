@@ -87,15 +87,13 @@ describe('compareMediaIds', () => {
     ).toHaveLength(2)
   })
 
-  it('classifies Plex trash before comparing against Arr', () => {
+  it('completely excludes Plex trash from the audit', () => {
     const result = compareMediaIds(
       [plexItem({ inPlexTrash: true })],
       [arrItem()],
     )
 
     expect(result.matchedCount).toBe(0)
-    expect(result.findings).toEqual([
-      expect.objectContaining({ category: 'plex_trash', confidence: 'info' }),
-    ])
+    expect(result.findings).toHaveLength(0)
   })
 })

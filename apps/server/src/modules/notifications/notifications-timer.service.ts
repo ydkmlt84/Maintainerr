@@ -1,6 +1,10 @@
+import { MaintainerrEvent } from '@maintainerr/contracts'
 import { Injectable } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
 import { CollectionsService } from '../collections/collections.service'
+import { ServarrAction } from '../collections/interfaces/collection.interface'
 import { MaintainerrLogger } from '../logging/logs.service'
+import { SettingsService } from '../settings/settings.service'
 import { TaskBase } from '../tasks/task.base'
 import { TasksService } from '../tasks/tasks.service'
 import { NotificationType } from './notifications-interfaces'
@@ -15,12 +19,14 @@ export class NotificationTimerService extends TaskBase {
   protected name = 'Notification Timer'
   protected cronSchedule = '0 14 * * *'
   protected type = NotificationType.MEDIA_ABOUT_TO_BE_HANDLED
+  private lastNextRunNotificationAt = 0
 
   constructor(
     protected readonly taskService: TasksService,
     protected readonly logger: MaintainerrLogger,
     protected readonly collectionService: CollectionsService,
     private readonly notificationService: NotificationService,
+    private readonly settingsService: SettingsService,
   ) {
     logger.setContext(NotificationTimerService.name)
     super(taskService, logger)
@@ -89,5 +95,73 @@ export class NotificationTimerService extends TaskBase {
         }
       }),
     )
+  }
+
+  @OnEvent(MaintainerrEvent.CollectionHandler_Finished)
+  private onCollectionHandlerFinished(): void {
+    const now = Date.now()
+    if (now - this.lastNextRunNotificationAt < 5000) return
+    this.lastNextRunNotificationAt = now
+
+    void this.sendNextRunDeletionNotification().catch((error) => {
+      this.logger.error(
+        'Failed to send the next-run deletion notification',
+        error,
+      )
+    })
+  }
+
+  public async sendNextRunDeletionNotification(): Promise<void> {
+    const collectionTask = (await this.taskService.getTaskSummaries()).find(
+      (task) => task.name === 'Collection Handler',
+    )
+    if (!collectionTask?.nextRunAt) return
+
+    const nextRunAt = collectionTask.nextRunAt.getTime()
+    const collections = (await this.collectionService.getCalendarData()) ?? []
+    const deletingItems = collections.flatMap((collection) => {
+      if (collection.arrAction === ServarrAction.UNMONITOR) return []
+
+      return collection.media.filter((media) => {
+        const deleteAt = new Date(media.addDate).getTime()
+        const scheduledAt =
+          deleteAt + collection.deleteAfterDays * 24 * 60 * 60 * 1000
+        return Number.isFinite(scheduledAt) && scheduledAt <= nextRunAt
+      })
+    })
+
+    if (deletingItems.length === 0) return
+
+    const link = this.getLeavingSoonUrl()
+    const nextRunLabel = collectionTask.nextRunAt.toLocaleString()
+    await this.notificationService.sendNotification(
+      NotificationType.NEXT_RUN_DELETIONS,
+      {
+        subject: `${deletingItems.length} item${deletingItems.length === 1 ? '' : 's'} deleting during the next run`,
+        message: [
+          `The next collection run is scheduled for ${nextRunLabel}.`,
+          link ? `[View Leaving Soon](${link})` : undefined,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      },
+    )
+  }
+
+  private getLeavingSoonUrl(): string | undefined {
+    const configuredUrl = this.settingsService.applicationUrl?.trim()
+    if (!configuredUrl) return undefined
+
+    try {
+      const baseUrl = /^https?:\/\//i.test(configuredUrl)
+        ? configuredUrl
+        : `http://${configuredUrl}`
+      return new URL(
+        'media?filter=leaving-soon',
+        baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+      ).toString()
+    } catch {
+      return undefined
+    }
   }
 }

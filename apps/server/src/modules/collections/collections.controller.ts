@@ -192,8 +192,14 @@ export class CollectionsController {
   }
 
   @Get('/media-context/:id')
-  getMediaMaintainerrContext(@Param('id') mediaServerId: string) {
-    return this.collectionService.getMediaMaintainerrContext(mediaServerId)
+  getMediaMaintainerrContext(
+    @Param('id') mediaServerId: string,
+    @Query('includeRelated') includeRelated?: string,
+  ) {
+    return this.collectionService.getMediaMaintainerrContext(
+      mediaServerId,
+      includeRelated === 'true',
+    )
   }
 
   @Get('/storage-summary')

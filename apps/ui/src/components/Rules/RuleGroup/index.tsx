@@ -1,14 +1,10 @@
-import {
-  PencilIcon,
-  PlayIcon,
-  StopIcon,
-  TrashIcon,
-} from '@heroicons/react/solid'
-import { type MediaItemType } from '@maintainerr/contracts'
+import { PlayIcon, StopIcon, TrashIcon } from '@heroicons/react/solid'
+import { MediaItemTypeLabels, type MediaItemType } from '@maintainerr/contracts'
 import { isAxiosError } from 'axios'
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
+import { Tooltip } from 'react-tooltip'
 import { useMediaServerLibraries } from '../../../api/media-server'
 import {
   useExecuteRuleGroup,
@@ -18,8 +14,8 @@ import { useTaskStatusContext } from '../../../contexts/taskstatus-context'
 import { DeleteApiHandler } from '../../../utils/ApiHandler'
 import { logClientError } from '../../../utils/ClientLogger'
 import { ICollection } from '../../Collection'
-import DeleteButton from '../../Common/DeleteButton'
-import EditButton from '../../Common/EditButton'
+import Modal from '../../Common/Modal'
+import { posterTooltipStyle } from '../../Common/ExclusionBadges'
 import { AgentConfiguration } from '../../Settings/Notifications/CreateNotificationModal'
 import { IRuleJson } from '../Rule'
 
@@ -44,13 +40,16 @@ const RuleGroup = (props: {
   onEdit: (group: IRuleGroup) => void
 }) => {
   const [showsureDelete, setShowSureDelete] = useState<boolean>(false)
+  const [titleTruncated, setTitleTruncated] = useState(false)
+  const titleTooltipId = useId().replace(/:/g, '')
+  const titleRef = useRef<HTMLDivElement>(null)
   const { data: libraries } = useMediaServerLibraries()
   const { queueStatus } = useTaskStatusContext()
   const { mutate: executeRules } = useExecuteRuleGroup({
     onError(error) {
       if (isAxiosError(error) && error.response?.data?.message) {
         toast.error(
-          error.response?.data?.message || 'Failed to start rule execution.',
+          error.response.data.message || 'Failed to start rule execution.',
         )
       } else {
         toast.error('Failed to start rule execution.')
@@ -66,10 +65,6 @@ const RuleGroup = (props: {
     },
   })
 
-  const onRemove = () => {
-    setShowSureDelete(true)
-  }
-
   const onEdit = () => {
     props.onEdit(props.group)
   }
@@ -77,8 +72,10 @@ const RuleGroup = (props: {
   const confirmedDelete = () => {
     DeleteApiHandler(`/rules/${props.group.id}`)
       .then((resp) => {
-        if (resp.code === 1) props.onDelete()
-        else toast.error('Failed to delete rule group.')
+        if (resp.code === 1) {
+          setShowSureDelete(false)
+          props.onDelete()
+        } else toast.error('Failed to delete rule group.')
       })
       .catch((err: unknown) => {
         void logClientError(
@@ -95,64 +92,81 @@ const RuleGroup = (props: {
     queueStatus?.executingRuleGroupId === props.group.id || isQueued
   const hasNoLibrary = !props.group.libraryId || props.group.libraryId === ''
 
+  useEffect(() => {
+    const updateTitleTruncation = () => {
+      const titleElement = titleRef.current
+      setTitleTruncated(
+        Boolean(
+          titleElement && titleElement.scrollWidth > titleElement.clientWidth,
+        ),
+      )
+    }
+    updateTitleTruncation()
+    window.addEventListener('resize', updateTitleTruncation)
+    return () => window.removeEventListener('resize', updateTitleTruncation)
+  }, [props.group.name])
+
   return (
     <>
-      <div className="inset-0 z-0 h-fit p-3">
-        <div className="flex justify-between gap-4">
-          <div className="truncate text-base font-bold text-white sm:text-lg">
-            {props.group.name}
-          </div>
-          {props.group.isActive && (
-            <button
-              type="button"
-              className="text-zinc-400 hover:text-zinc-300"
-              onClick={() =>
-                ruleExecutingOrQueued
-                  ? stopExecution(props.group.id)
-                  : executeRules(props.group.id)
-              }
-              title={
-                ruleExecutingOrQueued
-                  ? 'Request stop execution'
-                  : 'Start execution'
-              }
-              aria-label={
-                ruleExecutingOrQueued
-                  ? 'Request stop execution'
-                  : 'Start execution'
-              }
+      {showsureDelete ? (
+        <Modal
+          title="Delete rule?"
+          size="sm"
+          onCancel={() => setShowSureDelete(false)}
+          onOk={confirmedDelete}
+          cancelText="Cancel"
+          okText="Delete"
+          okButtonType="danger"
+        >
+          <p>
+            Are you sure you want to delete <strong>{props.group.name}</strong>?
+          </p>
+        </Modal>
+      ) : null}
+      <div
+        role="button"
+        tabIndex={0}
+        className="cursor-pointer rounded-xl outline-none focus:ring-2 focus:ring-maintainerr-500/60"
+        onClick={onEdit}
+        onKeyDown={(event) => {
+          if (
+            event.currentTarget === event.target &&
+            (event.key === 'Enter' || event.key === ' ')
+          ) {
+            event.preventDefault()
+            onEdit()
+          }
+        }}
+      >
+        <div className="inset-0 z-0 h-fit p-3">
+          <div>
+            <div
+              ref={titleRef}
+              className="truncate text-base font-bold text-white sm:text-lg"
+              data-tooltip-id={titleTooltipId}
             >
-              {!ruleExecutingOrQueued ? (
-                <PlayIcon className="m-auto h-7" />
-              ) : (
-                <StopIcon
-                  className={clsx('m-auto h-7', {
-                    'animate-pulse': !isQueued,
-                  })}
-                />
-              )}
-            </button>
-          )}
-        </div>
-        <div className="tiny-scrollbar mb-2 mt-2 h-12 max-h-12 overflow-y-hidden whitespace-normal pr-2 text-base text-zinc-400 hover:overflow-y-auto">
-          {props.group.description}
-        </div>
-      </div>
-      <div className="inset-0 z-0 p-3 pt-0">
-        <div className="mt-2">
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:grid-cols-3 sm:gap-y-2 [&>div:nth-child(2n)]:text-right sm:[&>div:nth-child(2n)]:text-left sm:[&>div:nth-child(3n)]:text-right sm:[&>div:nth-child(3n-1)]:text-center">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                Status
-              </p>
-              <p>
-                {props.group.isActive ? (
-                  <span className="text-green-500">Active</span>
-                ) : (
-                  <span className="text-red-500">Inactive</span>
-                )}
-              </p>
+              {props.group.name}
             </div>
+            <Tooltip
+              id={titleTooltipId}
+              place="top"
+              positionStrategy="fixed"
+              portalRoot={document.body}
+              opacity={1}
+              hidden={!titleTruncated}
+              noArrow
+              className="max-w-xs"
+              style={posterTooltipStyle}
+            >
+              {props.group.name}
+            </Tooltip>
+          </div>
+          <div className="tiny-scrollbar mb-2 mt-1 h-12 max-h-12 overflow-y-hidden whitespace-normal pr-2 text-base text-zinc-400 hover:overflow-y-auto">
+            {props.group.description}
+          </div>
+        </div>
+        <div className="inset-0 z-0 mt-2 px-3">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:grid-cols-3 sm:gap-y-2 [&>div:nth-child(2n)]:text-right sm:[&>div:nth-child(2n)]:text-left sm:[&>div:nth-child(3n)]:text-right sm:[&>div:nth-child(3n-1)]:text-center">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Library
@@ -173,30 +187,82 @@ const RuleGroup = (props: {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Media Type
+              </p>
+              <p className="text-maintainerr">
+                {MediaItemTypeLabels[props.group.dataType]}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Rules
               </p>
               <p className="text-maintainerr">{props.group.rules.length}</p>
             </div>
-          </div>
-        </div>
-        <div className="mt-3 grid w-full grid-cols-1 xl:grid-cols-2">
-          <div>
-            <EditButton
-              onClick={onEdit}
-              text="Edit"
-              svgIcon={<PencilIcon className="m-auto h-5 text-zinc-200" />}
-            />
-          </div>
-          <div>
-            {showsureDelete ? (
-              <DeleteButton onClick={confirmedDelete} text="Are you sure?" />
-            ) : (
-              <DeleteButton
-                onClick={onRemove}
-                text="Delete"
-                svgIcon={<TrashIcon className="m-auto h-5 text-zinc-200" />}
-              />
-            )}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Status
+              </p>
+              <p>
+                {props.group.isActive ? (
+                  <span className="text-green-500">Active</span>
+                ) : (
+                  <span className="text-red-500">Inactive</span>
+                )}
+              </p>
+            </div>
+            <div className="flex min-w-0 items-end justify-center sm:justify-center">
+              {props.group.isActive ? (
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-700 hover:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-maintainerr-500/70"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    if (ruleExecutingOrQueued) {
+                      stopExecution(props.group.id)
+                    } else {
+                      executeRules(props.group.id)
+                    }
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  title={
+                    ruleExecutingOrQueued
+                      ? 'Request stop execution'
+                      : 'Start execution'
+                  }
+                  aria-label={
+                    ruleExecutingOrQueued
+                      ? 'Request stop execution'
+                      : 'Start execution'
+                  }
+                >
+                  {!ruleExecutingOrQueued ? (
+                    <PlayIcon className="h-5 w-5" />
+                  ) : (
+                    <StopIcon
+                      className={clsx('h-5 w-5', {
+                        'animate-pulse': !isQueued,
+                      })}
+                    />
+                  )}
+                </button>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 items-end justify-end">
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition hover:bg-red-950/60 hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/70"
+                title="Delete rule"
+                aria-label="Delete rule"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setShowSureDelete(true)
+                }}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
