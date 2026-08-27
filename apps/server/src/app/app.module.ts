@@ -17,6 +17,7 @@ import { ServarrApiModule } from '../modules/api/servarr-api/servarr-api.module'
 import { TautulliApiModule } from '../modules/api/tautulli-api/tautulli-api.module'
 import { TautulliApiService } from '../modules/api/tautulli-api/tautulli-api.service'
 import { TmdbApiModule } from '../modules/api/tmdb-api/tmdb.module'
+import { TraktApiModule } from '../modules/api/trakt-api/trakt-api.module'
 import { CollectionsModule } from '../modules/collections/collections.module'
 import { EventsModule } from '../modules/events/events.module'
 import { LogsModule } from '../modules/logging/logs.module'
@@ -46,6 +47,7 @@ import ormConfig from './config/typeOrmConfig'
     ExternalApiModule,
     GitHubApiModule,
     TmdbApiModule,
+    TraktApiModule,
     ServarrApiModule,
     SeerrApiModule,
     TautulliApiModule,

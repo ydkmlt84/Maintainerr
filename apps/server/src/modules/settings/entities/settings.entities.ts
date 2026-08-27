@@ -71,6 +71,25 @@ export class Settings implements SettingDto {
   @Column({ nullable: true })
   tautulli_api_key: string
 
+  // Trakt integration
+  @Column({ nullable: true })
+  trakt_client_id?: string
+
+  @Column({ nullable: true })
+  trakt_client_secret?: string
+
+  @Column({ nullable: true })
+  trakt_access_token?: string
+
+  @Column({ nullable: true })
+  trakt_refresh_token?: string
+
+  @Column({ type: 'datetime', nullable: true })
+  trakt_token_expires_at?: Date
+
+  @Column({ nullable: true })
+  trakt_username?: string
+
   @Column({ nullable: false, default: CronExpression.EVERY_12_HOURS })
   collection_handler_job_cron: string
 

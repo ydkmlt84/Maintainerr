@@ -2,6 +2,7 @@ import {
   MediaServerType,
   SeerrSetting,
   TautulliSetting,
+  TraktStatus,
 } from '@maintainerr/contracts'
 import {
   CheckCircleIcon,
@@ -27,8 +28,9 @@ import SonarrSettingsModal from '../Sonarr/SettingsModal'
 import SingletonSettingsModal, {
   SingletonServiceType,
 } from './SingletonSettingsModal'
+import TraktSettingsModal from './TraktSettingsModal'
 
-type ServiceType = 'radarr' | 'sonarr' | SingletonServiceType
+type ServiceType = 'radarr' | 'sonarr' | SingletonServiceType | 'trakt'
 type ArrSetting = IRadarrSetting | ISonarrSetting
 
 type DeleteArrResponse =
@@ -44,6 +46,7 @@ interface ServiceCardProps {
   type: ServiceType
   name: string
   url: string
+  connected?: boolean
   onEdit: () => void
   onDelete: () => void
 }
@@ -72,6 +75,11 @@ const serviceDetails: Record<
     description: 'Plex analytics',
     icon: 'tautulli.svg',
   },
+  trakt: {
+    name: 'Trakt',
+    description: 'Discovery and watchlist',
+    icon: 'trakt.svg',
+  },
 }
 
 const basePath = import.meta.env.VITE_BASE_PATH || ''
@@ -83,6 +91,7 @@ const ServiceCard = ({
   type,
   name,
   url,
+  connected = true,
   onEdit,
   onDelete,
 }: ServiceCardProps) => {
@@ -104,9 +113,15 @@ const ServiceCard = ({
             <h4 className="truncate text-base font-semibold text-white">
               {name}
             </h4>
-            <CheckCircleIcon className="h-4 w-4 shrink-0 text-green-400" />
+            <CheckCircleIcon
+              className={`h-4 w-4 shrink-0 ${
+                connected ? 'text-green-400' : 'text-amber-400'
+              }`}
+            />
           </div>
-          <p className="text-sm text-zinc-400">{details.name}</p>
+          <p className="text-sm text-zinc-400">
+            {connected ? details.name : 'Account not connected'}
+          </p>
         </div>
       </div>
 
@@ -153,6 +168,7 @@ const ServicesSettings = () => {
   const [sonarr, setSonarr] = useState<ISonarrSetting[]>([])
   const [seerr, setSeerr] = useState<SeerrSetting>()
   const [tautulli, setTautulli] = useState<TautulliSetting>()
+  const [trakt, setTrakt] = useState<TraktStatus>()
   const [loading, setLoading] = useState(true)
   const [loadFailed, setLoadFailed] = useState(false)
   const [chooserOpen, setChooserOpen] = useState(false)
@@ -169,6 +185,7 @@ const ServicesSettings = () => {
         Promise<ISonarrSetting[]>,
         Promise<SeerrSetting>,
         Promise<TautulliSetting> | Promise<undefined>,
+        Promise<TraktStatus>,
       ] = [
         GetApiHandler<IRadarrSetting[]>('/settings/radarr'),
         GetApiHandler<ISonarrSetting[]>('/settings/sonarr'),
@@ -176,13 +193,20 @@ const ServicesSettings = () => {
         supportsTautulli
           ? GetApiHandler<TautulliSetting>('/settings/tautulli')
           : Promise.resolve(undefined),
+        GetApiHandler<TraktStatus>('/trakt/status'),
       ]
-      const [radarrSettings, sonarrSettings, seerrSettings, tautulliSettings] =
-        await Promise.all(requests)
+      const [
+        radarrSettings,
+        sonarrSettings,
+        seerrSettings,
+        tautulliSettings,
+        traktSettings,
+      ] = await Promise.all(requests)
       setRadarr(radarrSettings)
       setSonarr(sonarrSettings)
       setSeerr(seerrSettings)
       setTautulli(tautulliSettings)
+      setTrakt(traktSettings)
     } catch (error) {
       setLoadFailed(true)
       void logClientError(
@@ -260,6 +284,24 @@ const ServicesSettings = () => {
     }
   }
 
+  const deleteTrakt = async () => {
+    try {
+      await DeleteApiHandler('/trakt/configuration')
+      setTrakt({
+        configured: false,
+        connected: false,
+        clientSecretConfigured: false,
+      })
+    } catch (error) {
+      void logClientError(
+        'Failed to delete Trakt setting',
+        error,
+        'Settings.Services.deleteTrakt',
+      )
+      toast.error('Failed to delete Trakt setting.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="mt-6">
@@ -333,11 +375,26 @@ const ServicesSettings = () => {
                 onDelete={() => void deleteSingleton('tautulli')}
               />
             )}
+            {trakt?.configured && (
+              <ServiceCard
+                type="trakt"
+                name={trakt.username ? `Trakt - ${trakt.username}` : 'Trakt'}
+                url={
+                  trakt.username
+                    ? `https://trakt.tv/users/${trakt.username}`
+                    : 'https://trakt.tv'
+                }
+                connected={trakt.connected}
+                onEdit={() => setEditingType('trakt')}
+                onDelete={() => void deleteTrakt()}
+              />
+            )}
 
             {radarr.length === 0 &&
               sonarr.length === 0 &&
               !isConfigured(seerr) &&
-              !isConfigured(tautulli) && (
+              !isConfigured(tautulli) &&
+              !trakt?.configured && (
                 <li className="col-span-full flex min-h-[12rem] flex-col items-center justify-center rounded-lg border border-dashed border-zinc-600 bg-zinc-800/50 p-6 text-center">
                   <ServerIcon className="h-8 w-8 text-zinc-500" />
                   <p className="mt-3 font-medium text-white">
@@ -369,7 +426,8 @@ const ServicesSettings = () => {
               const unavailable =
                 (type === 'seerr' && isConfigured(seerr)) ||
                 (type === 'tautulli' &&
-                  (!supportsTautulli || isConfigured(tautulli)))
+                  (!supportsTautulli || isConfigured(tautulli))) ||
+                (type === 'trakt' && trakt?.configured)
               return (
                 <button
                   key={type}
@@ -448,6 +506,13 @@ const ServicesSettings = () => {
             else setTautulli(setting)
             closeEditor()
           }}
+        />
+      )}
+      {editingType === 'trakt' && trakt && (
+        <TraktSettingsModal
+          settings={trakt}
+          onCancel={closeEditor}
+          onUpdate={setTrakt}
         />
       )}
 

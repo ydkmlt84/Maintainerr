@@ -77,6 +77,18 @@ export class SettingsService implements SettingDto {
 
   tautulli_api_key: string
 
+  trakt_client_id?: string
+
+  trakt_client_secret?: string
+
+  trakt_access_token?: string
+
+  trakt_refresh_token?: string
+
+  trakt_token_expires_at?: Date
+
+  trakt_username?: string
+
   collection_handler_job_cron: string
 
   rules_handler_job_cron: string
@@ -135,6 +147,12 @@ export class SettingsService implements SettingDto {
       this.seerr_api_key = settingsDb?.seerr_api_key
       this.tautulli_url = settingsDb?.tautulli_url
       this.tautulli_api_key = settingsDb?.tautulli_api_key
+      this.trakt_client_id = settingsDb?.trakt_client_id
+      this.trakt_client_secret = settingsDb?.trakt_client_secret
+      this.trakt_access_token = settingsDb?.trakt_access_token
+      this.trakt_refresh_token = settingsDb?.trakt_refresh_token
+      this.trakt_token_expires_at = settingsDb?.trakt_token_expires_at
+      this.trakt_username = settingsDb?.trakt_username
       this.collection_handler_job_cron = settingsDb?.collection_handler_job_cron
       this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron
       this.media_id_audit_job_cron = settingsDb?.media_id_audit_job_cron
@@ -213,6 +231,9 @@ export class SettingsService implements SettingDto {
       jellyfin_api_key: this.maskSecret(settings.jellyfin_api_key),
       seerr_api_key: this.maskSecret(settings.seerr_api_key),
       tautulli_api_key: this.maskSecret(settings.tautulli_api_key),
+      trakt_client_secret: this.maskSecret(settings.trakt_client_secret),
+      trakt_access_token: undefined,
+      trakt_refresh_token: undefined,
     }
   }
 
@@ -360,6 +381,103 @@ export class SettingsService implements SettingDto {
       this.logger.error('Error removing Tautulli settings: ', e)
       return { status: 'NOK', code: 0, message: 'Failed' }
     }
+  }
+
+  public async saveTraktConfiguration(
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<void> {
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
+    if (!settingsDb) throw new Error('Settings could not be loaded')
+
+    const credentialsChanged =
+      settingsDb.trakt_client_id !== clientId ||
+      (clientSecret && settingsDb.trakt_client_secret !== clientSecret)
+
+    const updated = await this.saveSettings({
+      ...settingsDb,
+      trakt_client_id: clientId,
+      trakt_client_secret: clientSecret || settingsDb.trakt_client_secret,
+      ...(credentialsChanged
+        ? {
+            trakt_access_token: null,
+            trakt_refresh_token: null,
+            trakt_token_expires_at: null,
+            trakt_username: null,
+          }
+        : {}),
+    })
+
+    this.applyTraktSettings(updated)
+  }
+
+  public async saveTraktTokens(tokens: {
+    accessToken: string
+    refreshToken: string
+    expiresAt: Date
+    username?: string
+  }): Promise<void> {
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
+    if (!settingsDb) throw new Error('Settings could not be loaded')
+
+    const updated = await this.saveSettings({
+      ...settingsDb,
+      trakt_access_token: tokens.accessToken,
+      trakt_refresh_token: tokens.refreshToken,
+      trakt_token_expires_at: tokens.expiresAt,
+      trakt_username: tokens.username ?? settingsDb.trakt_username,
+    })
+    this.applyTraktSettings(updated)
+  }
+
+  public async saveTraktUsername(username: string): Promise<void> {
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
+    if (!settingsDb) throw new Error('Settings could not be loaded')
+
+    const updated = await this.saveSettings({
+      ...settingsDb,
+      trakt_username: username,
+    })
+    this.applyTraktSettings(updated)
+  }
+
+  public async disconnectTrakt(): Promise<void> {
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
+    if (!settingsDb) throw new Error('Settings could not be loaded')
+
+    const updated = await this.saveSettings({
+      ...settingsDb,
+      trakt_access_token: null,
+      trakt_refresh_token: null,
+      trakt_token_expires_at: null,
+      trakt_username: null,
+    })
+    this.applyTraktSettings(updated)
+  }
+
+  public async removeTraktConfiguration(): Promise<void> {
+    const settingsDb = await this.settingsRepo.findOne({ where: {} })
+    if (!settingsDb) throw new Error('Settings could not be loaded')
+
+    const updated = await this.saveSettings({
+      ...settingsDb,
+      trakt_client_id: null,
+      trakt_client_secret: null,
+      trakt_access_token: null,
+      trakt_refresh_token: null,
+      trakt_token_expires_at: null,
+      trakt_username: null,
+    })
+    this.applyTraktSettings(updated)
+  }
+
+  private applyTraktSettings(settings: Settings): void {
+    this.trakt_client_id = settings.trakt_client_id
+    this.trakt_client_secret = settings.trakt_client_secret
+    this.trakt_access_token = settings.trakt_access_token
+    this.trakt_refresh_token = settings.trakt_refresh_token
+    this.trakt_token_expires_at = settings.trakt_token_expires_at
+    this.trakt_username = settings.trakt_username
   }
 
   public async updateTautulliSetting(
@@ -1031,6 +1149,18 @@ export class SettingsService implements SettingDto {
 
   public tautulliConfigured(): boolean {
     return this.tautulli_url !== null && this.tautulli_api_key !== null
+  }
+
+  public traktConfigured(): boolean {
+    return Boolean(this.trakt_client_id && this.trakt_client_secret)
+  }
+
+  public traktConnected(): boolean {
+    return Boolean(
+      this.traktConfigured() &&
+      this.trakt_access_token &&
+      this.trakt_refresh_token,
+    )
   }
 
   /**

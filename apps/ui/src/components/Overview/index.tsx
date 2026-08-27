@@ -2,7 +2,9 @@ import {
   AdjustmentsIcon,
   CalendarIcon,
   ChartBarIcon,
+  CheckIcon,
   CollectionIcon,
+  EyeIcon,
   ExternalLinkIcon,
   LightningBoltIcon,
   ServerIcon,
@@ -13,19 +15,30 @@ import {
   type MediaItem,
   type MediaItemType,
   type MediaItemWithParent,
+  type TraktDiscoverItem,
+  type TraktDiscoverResponse,
+  type TraktHistoryMutation,
+  type TraktWatchlistMutation,
 } from '@maintainerr/contracts'
 import { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReconnectingEventSource from 'reconnecting-eventsource'
-import GetApiHandler, { API_BASE_PATH } from '../../utils/ApiHandler'
+import { toast } from 'react-toastify'
+import GetApiHandler, {
+  API_BASE_PATH,
+  DeleteApiHandler,
+  PostApiHandler,
+} from '../../utils/ApiHandler'
 import CollectionMembershipTooltip from '../Common/CollectionMembershipTooltip'
 import LoadingSpinner from '../Common/LoadingSpinner'
 import ExclusionBadges from '../Common/ExclusionBadges'
+import MediaModalContent from '../Common/MediaCard/MediaModal'
 import ManageMediaModal, {
   type MediaManagementContext,
 } from '../Common/ManageMediaModal'
 import Modal from '../Common/Modal'
 import type { ICollectionMedia } from '../Collection'
+import { DiscoverDetailsModal, getDiscoverSnapshot } from '../Discover'
 
 interface AppStats {
   rules?: number
@@ -169,6 +182,16 @@ interface ManagedOverviewMedia {
   media: MediaItem | MediaItemWithParent
   collectionId?: number
   collectionTitle?: string
+}
+
+interface OverviewMediaDetails {
+  id: string
+  title: string
+  mediaType: MediaItemType
+  year?: string
+  summary?: string
+  tmdbId?: string
+  manageableMedia?: MediaItem | MediaItemWithParent
 }
 
 interface AppPlexTrashItem {
@@ -689,11 +712,18 @@ const Overview = () => {
   )
   const [loading, setLoading] = useState(true)
   const [managedMedia, setManagedMedia] = useState<ManagedOverviewMedia>()
+  const [mediaDetails, setMediaDetails] = useState<OverviewMediaDetails>()
   const [selectedCalendarEntry, setSelectedCalendarEntry] =
     useState<SelectedCalendarEntry>()
   const [calendarModalItems, setCalendarModalItems] =
     useState<CalendarModalItem[]>()
   const [calendarModalLoading, setCalendarModalLoading] = useState(false)
+  const [discoverItems, setDiscoverItems] = useState<TraktDiscoverItem[]>([])
+  const [discoverConnected, setDiscoverConnected] = useState(false)
+  const [selectedDiscoverItem, setSelectedDiscoverItem] =
+    useState<TraktDiscoverItem>()
+  const [mutatingDiscoverItem, setMutatingDiscoverItem] = useState<string>()
+  const [markingDiscoverWatched, setMarkingDiscoverWatched] = useState<string>()
 
   useEffect(() => {
     let active = true
@@ -712,6 +742,31 @@ const Overview = () => {
 
     return () => {
       active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const loadDiscover = () => {
+      GetApiHandler<TraktDiscoverResponse>('/trakt/discover')
+        .then((response) => {
+          if (!active) return
+          setDiscoverConnected(response.connected)
+          setDiscoverItems(
+            response.configured ? getDiscoverSnapshot(response, 15) : [],
+          )
+        })
+        .catch(() => {
+          if (active) setDiscoverItems([])
+        })
+    }
+
+    loadDiscover()
+    window.addEventListener('focus', loadDiscover)
+    return () => {
+      active = false
+      window.removeEventListener('focus', loadDiscover)
     }
   }, [])
 
@@ -757,6 +812,76 @@ const Overview = () => {
     () => getWeekDays(calendarItemsByKey, weekStart),
     [calendarItemsByKey, weekStart],
   )
+
+  const updateDiscoverWatchlist = async (item: TraktDiscoverItem) => {
+    if (!discoverConnected || mutatingDiscoverItem || markingDiscoverWatched)
+      return
+    const key = `${item.type}:${item.ids.trakt}`
+    const payload: TraktWatchlistMutation = {
+      type: item.type,
+      traktId: item.ids.trakt,
+    }
+    setMutatingDiscoverItem(key)
+
+    try {
+      if (item.watchlisted) {
+        await DeleteApiHandler('/trakt/watchlist', payload)
+      } else {
+        await PostApiHandler('/trakt/watchlist', payload)
+      }
+      const watchlisted = !item.watchlisted
+      const updateItem = (candidate: TraktDiscoverItem) =>
+        `${candidate.type}:${candidate.ids.trakt}` === key
+          ? { ...candidate, watchlisted }
+          : candidate
+      setDiscoverItems((current) => current.map(updateItem))
+      setSelectedDiscoverItem((current) =>
+        current ? updateItem(current) : current,
+      )
+      toast.success(
+        watchlisted
+          ? `${item.title} added to your Trakt watchlist.`
+          : `${item.title} removed from your Trakt watchlist.`,
+      )
+    } catch {
+      toast.error('Could not update the Trakt watchlist.')
+    } finally {
+      setMutatingDiscoverItem(undefined)
+    }
+  }
+
+  const markDiscoverWatched = async (item: TraktDiscoverItem) => {
+    if (
+      !discoverConnected ||
+      mutatingDiscoverItem ||
+      markingDiscoverWatched ||
+      item.watched
+    )
+      return
+    const key = `${item.type}:${item.ids.trakt}`
+    const payload: TraktHistoryMutation = {
+      type: item.type,
+      traktId: item.ids.trakt,
+    }
+    setMarkingDiscoverWatched(key)
+
+    try {
+      await PostApiHandler('/trakt/history', payload)
+      const updateItem = (candidate: TraktDiscoverItem) =>
+        `${candidate.type}:${candidate.ids.trakt}` === key
+          ? { ...candidate, watched: true }
+          : candidate
+      setDiscoverItems((current) => current.map(updateItem))
+      setSelectedDiscoverItem((current) =>
+        current ? updateItem(current) : current,
+      )
+      toast.success(`${item.title} marked as watched on Trakt.`)
+    } catch {
+      toast.error('Could not mark the item as watched on Trakt.')
+    } finally {
+      setMarkingDiscoverWatched(undefined)
+    }
+  }
 
   useEffect(() => {
     if (!selectedCalendarEntry) {
@@ -863,6 +988,17 @@ const Overview = () => {
                 posterType={item.type === 'movie' ? 'movie' : 'show'}
                 posterUrl={getTautulliImageUrl(item.posterPath)}
                 trashOverlay
+                onPosterClick={
+                  item.type === 'collection'
+                    ? undefined
+                    : () =>
+                        setMediaDetails({
+                          id: item.plexId,
+                          title: item.title,
+                          mediaType: item.type,
+                          year: item.year?.toString(),
+                        })
+                }
               />
             ))}
           </PosterRow>
@@ -881,6 +1017,25 @@ const Overview = () => {
 
         <CollectionRow collections={stats?.collections ?? []} />
 
+        {discoverItems.length ? (
+          <PosterRow title="Discover" emptyText="" viewAllHref="/discover">
+            {discoverItems.map((item) => (
+              <DashboardPoster
+                key={`${item.type}-${item.ids.trakt}`}
+                title={item.title}
+                subtitle={item.year?.toString()}
+                mediaType={item.type === 'movie' ? 'Movie' : 'TV'}
+                posterType={item.type}
+                tmdbId={item.ids.tmdb?.toString()}
+                watchlisted={item.watchlisted}
+                watched={item.watched}
+                servarrStatuses={item.servarr}
+                onPosterClick={() => setSelectedDiscoverItem(item)}
+              />
+            ))}
+          </PosterRow>
+        ) : undefined}
+
         <PosterRow
           title="Recently Added"
           emptyText="No recently added media found."
@@ -895,6 +1050,17 @@ const Overview = () => {
               mediaServerId={item.id}
               tmdbId={getTmdbId(item)}
               posterUrl={getTautulliImageUrl(item.tautulliPosterPath)}
+              onPosterClick={() =>
+                setMediaDetails({
+                  id: item.id,
+                  title: getMediaTitle(item),
+                  mediaType: item.type,
+                  year: getMediaYear(item),
+                  summary: item.summary,
+                  tmdbId: getTmdbId(item),
+                  manageableMedia: item,
+                })
+              }
               onSelect={() => setManagedMedia({ media: item })}
             />
           ))}
@@ -932,6 +1098,42 @@ const Overview = () => {
           />
         </div>
       </div>
+      {mediaDetails ? (
+        <MediaModalContent
+          id={mediaDetails.id}
+          title={mediaDetails.title}
+          mediaType={mediaDetails.mediaType}
+          year={mediaDetails.year}
+          summary={mediaDetails.summary}
+          tmdbid={mediaDetails.tmdbId}
+          onClose={() => setMediaDetails(undefined)}
+          onManage={
+            mediaDetails.manageableMedia
+              ? () => {
+                  setManagedMedia({ media: mediaDetails.manageableMedia! })
+                  setMediaDetails(undefined)
+                }
+              : undefined
+          }
+        />
+      ) : undefined}
+      {selectedDiscoverItem ? (
+        <DiscoverDetailsModal
+          item={selectedDiscoverItem}
+          connected={discoverConnected}
+          updating={
+            mutatingDiscoverItem ===
+            `${selectedDiscoverItem.type}:${selectedDiscoverItem.ids.trakt}`
+          }
+          markingWatched={
+            markingDiscoverWatched ===
+            `${selectedDiscoverItem.type}:${selectedDiscoverItem.ids.trakt}`
+          }
+          onWatchlist={() => void updateDiscoverWatchlist(selectedDiscoverItem)}
+          onMarkWatched={() => void markDiscoverWatched(selectedDiscoverItem)}
+          onClose={() => setSelectedDiscoverItem(undefined)}
+        />
+      ) : undefined}
       {managedMedia ? (
         <ManageMediaModal
           mediaServerId={managedMedia.media.id}
@@ -997,7 +1199,7 @@ const MetricCard = ({
     <p className="mt-2 text-lg font-bold text-zinc-50">{value}</p>
     <p className="mt-0.5 text-xs text-zinc-400">{detail}</p>
     {details?.length ? (
-      <div className="tiny-scrollbar mt-3 grid max-h-40 grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-1 xs:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-2 xs:grid-cols-2">
         {details.map((item) => {
           const content = (
             <>
@@ -1291,6 +1493,8 @@ const getServiceSettingsRoute = (name: string): string => {
       return '/settings/tautulli'
     case 'seerr':
       return '/settings/seerr'
+    case 'trakt':
+      return '/settings/services'
     default:
       return '/settings/main'
   }
@@ -1557,10 +1761,12 @@ const useHorizontalWheelScroll = () => {
 const PosterRow = ({
   title,
   emptyText,
+  viewAllHref,
   children,
 }: {
   title: string
   emptyText: string
+  viewAllHref?: string
   children: ReactNode
 }) => {
   const items = Array.isArray(children) ? children.filter(Boolean) : children
@@ -1568,7 +1774,17 @@ const PosterRow = ({
 
   return (
     <section className="min-w-0 rounded-xl border border-zinc-700 bg-zinc-800 p-3 shadow-xl shadow-black/20 sm:p-5">
-      <h2 className="text-lg font-bold text-zinc-100">{title}</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-bold text-zinc-100">{title}</h2>
+        {viewAllHref ? (
+          <Link
+            to={viewAllHref}
+            className="text-sm font-semibold text-maintainerr-400 transition hover:text-maintainerr-300"
+          >
+            View all
+          </Link>
+        ) : undefined}
+      </div>
       <div className="relative">
         <div
           ref={scrollRef}
@@ -1597,7 +1813,11 @@ const DashboardPoster = ({
   daysLeft,
   collectionNames = [],
   trashOverlay = false,
+  watchlisted = false,
+  watched = false,
+  servarrStatuses = [],
   manageOnPosterClick = false,
+  onPosterClick,
   onSelect,
 }: {
   title: string
@@ -1611,7 +1831,11 @@ const DashboardPoster = ({
   daysLeft?: number
   collectionNames?: string[]
   trashOverlay?: boolean
+  watchlisted?: boolean
+  watched?: boolean
+  servarrStatuses?: TraktDiscoverItem['servarr']
   manageOnPosterClick?: boolean
+  onPosterClick?: () => void
   onSelect?: () => void
 }) => {
   const daysLeftTooltipId = useId().replace(/:/g, '')
@@ -1722,6 +1946,22 @@ const DashboardPoster = ({
           {daysLeft}
         </span>
       ) : undefined}
+      {daysLeft === undefined ? (
+        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+          {watched ? (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+              <EyeIcon className="h-3 w-3" />
+              Watched
+            </span>
+          ) : undefined}
+          {watchlisted ? (
+            <span className="flex items-center gap-1 rounded-full bg-maintainerr-600 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+              <CheckIcon className="h-3 w-3" />
+              Watchlist
+            </span>
+          ) : undefined}
+        </div>
+      ) : undefined}
       {daysLeft !== undefined ? (
         <CollectionMembershipTooltip
           id={daysLeftTooltipId}
@@ -1733,6 +1973,31 @@ const DashboardPoster = ({
         exclusions={exclusions}
         className={daysLeft !== undefined ? 'top-7' : ''}
       />
+      {servarrStatuses.length ? (
+        <div className="absolute bottom-2 right-2 flex flex-col items-end gap-1 group-hover:hidden">
+          {servarrStatuses.map((status) => (
+            <span
+              key={`${status.service}-${status.instanceName}`}
+              title={`${status.instanceName}: ${status.status}${status.detail ? ` (${status.detail})` : ''}`}
+              className="flex max-w-24 items-center gap-1 rounded bg-zinc-950/90 px-1.5 py-1 text-[9px] font-semibold text-zinc-100 shadow"
+            >
+              <img
+                src={`${import.meta.env.VITE_BASE_PATH ?? ''}/icons_logos/${status.service}.svg`}
+                alt=""
+                className="h-3.5 w-3.5 shrink-0"
+              />
+              <span className="truncate">
+                {status.state === 'partial'
+                  ? 'Partial'
+                  : status.state === 'awaiting'
+                    ? 'Waiting'
+                    : status.state.charAt(0).toUpperCase() +
+                      status.state.slice(1)}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : undefined}
       <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-transparent px-3 pb-3 pt-10 transition duration-200 group-hover:translate-y-0">
         <p className="line-clamp-2 text-sm font-bold leading-4 text-white">
           {title}
@@ -1746,7 +2011,10 @@ const DashboardPoster = ({
           <button
             type="button"
             className="mt-2 flex h-7 w-full items-center justify-center rounded-md bg-maintainerr-600 px-2 text-xs font-medium text-white shadow transition hover:bg-maintainerr-500 focus:outline-none focus:ring-2 focus:ring-maintainerr-400"
-            onClick={onSelect}
+            onClick={(event) => {
+              event.stopPropagation()
+              onSelect()
+            }}
             aria-label={`Manage ${title}`}
           >
             <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
@@ -1768,6 +2036,23 @@ const DashboardPoster = ({
         >
           {poster}
         </button>
+      ) : onPosterClick ? (
+        <div
+          role="button"
+          tabIndex={0}
+          className="group block w-full cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-maintainerr-400"
+          onClick={onPosterClick}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onPosterClick()
+            }
+          }}
+          aria-label={`View details for ${title}`}
+        >
+          {poster}
+        </div>
       ) : (
         <div className="group">{poster}</div>
       )}

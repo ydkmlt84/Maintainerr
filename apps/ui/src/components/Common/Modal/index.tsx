@@ -14,6 +14,7 @@ interface ModalProps {
   onTertiary?: (e?: MouseEvent<HTMLButtonElement>) => void
   onSpecial?: (e?: MouseEvent<HTMLButtonElement>) => void
   cancelText?: string
+  hideCancelButton?: boolean
   okText?: string
   secondaryText?: string
   tertiaryText?: string
@@ -55,6 +56,7 @@ const Modal: React.FC<ModalProps> = ({
   onCancel,
   onOk,
   cancelText,
+  hideCancelButton = false,
   okText,
   okDisabled = false,
   cancelButtonType = 'default',
@@ -159,7 +161,10 @@ const Modal: React.FC<ModalProps> = ({
             </Button>
           </div>
         )}
-        {(onCancel || onOk || onSecondary || onTertiary) && (
+        {((onCancel && !hideCancelButton) ||
+          onOk ||
+          onSecondary ||
+          onTertiary) && (
           <div className="relative mt-5 flex flex-row-reverse justify-center sm:mt-4 sm:justify-start">
             {typeof onOk === 'function' && (
               <Button
@@ -191,7 +196,7 @@ const Modal: React.FC<ModalProps> = ({
                 {tertiaryText}
               </Button>
             )}
-            {typeof onCancel === 'function' && (
+            {typeof onCancel === 'function' && !hideCancelButton && (
               <Button
                 buttonType={cancelButtonType}
                 onClick={onCancel}

@@ -56,6 +56,9 @@ export interface AppStatsResponse {
   recentActivity: AppRecentActivityItem[]
 }
 
+export const hasChoppingBlockAction = (arrAction: number): boolean =>
+  arrAction !== ServarrAction.DO_NOTHING
+
 interface AppStorageStats {
   totalSpace: number
   usedSpace: number
@@ -160,6 +163,13 @@ export const dedupeLeavingSoonCandidates = <
     }, new Map<string, T>())
     .values(),
 ]
+
+export const excludeTrashedLeavingSoonCandidates = <
+  T extends { mediaServerId: string },
+>(
+  items: T[],
+  trashedMediaIds: ReadonlySet<string>,
+): T[] => items.filter((item) => !trashedMediaIds.has(item.mediaServerId))
 
 interface AppTaskStats {
   name: string
@@ -337,13 +347,16 @@ export class StatsService {
   ) {}
 
   async getStats(): Promise<AppStatsResponse> {
-    const [rules, storage, choppingBlock, libraries, collections] =
+    const [rules, storage, choppingBlock, libraries, collections, plexTrash] =
       await Promise.all([
         this.ruleGroupRepository.count(),
         this.getSonarrStorageStats(),
         this.getChoppingBlockStats(),
         this.getLibraryStats(),
         this.getCollectionPreviews(),
+        this.plexApiService.isPlexSetup()
+          ? this.plexTrashService.getItems()
+          : Promise.resolve([]),
       ])
     const [
       recentlyAdded,
@@ -352,17 +365,17 @@ export class StatsService {
       leavingSoon,
       recentActivity,
       tasks,
-      plexTrash,
     ] = await Promise.all([
       this.getRecentlyAdded(libraries),
       this.getPopularityStats(),
       this.getLibraryRankings(libraries),
-      this.getLeavingSoon(undefined, 24),
+      this.getLeavingSoon(
+        undefined,
+        24,
+        new Set(plexTrash.map((item) => item.plexId)),
+      ),
       this.getRecentActivity(),
       this.getTaskStats(),
-      this.plexApiService.isPlexSetup()
-        ? this.plexTrashService.getItems()
-        : Promise.resolve([]),
     ])
 
     return {
@@ -463,7 +476,11 @@ export class StatsService {
 
     return serviceNames.map((name) => ({
       name,
-      status: cachedServicesByName.get(name)?.status ?? 'Connected',
+      status:
+        cachedServicesByName.get(name)?.status ??
+        (name === 'Trakt' && !this.settingsService.traktConnected()
+          ? 'Disconnected'
+          : 'Connected'),
     }))
   }
 
@@ -491,6 +508,10 @@ export class StatsService {
 
     if (this.settingsService.seerrConfigured()) {
       services.push('Seerr')
+    }
+
+    if (this.settingsService.traktConfigured()) {
+      services.push('Trakt')
     }
 
     return services
@@ -583,6 +604,15 @@ export class StatsService {
       })
     }
 
+    if (this.settingsService.traktConfigured()) {
+      services.push({
+        name: 'Trakt',
+        status: this.settingsService.traktConnected()
+          ? 'Connected'
+          : 'Disconnected',
+      })
+    }
+
     return services
   }
 
@@ -671,7 +701,9 @@ export class StatsService {
   }
 
   private async getChoppingBlockStats(): Promise<AppChoppingBlockStats> {
-    const collections = await this.collectionsService.getAllCollections()
+    const collections = (
+      await this.collectionsService.getAllCollections()
+    ).filter((collection) => hasChoppingBlockAction(collection.arrAction))
     const sizedCollections = (
       await Promise.all(
         collections.map(async (collection) => ({
@@ -887,11 +919,16 @@ export class StatsService {
   public async getLeavingSoon(
     libraryId?: string,
     limit?: number,
+    knownTrashedMediaIds?: ReadonlySet<string>,
   ): Promise<AppLeavingSoonItem[]> {
-    const collections =
-      (await this.collectionsService.getCalendarData(libraryId)) ?? []
+    const [collections, trashedMediaIds] = await Promise.all([
+      this.collectionsService.getCalendarData(libraryId),
+      knownTrashedMediaIds
+        ? Promise.resolve(knownTrashedMediaIds)
+        : this.getTrashedMediaIds(),
+    ])
     const mediaServer = await this.mediaServerFactory.getService()
-    const candidates = collections
+    const candidates = (collections ?? [])
       .flatMap((collection) =>
         collection.media.map((media) => {
           const deleteDate = new Date(media.addDate)
@@ -907,7 +944,10 @@ export class StatsService {
       )
       .filter((item) => Number.isFinite(item.deleteDate.getTime()))
       .sort((a, b) => a.deleteDate.getTime() - b.deleteDate.getTime())
-    const uniqueCandidates = dedupeLeavingSoonCandidates(candidates)
+    const uniqueCandidates = excludeTrashedLeavingSoonCandidates(
+      dedupeLeavingSoonCandidates(candidates),
+      trashedMediaIds,
+    )
     const selectedCandidates =
       limit === undefined
         ? uniqueCandidates
@@ -918,7 +958,7 @@ export class StatsService {
         selectedCandidates.map(async (item) => {
           const media = await mediaServer.getMetadata(item.mediaServerId)
 
-          if (!media) {
+          if (!media || media.isTrashed) {
             return undefined
           }
 
@@ -949,6 +989,13 @@ export class StatsService {
         }),
       )
     ).filter((item): item is AppLeavingSoonItem => item !== undefined)
+  }
+
+  private async getTrashedMediaIds(): Promise<ReadonlySet<string>> {
+    if (!this.plexApiService.isPlexSetup()) return new Set()
+
+    const items = await this.plexTrashService.getItems()
+    return new Set(items.map((item) => item.plexId))
   }
 
   public async getActionableExclusions(

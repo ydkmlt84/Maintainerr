@@ -7,6 +7,7 @@ import {
   EyeIcon,
   MenuIcon,
   SearchIcon,
+  SparklesIcon,
   XIcon,
 } from '@heroicons/react/outline'
 import { ReactNode, useContext, useMemo, useState } from 'react'
@@ -32,7 +33,7 @@ const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
   const SearchCtx = useContext(SearchContext)
   const basePath = import.meta.env.VITE_BASE_PATH ?? ''
   const location = useLocation()
-  const isMediaRoute = /^\/media(?:\/.*)?$/.test(location.pathname)
+  const isMediaRoute = /^\/(?:media|discover)(?:\/.*)?$/.test(location.pathname)
   // Keep variable for potential future customization
   const collectionsLabel = 'Collections'
 
@@ -54,27 +55,34 @@ const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
       },
       {
         key: '2',
+        href: '/discover',
+        svgIcon: <SparklesIcon className="h-5 w-5" />,
+        name: 'Discover',
+        matchPattern: /^\/discover(?:\/.*)?$/,
+      },
+      {
+        key: '3',
         href: '/rules',
         svgIcon: <ClipboardCheckIcon className="h-5 w-5" />,
         name: 'Rules',
         matchPattern: /^\/rules(?:\/.*)?$/,
       },
       {
-        key: '3',
+        key: '4',
         href: '/collections',
         svgIcon: <CollectionIcon className="h-5 w-5" />,
         name: collectionsLabel,
         matchPattern: /^\/collections(?:\/.*)?$/,
       },
       {
-        key: '4',
+        key: '5',
         href: '/calendar',
         svgIcon: <CalendarIcon className="h-5 w-5" />,
         name: 'Calendar',
         matchPattern: /^\/calendar(?:\/.*)?$/,
       },
       {
-        key: '5',
+        key: '6',
         href: '/settings',
         svgIcon: <CogIcon className="h-5 w-5" />,
         name: 'Settings',

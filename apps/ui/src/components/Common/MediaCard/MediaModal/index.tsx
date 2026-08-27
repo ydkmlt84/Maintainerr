@@ -6,7 +6,6 @@ import {
   EyeIcon,
   ExternalLinkIcon,
   FilmIcon,
-  InformationCircleIcon,
   PlayIcon,
   ShieldExclamationIcon,
   XIcon,
@@ -17,6 +16,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useMediaServerType } from '../../../../hooks/useMediaServerType'
 import GetApiHandler from '../../../../utils/ApiHandler'
+import ActorTooltip from '../../ActorTooltip'
 
 interface ModalContentProps {
   onClose: () => void
@@ -68,6 +68,14 @@ interface MediaMaintainerrContext {
 interface TmdbMediaAssets {
   backdropPath?: string
   trailerUrl?: string
+  cast: TmdbCastMember[]
+}
+
+interface TmdbCastMember {
+  id: number
+  name: string
+  character?: string
+  profilePath?: string
 }
 
 interface MetadataIdLink {
@@ -133,6 +141,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     const [loading, setLoading] = useState<boolean>(true)
     const [backdrop, setBackdrop] = useState<string | null>(null)
     const [trailerUrl, setTrailerUrl] = useState<string | null>(null)
+    const [cast, setCast] = useState<TmdbCastMember[]>([])
     const [resolvedTmdbId, setResolvedTmdbId] = useState<
       string | null | undefined
     >(tmdbid)
@@ -227,6 +236,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
       queueMicrotask(() => {
         setBackdrop(null)
         setTrailerUrl(null)
+        setCast([])
       })
 
       // Fetch the backdrop and trailer from one cached TMDB detail response.
@@ -247,6 +257,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
           .then((resp) => {
             setBackdrop(resp?.backdropPath ?? null)
             setTrailerUrl(resp?.trailerUrl ?? null)
+            setCast(resp?.cast ?? [])
           })
           .catch((error) => {
             console.error(
@@ -255,6 +266,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             )
             setBackdrop(null)
             setTrailerUrl(null)
+            setCast([])
           })
       }
     }, [mediaType, resolvedSeasonNumber, resolvedTmdbId])
@@ -671,7 +683,9 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             )}
           </div>
           <div className="px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="border-b border-zinc-800 py-4">
+            <div
+              className={`${cast.length ? '' : 'border-b border-zinc-800'} py-4`}
+            >
               <h2 className="text-xl font-semibold text-gray-100 sm:text-2xl">
                 {title}
                 {year ? ` (${year})` : ''}
@@ -680,6 +694,47 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                 {summary || metadata?.summary || 'No summary available.'}
               </p>
             </div>
+
+            {cast.length > 0 && (
+              <section className="border-b border-zinc-800 py-4">
+                <div className="grid grid-cols-3 gap-x-3 gap-y-4 lg:grid-cols-10 lg:gap-x-4">
+                  {cast.map((person, index) => (
+                    <div
+                      key={person.id}
+                      className={`min-w-0 text-center ${
+                        index >= 6 ? 'hidden lg:block' : ''
+                      }`}
+                      data-tooltip-id={`media-cast-${id}-${person.id}`}
+                      aria-label={
+                        person.character
+                          ? `${person.name} as ${person.character}`
+                          : person.name
+                      }
+                    >
+                      {person.profilePath ? (
+                        <img
+                          src={`https://image.tmdb.org/t/p/w185${person.profilePath}`}
+                          alt={person.name}
+                          loading="lazy"
+                          width={64}
+                          height={64}
+                          className="mx-auto h-16 w-16 rounded-full object-cover shadow-md ring-2 ring-zinc-600"
+                        />
+                      ) : (
+                        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800 text-lg font-semibold text-zinc-400 ring-2 ring-zinc-600">
+                          {person.name.charAt(0)}
+                        </span>
+                      )}
+                      <ActorTooltip
+                        id={`media-cast-${id}-${person.id}`}
+                        name={person.name}
+                        character={person.character}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <div className="grid grid-cols-2 border-b border-zinc-800 sm:grid-cols-3 lg:grid-cols-6">
               {mediaFacts.map((fact) => {
@@ -701,116 +756,108 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               })}
             </div>
 
-            <section className="border-b border-zinc-800 py-5">
-              {contextLoading ? (
-                <div className="h-16 animate-pulse rounded bg-zinc-900" />
-              ) : !hasMaintainerrData ? (
-                <div className="flex items-start gap-3 text-sm text-zinc-400">
-                  <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
+            {(contextLoading || hasMaintainerrData) && (
+              <section className="border-b border-zinc-800 py-5">
+                {contextLoading ? (
+                  <div className="h-16 animate-pulse rounded bg-zinc-900" />
+                ) : (
                   <div>
-                    <p className="font-medium text-zinc-200">
-                      Not currently managed
-                    </p>
-                    <p className="mt-0.5">
-                      This item has no collection membership or exclusion.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="space-y-5">
-                    {maintainerrContext?.memberships.length ? (
-                      <div>
-                        <h4 className="text-xs font-medium uppercase text-zinc-500">
-                          Collections
-                        </h4>
-                        <div className="mt-2 divide-y divide-zinc-800 border-y border-zinc-800">
-                          {maintainerrContext.memberships.map((membership) => {
-                            const isActive =
-                              membership.collectionActive &&
-                              membership.ruleGroupActive !== false
-                            const scheduleLabel = isActive
-                              ? getScheduleLabel(
-                                  membership.scheduledFor,
-                                  membership.arrAction,
-                                )
-                              : null
-                            return (
-                              <div
-                                key={membership.collectionId}
-                                className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
-                              >
-                                <div className="min-w-0">
-                                  <Link
-                                    to={`/collections/${membership.collectionId}`}
-                                    className="block truncate text-sm font-medium text-maintainerr-400 transition hover:text-maintainerr-300"
-                                    onClick={onClose}
+                    <div className="space-y-5">
+                      {maintainerrContext?.memberships.length ? (
+                        <div>
+                          <h4 className="text-xs font-medium uppercase text-zinc-500">
+                            Collections
+                          </h4>
+                          <div className="mt-2 divide-y divide-zinc-800 border-y border-zinc-800">
+                            {maintainerrContext.memberships.map(
+                              (membership) => {
+                                const isActive =
+                                  membership.collectionActive &&
+                                  membership.ruleGroupActive !== false
+                                const scheduleLabel = isActive
+                                  ? getScheduleLabel(
+                                      membership.scheduledFor,
+                                      membership.arrAction,
+                                    )
+                                  : null
+                                return (
+                                  <div
+                                    key={membership.collectionId}
+                                    className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
                                   >
-                                    {membership.collectionTitle}
-                                  </Link>
-                                  <div className="mt-0.5 text-xs text-zinc-500">
-                                    Added {formatDate(membership.addedAt)}
-                                    {membership.ruleGroupName
-                                      ? ` by ${membership.ruleGroupName}`
-                                      : ''}
+                                    <div className="min-w-0">
+                                      <Link
+                                        to={`/collections/${membership.collectionId}`}
+                                        className="block truncate text-sm font-medium text-maintainerr-400 transition hover:text-maintainerr-300"
+                                        onClick={onClose}
+                                      >
+                                        {membership.collectionTitle}
+                                      </Link>
+                                      <div className="mt-0.5 text-xs text-zinc-500">
+                                        Added {formatDate(membership.addedAt)}
+                                        {membership.ruleGroupName
+                                          ? ` by ${membership.ruleGroupName}`
+                                          : ''}
+                                      </div>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2 text-xs">
+                                      <span className="text-zinc-400">
+                                        {membership.isManual
+                                          ? membership.isDirect
+                                            ? 'Added manually'
+                                            : 'Related media added manually'
+                                          : membership.isDirect
+                                            ? 'Added by rule'
+                                            : 'Related media added by rule'}
+                                      </span>
+                                      {!isActive ? (
+                                        <span className="rounded bg-zinc-800 px-2 py-1 font-semibold text-zinc-400">
+                                          Inactive
+                                        </span>
+                                      ) : scheduleLabel ? (
+                                        <span className="text-amber-400">
+                                          {scheduleLabel}
+                                        </span>
+                                      ) : null}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-2 text-xs">
-                                  <span className="text-zinc-400">
-                                    {membership.isManual
-                                      ? membership.isDirect
-                                        ? 'Added manually'
-                                        : 'Related media added manually'
-                                      : membership.isDirect
-                                        ? 'Added by rule'
-                                        : 'Related media added by rule'}
-                                  </span>
-                                  {!isActive ? (
-                                    <span className="rounded bg-zinc-800 px-2 py-1 font-semibold text-zinc-400">
-                                      Inactive
-                                    </span>
-                                  ) : scheduleLabel ? (
-                                    <span className="text-amber-400">
-                                      {scheduleLabel}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </div>
-                            )
-                          })}
+                                )
+                              },
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : null}
+                      ) : null}
 
-                    {maintainerrContext?.exclusions.length ? (
-                      <div>
-                        <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-zinc-500">
-                          <ShieldExclamationIcon className="h-4 w-4" />
-                          Exclusions
-                        </h4>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {maintainerrContext.exclusions.map((exclusion) => (
-                            <span
-                              key={exclusion.id}
-                              className="rounded bg-amber-950/60 px-2.5 py-1.5 text-xs text-amber-200 ring-1 ring-inset ring-amber-700/50"
-                            >
-                              {exclusion.scope === 'global'
-                                ? 'Global exclusion'
-                                : exclusion.collectionTitle ||
-                                  exclusion.ruleGroupName ||
-                                  'Collection exclusion'}
-                              {exclusion.expiresAt
-                                ? ` until ${formatDate(exclusion.expiresAt)}`
-                                : ''}
-                            </span>
-                          ))}
+                      {maintainerrContext?.exclusions.length ? (
+                        <div>
+                          <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-zinc-500">
+                            <ShieldExclamationIcon className="h-4 w-4" />
+                            Exclusions
+                          </h4>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {maintainerrContext.exclusions.map((exclusion) => (
+                              <span
+                                key={exclusion.id}
+                                className="rounded bg-amber-950/60 px-2.5 py-1.5 text-xs text-amber-200 ring-1 ring-inset ring-amber-700/50"
+                              >
+                                {exclusion.scope === 'global'
+                                  ? 'Global exclusion'
+                                  : exclusion.collectionTitle ||
+                                    exclusion.ruleGroupName ||
+                                    'Collection exclusion'}
+                                {exclusion.expiresAt
+                                  ? ` until ${formatDate(exclusion.expiresAt)}`
+                                  : ''}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              )}
-            </section>
+                )}
+              </section>
+            )}
 
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               {metadataIdLinks.length > 0 && (

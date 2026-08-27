@@ -4,6 +4,7 @@ import Layout, { LayoutErrorBoundary } from './components/Layout'
 import LoadingSpinner from './components/Common/LoadingSpinner'
 
 const Calendar = lazy(() => import('./components/Calendar'))
+const Discover = lazy(() => import('./components/Discover'))
 const Media = lazy(() => import('./components/Media'))
 const Overview = lazy(() => import('./components/Overview'))
 const Settings = lazy(() => import('./components/Settings'))
@@ -61,6 +62,10 @@ export const router = createBrowserRouter(
         {
           path: 'media',
           element: page(<Media />),
+        },
+        {
+          path: 'discover',
+          element: page(<Discover />),
         },
         {
           path: 'collections',

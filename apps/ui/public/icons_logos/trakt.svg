@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Trakt</title>
+  <circle cx="32" cy="32" r="29" fill="#ed1c24"/>
+  <path fill="#fff" d="M18 18h28v8H36v22h-8V26H18z"/>
+</svg>

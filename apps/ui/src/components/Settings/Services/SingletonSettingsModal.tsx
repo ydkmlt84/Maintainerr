@@ -116,8 +116,8 @@ const SingletonSettingsModal = ({
     <Modal
       title={`${name} Settings`}
       size="lg"
-      backgroundClickable={false}
       onCancel={onCancel}
+      hideCancelButton
       onOk={save}
       okText={saving ? 'Saving...' : 'Save Changes'}
       okDisabled={!canSave}

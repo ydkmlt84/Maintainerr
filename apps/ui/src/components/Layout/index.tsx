@@ -30,7 +30,7 @@ const LayoutShell: React.FC<LayoutShellProps> = ({ children }) => {
   const navigate = useNavigate()
   const basePath = import.meta.env.VITE_BASE_PATH ?? ''
   const location = useLocation()
-  const isMediaRoute = /^\/media(?:\/.*)?$/.test(location.pathname)
+  const isMediaRoute = /^\/(?:media|discover)(?:\/.*)?$/.test(location.pathname)
   const shouldShowStatsDrawer =
     !/^\/(?:overview)?$/.test(location.pathname) &&
     !/^\/settings(?:\/.*)?$/.test(location.pathname)

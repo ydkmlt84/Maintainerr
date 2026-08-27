@@ -46,6 +46,7 @@ describe('TmdbApiService media assets', () => {
     ).resolves.toEqual({
       backdropPath: '/backdrop.jpg',
       trailerUrl: 'https://www.youtube.com/watch?v=official%20key',
+      cast: [],
     })
   })
 
@@ -80,6 +81,7 @@ describe('TmdbApiService media assets', () => {
     ).resolves.toEqual({
       backdropPath: '/show.jpg',
       trailerUrl: 'https://www.youtube.com/watch?v=series-key',
+      cast: [],
     })
   })
 
@@ -127,6 +129,58 @@ describe('TmdbApiService media assets', () => {
     ).resolves.toEqual({
       backdropPath: '/show.jpg',
       trailerUrl: 'https://www.youtube.com/watch?v=season-two-key',
+      cast: [],
     })
+  })
+
+  it('returns a compact cast list for the media modal', async () => {
+    jest.spyOn(service, 'getMovie').mockResolvedValue({
+      backdrop_path: '/backdrop.jpg',
+      credits: {
+        cast: [
+          {
+            id: 101,
+            name: 'Lead Actor',
+            character: 'The Lead',
+            profile_path: '/lead.jpg',
+          },
+        ],
+      },
+      videos: { results: [] },
+    } as TmdbMovieDetails)
+
+    await expect(
+      service.getMediaAssets({ tmdbId: 4011, type: 'movie' }),
+    ).resolves.toMatchObject({
+      cast: [
+        {
+          id: 101,
+          name: 'Lead Actor',
+          character: 'The Lead',
+          profilePath: '/lead.jpg',
+        },
+      ],
+    })
+  })
+
+  it('limits media assets to ten cast members', async () => {
+    jest.spyOn(service, 'getMovie').mockResolvedValue({
+      credits: {
+        cast: Array.from({ length: 12 }, (_, index) => ({
+          id: index + 1,
+          name: `Actor ${index + 1}`,
+          character: `Character ${index + 1}`,
+        })),
+      },
+      videos: { results: [] },
+    } as TmdbMovieDetails)
+
+    const assets = await service.getMediaAssets({
+      tmdbId: 4012,
+      type: 'movie',
+    })
+
+    expect(assets.cast).toHaveLength(10)
+    expect(assets.cast.at(-1)?.name).toBe('Actor 10')
   })
 })

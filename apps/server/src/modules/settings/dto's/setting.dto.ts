@@ -45,6 +45,18 @@ export class SettingDto {
 
   tautulli_api_key: string
 
+  trakt_client_id?: string
+
+  trakt_client_secret?: string
+
+  trakt_access_token?: string
+
+  trakt_refresh_token?: string
+
+  trakt_token_expires_at?: Date
+
+  trakt_username?: string
+
   collection_handler_job_cron: string
 
   rules_handler_job_cron: string

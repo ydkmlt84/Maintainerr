@@ -200,8 +200,8 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
   return (
     <Modal
       loading={false}
-      backgroundClickable={false}
       onCancel={handleCancel}
+      hideCancelButton
       onOk={handleSubmit}
       okText={'Save Changes'}
       okButtonType={'primary'}

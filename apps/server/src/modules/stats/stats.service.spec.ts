@@ -2,9 +2,19 @@ import { PlexLibraryItem } from '../api/plex-api/interfaces/library.interfaces'
 import { TautulliRecentlyAddedItem } from '../api/tautulli-api/tautulli-api.service'
 import {
   dedupeLeavingSoonCandidates,
+  excludeTrashedLeavingSoonCandidates,
+  hasChoppingBlockAction,
   mapPlexLibraryRankingItem,
   mapTautulliRecentlyAddedItem,
 } from './stats.service'
+import { ServarrAction } from '../collections/interfaces/collection.interface'
+
+describe('hasChoppingBlockAction', () => {
+  it('excludes collections configured to do nothing', () => {
+    expect(hasChoppingBlockAction(ServarrAction.DO_NOTHING)).toBe(false)
+    expect(hasChoppingBlockAction(ServarrAction.DELETE)).toBe(true)
+  })
+})
 
 describe('dedupeLeavingSoonCandidates', () => {
   it('keeps one entry per media item using the earliest action date', () => {
@@ -21,6 +31,20 @@ describe('dedupeLeavingSoonCandidates', () => {
       { mediaServerId: '1', deleteDate: earlier, collectionId: 30 },
       { mediaServerId: '2', deleteDate: later, collectionId: 20 },
     ])
+  })
+})
+
+describe('excludeTrashedLeavingSoonCandidates', () => {
+  it('removes candidates whose media server ID is in Plex trash', () => {
+    const items = [
+      { mediaServerId: 'current-1', collectionId: 10 },
+      { mediaServerId: 'trashed-1', collectionId: 20 },
+      { mediaServerId: 'current-2', collectionId: 30 },
+    ]
+
+    expect(
+      excludeTrashedLeavingSoonCandidates(items, new Set(['trashed-1'])),
+    ).toEqual([items[0], items[2]])
   })
 })
 

@@ -172,7 +172,16 @@ export class TmdbApiService extends ExternalApiService {
     tmdbId: number
     type: 'movie' | 'show'
     seasonNumber?: number
-  }): Promise<{ backdropPath?: string; trailerUrl?: string }> => {
+  }): Promise<{
+    backdropPath?: string
+    trailerUrl?: string
+    cast: {
+      id: number
+      name: string
+      character?: string
+      profilePath?: string
+    }[]
+  }> => {
     const details =
       type === 'movie'
         ? await this.getMovie({ movieId: tmdbId })
@@ -187,6 +196,25 @@ export class TmdbApiService extends ExternalApiService {
       )
     const chooseTrailer = (candidates: TmdbVideo[]) =>
       candidates.find((video) => video.official) ?? candidates[0]
+    const cast =
+      type === 'movie'
+        ? ((details as TmdbMovieDetails | undefined)?.credits?.cast ?? []).map(
+            (person) => ({
+              id: person.id,
+              name: person.name,
+              character: person.character,
+              profilePath: person.profile_path,
+            }),
+          )
+        : (
+            (details as TmdbTvDetails | undefined)?.aggregate_credits?.cast ??
+            []
+          ).map((person) => ({
+            id: person.id,
+            name: person.name,
+            character: person.roles.find((role) => role.character)?.character,
+            profilePath: person.profile_path,
+          }))
 
     let trailer = chooseTrailer(
       trailers.filter((video) => !isSeasonSpecific(video)),
@@ -208,6 +236,7 @@ export class TmdbApiService extends ExternalApiService {
       trailerUrl: trailer
         ? `https://www.youtube.com/watch?v=${encodeURIComponent(trailer.key)}`
         : undefined,
+      cast: cast.slice(0, 10),
     }
   }
 
