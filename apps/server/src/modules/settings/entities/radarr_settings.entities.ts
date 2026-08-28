@@ -15,6 +15,9 @@ export class RadarrSettings {
   @Column({ nullable: true })
   apiKey: string
 
+  @Column({ nullable: true })
+  externalUrl?: string
+
   @OneToMany(() => Collection, (collection) => collection.radarrSettings)
   collections: Collection[]
 }

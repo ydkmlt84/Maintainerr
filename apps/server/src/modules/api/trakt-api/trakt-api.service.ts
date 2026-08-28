@@ -20,8 +20,12 @@ import {
 import axios, { AxiosError, AxiosInstance } from 'axios'
 import { SettingsService } from '../../settings/settings.service'
 import { MaintainerrLogger } from '../../logging/logs.service'
+import cacheManager from '../lib/cache'
 import { MediaServerFactory } from '../media-server/media-server.factory'
-import { ServarrService } from '../servarr-api/servarr.service'
+import {
+  buildServarrItemUrl,
+  ServarrService,
+} from '../servarr-api/servarr.service'
 
 interface TraktMediaObject {
   title: string
@@ -75,6 +79,8 @@ export class TraktApiService {
   private readonly api: AxiosInstance
   private readonly auth: AxiosInstance
   private refreshPromise?: Promise<string>
+  private readonly cache = cacheManager.getCache('trakt')!.data
+  private readonly pendingCacheLoads = new Map<string, Promise<unknown>>()
 
   constructor(
     private readonly settings: SettingsService,
@@ -114,15 +120,18 @@ export class TraktApiService {
     }
 
     await this.settings.saveTraktConfiguration(clientId, clientSecret)
+    this.invalidateDiscover()
     return this.getStatus()
   }
 
   public async removeConfiguration(): Promise<void> {
     await this.settings.removeTraktConfiguration()
+    this.invalidateDiscover()
   }
 
   public async disconnect(): Promise<TraktStatus> {
     await this.settings.disconnectTrakt()
+    this.invalidateDiscover()
     return this.getStatus()
   }
 
@@ -163,6 +172,7 @@ export class TraktApiService {
         },
       )
       await this.persistTokens(response.data)
+      this.invalidateDiscover()
       const username = await this.loadConnectedUsername()
       return { status: 'connected', username }
     } catch (error) {
@@ -186,78 +196,84 @@ export class TraktApiService {
       }
     }
 
-    try {
-      const [
-        trendingMovies,
-        popularMovies,
-        trendingShows,
-        popularShows,
-        libraryIds,
-        watchlistIds,
-        watchedIds,
-        servarrByItem,
-      ] = await Promise.all([
-        this.getTrending('movie'),
-        this.getPopular('movie'),
-        this.getTrending('show'),
-        this.getPopular('show'),
-        this.getLibraryIds(),
-        this.isConnected()
-          ? this.getWatchlistIds()
-          : Promise.resolve(new Set()),
-        this.isConnected() ? this.getWatchedIds() : Promise.resolve(new Set()),
-        this.getServarrStatuses(),
-      ])
+    return this.getCached('discover-response', 60, async () => {
+      try {
+        const [
+          trendingMovies,
+          popularMovies,
+          trendingShows,
+          popularShows,
+          libraryIds,
+          watchlistIds,
+          watchedIds,
+          servarrByItem,
+        ] = await Promise.all([
+          this.getTrending('movie'),
+          this.getPopular('movie'),
+          this.getTrending('show'),
+          this.getPopular('show'),
+          this.getLibraryIds(),
+          this.isConnected()
+            ? this.getWatchlistIds()
+            : Promise.resolve(new Set()),
+          this.isConnected()
+            ? this.getWatchedIds()
+            : Promise.resolve(new Set()),
+          this.getServarrStatuses(),
+        ])
 
-      const available = (items: TraktDiscoverItem[]) =>
-        items.filter((item) => !this.matchesLibrary(item, libraryIds))
-      const movieTrending = available(trendingMovies)
-      const showTrending = available(trendingShows)
-      const movieTrendingIds = new Set(
-        movieTrending
-          .slice(0, 16)
-          .map((item) => this.itemKey(item.type, item.ids.trakt)),
-      )
-      const showTrendingIds = new Set(
-        showTrending
-          .slice(0, 16)
-          .map((item) => this.itemKey(item.type, item.ids.trakt)),
-      )
-      const markWatchlist = (items: TraktDiscoverItem[]) =>
-        items.slice(0, 16).map((item) => ({
-          ...item,
-          watchlisted: watchlistIds.has(
-            this.itemKey(item.type, item.ids.trakt),
-          ),
-          watched: watchedIds.has(this.itemKey(item.type, item.ids.trakt)),
-          servarr: this.getItemServarrStatuses(item, servarrByItem),
-        }))
+        const available = (items: TraktDiscoverItem[]) =>
+          items.filter((item) => !this.matchesLibrary(item, libraryIds))
+        const movieTrending = available(trendingMovies)
+        const showTrending = available(trendingShows)
+        const movieTrendingIds = new Set(
+          movieTrending
+            .slice(0, 16)
+            .map((item) => this.itemKey(item.type, item.ids.trakt)),
+        )
+        const showTrendingIds = new Set(
+          showTrending
+            .slice(0, 16)
+            .map((item) => this.itemKey(item.type, item.ids.trakt)),
+        )
+        const markWatchlist = (items: TraktDiscoverItem[]) =>
+          items.slice(0, 16).map((item) => ({
+            ...item,
+            watchlisted: watchlistIds.has(
+              this.itemKey(item.type, item.ids.trakt),
+            ),
+            watched: watchedIds.has(this.itemKey(item.type, item.ids.trakt)),
+            servarr: this.getItemServarrStatuses(item, servarrByItem),
+          }))
 
-      return {
-        configured: true,
-        connected: this.isConnected(),
-        username: this.settings.trakt_username || undefined,
-        sections: {
-          trendingMovies: markWatchlist(movieTrending),
-          popularMovies: markWatchlist(
-            available(popularMovies).filter(
-              (item) =>
-                !movieTrendingIds.has(this.itemKey(item.type, item.ids.trakt)),
+        return {
+          configured: true,
+          connected: this.isConnected(),
+          username: this.settings.trakt_username || undefined,
+          sections: {
+            trendingMovies: markWatchlist(movieTrending),
+            popularMovies: markWatchlist(
+              available(popularMovies).filter(
+                (item) =>
+                  !movieTrendingIds.has(
+                    this.itemKey(item.type, item.ids.trakt),
+                  ),
+              ),
             ),
-          ),
-          trendingShows: markWatchlist(showTrending),
-          popularShows: markWatchlist(
-            available(popularShows).filter(
-              (item) =>
-                !showTrendingIds.has(this.itemKey(item.type, item.ids.trakt)),
+            trendingShows: markWatchlist(showTrending),
+            popularShows: markWatchlist(
+              available(popularShows).filter(
+                (item) =>
+                  !showTrendingIds.has(this.itemKey(item.type, item.ids.trakt)),
+              ),
             ),
-          ),
-        },
+          },
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to load Trakt discovery: ${error}`)
+        throw new ServiceUnavailableException('Could not load Trakt discovery')
       }
-    } catch (error) {
-      this.logger.warn(`Failed to load Trakt discovery: ${error}`)
-      throw new ServiceUnavailableException('Could not load Trakt discovery')
-    }
+    })
   }
 
   public async addToWatchlist(item: TraktWatchlistMutation): Promise<void> {
@@ -295,6 +311,7 @@ export class TraktApiService {
         `Trakt did not mark the ${item.type === 'movie' ? 'movie' : 'show'} as watched`,
       )
     }
+    this.invalidateDiscover()
   }
 
   private async mutateWatchlist(
@@ -317,39 +334,44 @@ export class TraktApiService {
         `Trakt did not ${remove ? 'remove' : 'add'} the watchlist item`,
       )
     }
+    this.invalidateDiscover()
   }
 
   private async getTrending(
     type: TraktMediaType,
   ): Promise<TraktDiscoverItem[]> {
-    const plural = type === 'movie' ? 'movies' : 'shows'
-    const response = await this.api.get<TraktTrendingResult[]>(
-      `/${plural}/trending`,
-      {
-        params: { extended: 'full', limit: 40 },
-        headers: this.apiHeaders(),
-      },
-    )
-    return response.data
-      .map((entry) => {
-        const media = type === 'movie' ? entry.movie : entry.show
-        return media
-          ? this.normalizeItem(type, media, entry.watchers)
-          : undefined
-      })
-      .filter((item): item is TraktDiscoverItem => Boolean(item))
+    return this.getCached(`trending-${type}`, 900, async () => {
+      const plural = type === 'movie' ? 'movies' : 'shows'
+      const response = await this.api.get<TraktTrendingResult[]>(
+        `/${plural}/trending`,
+        {
+          params: { extended: 'full', limit: 40 },
+          headers: this.apiHeaders(),
+        },
+      )
+      return response.data
+        .map((entry) => {
+          const media = type === 'movie' ? entry.movie : entry.show
+          return media
+            ? this.normalizeItem(type, media, entry.watchers)
+            : undefined
+        })
+        .filter((item): item is TraktDiscoverItem => Boolean(item))
+    })
   }
 
   private async getPopular(type: TraktMediaType): Promise<TraktDiscoverItem[]> {
-    const plural = type === 'movie' ? 'movies' : 'shows'
-    const response = await this.api.get<TraktMediaObject[]>(
-      `/${plural}/popular`,
-      {
-        params: { extended: 'full', limit: 40 },
-        headers: this.apiHeaders(),
-      },
-    )
-    return response.data.map((media) => this.normalizeItem(type, media))
+    return this.getCached(`popular-${type}`, 900, async () => {
+      const plural = type === 'movie' ? 'movies' : 'shows'
+      const response = await this.api.get<TraktMediaObject[]>(
+        `/${plural}/popular`,
+        {
+          params: { extended: 'full', limit: 40 },
+          headers: this.apiHeaders(),
+        },
+      )
+      return response.data.map((media) => this.normalizeItem(type, media))
+    })
   }
 
   private normalizeItem(
@@ -411,6 +433,14 @@ export class TraktApiService {
                 add(`movie:tmdb:${movie.tmdbId}`, {
                   service: 'radarr',
                   instanceName: setting.serverName,
+                  href:
+                    (setting.externalUrl || setting.url) && movie.titleSlug
+                      ? buildServarrItemUrl(
+                          setting.externalUrl || setting.url,
+                          'movie',
+                          movie.titleSlug,
+                        )
+                      : undefined,
                   monitored: movie.monitored,
                   state,
                   status:
@@ -466,6 +496,14 @@ export class TraktApiService {
                 add(`show:tvdb:${show.tvdbId}`, {
                   service: 'sonarr',
                   instanceName: setting.serverName,
+                  href:
+                    (setting.externalUrl || setting.url) && show.titleSlug
+                      ? buildServarrItemUrl(
+                          setting.externalUrl || setting.url,
+                          'series',
+                          show.titleSlug,
+                        )
+                      : undefined,
                   monitored: show.monitored,
                   state,
                   status:
@@ -604,37 +642,64 @@ export class TraktApiService {
   }
 
   private async getLibraryIds(): Promise<Set<string>> {
-    const mediaServer = await this.mediaServerFactory.getService()
-    const libraries = await mediaServer.getLibraries()
-    const pages = await Promise.all(
-      libraries.map(async (library) => {
-        const items = []
-        let offset = 0
-        let total = 0
-        do {
-          const page = await mediaServer.getLibraryContents(library.id, {
-            offset,
-            limit: 500,
-            type: library.type,
-          })
-          items.push(...page.items)
-          total = page.totalSize
-          offset += page.items.length
-        } while (offset < total && offset > 0)
-        return items
-      }),
-    )
+    return this.getCached('library-ids', 60, async () => {
+      const mediaServer = await this.mediaServerFactory.getService()
+      const libraries = await mediaServer.getLibraries()
+      const pages = await Promise.all(
+        libraries.map(async (library) => {
+          const items = []
+          let offset = 0
+          let total = 0
+          do {
+            const page = await mediaServer.getLibraryContents(library.id, {
+              offset,
+              limit: 500,
+              type: library.type,
+            })
+            items.push(...page.items)
+            total = page.totalSize
+            offset += page.items.length
+          } while (offset < total && offset > 0)
+          return items
+        }),
+      )
 
-    const ids = new Set<string>()
-    pages.flat().forEach((item) => {
-      item.providerIds.tmdb?.forEach((id) => ids.add(`tmdb:${id}`))
-      item.providerIds.imdb?.forEach((id) => ids.add(`imdb:${id}`))
-      item.providerIds.tvdb?.forEach((id) => ids.add(`tvdb:${id}`))
-      if (item.year) {
-        ids.add(this.titleKey(item.type, item.title, item.year))
-      }
+      const ids = new Set<string>()
+      pages.flat().forEach((item) => {
+        item.providerIds.tmdb?.forEach((id) => ids.add(`tmdb:${id}`))
+        item.providerIds.imdb?.forEach((id) => ids.add(`imdb:${id}`))
+        item.providerIds.tvdb?.forEach((id) => ids.add(`tvdb:${id}`))
+        if (item.year) {
+          ids.add(this.titleKey(item.type, item.title, item.year))
+        }
+      })
+      return ids
     })
-    return ids
+  }
+
+  private async getCached<T>(
+    key: string,
+    ttlSeconds: number,
+    loader: () => Promise<T>,
+  ): Promise<T> {
+    const cached = this.cache.get<T>(key)
+    if (cached !== undefined) return cached
+
+    const pending = this.pendingCacheLoads.get(key) as Promise<T> | undefined
+    if (pending !== undefined) return pending
+
+    const load = loader()
+      .then((value) => {
+        this.cache.set(key, value, ttlSeconds)
+        return value
+      })
+      .finally(() => this.pendingCacheLoads.delete(key))
+    this.pendingCacheLoads.set(key, load)
+    return load
+  }
+
+  private invalidateDiscover(): void {
+    this.cache.del('discover-response')
   }
 
   private matchesLibrary(

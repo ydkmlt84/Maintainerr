@@ -34,6 +34,7 @@ export interface IRadarrSetting {
   serverName: string
   url: string
   apiKey: string
+  externalUrl?: string
 }
 
 const RadarrSettings = () => {

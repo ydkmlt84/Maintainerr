@@ -342,7 +342,7 @@ const ServicesSettings = () => {
                 key={`radarr-${setting.id}`}
                 type="radarr"
                 name={setting.serverName}
-                url={setting.url}
+                url={setting.externalUrl || setting.url}
                 onEdit={() => editArr('radarr', setting)}
                 onDelete={() => void deleteArr('radarr', setting.id)}
               />
@@ -352,7 +352,7 @@ const ServicesSettings = () => {
                 key={`sonarr-${setting.id}`}
                 type="sonarr"
                 name={setting.serverName}
-                url={setting.url}
+                url={setting.externalUrl || setting.url}
                 onEdit={() => editArr('sonarr', setting)}
                 onDelete={() => void deleteArr('sonarr', setting.id)}
               />

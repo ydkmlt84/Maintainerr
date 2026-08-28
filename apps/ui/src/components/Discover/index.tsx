@@ -29,7 +29,8 @@ import GetApiHandler, {
   DeleteApiHandler,
   PostApiHandler,
 } from '../../utils/ApiHandler'
-import ActorTooltip from '../Common/ActorTooltip'
+import { getTmdbImageUrl } from '../../utils/TmdbImage'
+import ActorTooltip, { getActorProfileImageUrl } from '../Common/ActorTooltip'
 import Button from '../Common/Button'
 import LoadingSpinner from '../Common/LoadingSpinner'
 import Modal from '../Common/Modal'
@@ -387,20 +388,14 @@ const DiscoverPoster = ({
   item: TraktDiscoverItem
   onSelect: () => void
 }) => {
-  const [posterPath, setPosterPath] = useState<string>()
-
-  useEffect(() => {
-    if (!item.ids.tmdb) return
-    let active = true
-    GetApiHandler<string>(`/moviedb/image/${item.type}/${item.ids.tmdb}`)
-      .then((path) => {
-        if (active && path) setPosterPath(path)
+  const posterUrl = item.ids.tmdb
+    ? getTmdbImageUrl({
+        scope: 'discover',
+        variant: 'poster',
+        type: item.type,
+        tmdbId: item.ids.tmdb,
       })
-      .catch(() => undefined)
-    return () => {
-      active = false
-    }
-  }, [item.ids.tmdb, item.type])
+    : undefined
 
   return (
     <button
@@ -410,9 +405,9 @@ const DiscoverPoster = ({
       aria-label={`View ${item.title}`}
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg shadow-black/25 transition group-hover:border-zinc-500 group-focus:ring-2 group-focus:ring-maintainerr-400">
-        {posterPath ? (
+        {posterUrl ? (
           <img
-            src={`https://image.tmdb.org/t/p/w342${posterPath}`}
+            src={posterUrl}
             alt=""
             loading="lazy"
             className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
@@ -521,7 +516,13 @@ export const DiscoverDetailsModal = ({
           <div
             className="h-full w-full bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(https://image.tmdb.org/t/p/w1280${assets.backdropPath})`,
+              backgroundImage: `url(${getTmdbImageUrl({
+                scope: 'discover',
+                variant: 'backdrop',
+                type: item.type,
+                tmdbId: item.ids.tmdb,
+                imagePath: assets.backdropPath,
+              })})`,
             }}
           />
         ) : (
@@ -662,7 +663,7 @@ export const DiscoverDetailsModal = ({
               >
                 {person.profilePath ? (
                   <img
-                    src={`https://image.tmdb.org/t/p/w185${person.profilePath}`}
+                    src={getActorProfileImageUrl(person.id, person.profilePath)}
                     alt={person.name}
                     loading="lazy"
                     width={64}
@@ -678,6 +679,8 @@ export const DiscoverDetailsModal = ({
                   id={`discover-cast-${item.ids.tmdb}-${person.id}`}
                   name={person.name}
                   character={person.character}
+                  personId={person.id}
+                  profilePath={person.profilePath}
                 />
               </div>
             ))}
@@ -714,31 +717,52 @@ export const DiscoverDetailsModal = ({
       {item.servarr.length ? (
         <section className="border-b border-zinc-800 py-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            {item.servarr.map((status) => (
-              <div
-                key={`${status.service}-${status.instanceName}`}
-                className="flex items-center gap-3 rounded-lg bg-zinc-800 px-4 py-3 ring-1 ring-zinc-600"
-              >
-                <img
-                  src={`${basePath}/icons_logos/${status.service}.svg`}
-                  alt={status.service === 'radarr' ? 'Radarr' : 'Sonarr'}
-                  className="h-8 w-8 shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-zinc-500">
-                    {status.instanceName}
-                  </p>
-                  <p className="truncate text-sm font-semibold text-zinc-100">
-                    {status.status}
-                  </p>
-                  {status.detail ? (
-                    <p className="truncate text-xs text-zinc-400">
-                      {status.detail}
+            {item.servarr.map((status) => {
+              const content = (
+                <>
+                  <img
+                    src={`${basePath}/icons_logos/${status.service}.svg`}
+                    alt={status.service === 'radarr' ? 'Radarr' : 'Sonarr'}
+                    className="h-8 w-8 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-zinc-500">
+                      {status.instanceName}
                     </p>
-                  ) : null}
+                    <p className="truncate text-sm font-semibold text-zinc-100">
+                      {status.status}
+                    </p>
+                    {status.detail ? (
+                      <p className="truncate text-xs text-zinc-400">
+                        {status.detail}
+                      </p>
+                    ) : null}
+                  </div>
+                </>
+              )
+              const className =
+                'flex items-center gap-3 rounded-lg bg-zinc-800 px-4 py-3 ring-1 ring-zinc-600'
+
+              return status.href ? (
+                <a
+                  key={`${status.service}-${status.instanceName}`}
+                  href={status.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`${className} transition hover:bg-zinc-700 hover:ring-zinc-500 focus:outline-none focus:ring-2 focus:ring-maintainerr-400`}
+                  aria-label={`Open ${status.instanceName}`}
+                >
+                  {content}
+                </a>
+              ) : (
+                <div
+                  key={`${status.service}-${status.instanceName}`}
+                  className={className}
+                >
+                  {content}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       ) : null}

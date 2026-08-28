@@ -1,6 +1,7 @@
 import { ICollection } from '..'
 import { useMediaServerLibraries } from '../../../api/media-server'
 import { MediaItemTypeLabels } from '@maintainerr/contracts'
+import { getTmdbImageUrl } from '../../../utils/TmdbImage'
 
 interface ICollectionItem {
   collection: ICollection
@@ -32,14 +33,26 @@ const CollectionItem = (props: ICollectionItem) => {
               className="backdrop-image"
               width="600"
               height="800"
-              src={`https://image.tmdb.org/t/p/w500${props.collection.media[0].image_path}`}
+              src={getTmdbImageUrl({
+                scope: 'library',
+                variant: 'poster',
+                type: props.collection.type === 'movie' ? 'movie' : 'show',
+                tmdbId: props.collection.media[0].tmdbId,
+                imagePath: props.collection.media[0].image_path,
+              })}
               alt="img"
             />
             <img
               className="backdrop-image"
               width="600"
               height="800"
-              src={`https://image.tmdb.org/t/p/w500/${props.collection.media[1].image_path}`}
+              src={getTmdbImageUrl({
+                scope: 'library',
+                variant: 'poster',
+                type: props.collection.type === 'movie' ? 'movie' : 'show',
+                tmdbId: props.collection.media[1].tmdbId,
+                imagePath: props.collection.media[1].image_path,
+              })}
               alt="img"
             />
             <div className="collection-backdrop"></div>

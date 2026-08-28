@@ -9,6 +9,7 @@ type AvailableCacheIds =
   | 'tautulli'
   | 'github'
   | 'jellyfin'
+  | 'trakt'
 
 type CacheType = AvailableCacheIds | 'radarr' | 'sonarr'
 
@@ -70,6 +71,10 @@ class CacheManager {
       checkPeriod: 60 * 60, // Check every hour
     }),
     jellyfin: new Cache('jellyfin', 'Jellyfin API', 'jellyfin'),
+    trakt: new Cache('trakt', 'Trakt Discovery', 'trakt', {
+      stdTtl: 60,
+      checkPeriod: 60,
+    }),
   }
 
   public createCache(

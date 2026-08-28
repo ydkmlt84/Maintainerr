@@ -29,6 +29,7 @@ import GetApiHandler, {
   DeleteApiHandler,
   PostApiHandler,
 } from '../../utils/ApiHandler'
+import { getTmdbImageUrl } from '../../utils/TmdbImage'
 import CollectionMembershipTooltip from '../Common/CollectionMembershipTooltip'
 import LoadingSpinner from '../Common/LoadingSpinner'
 import ExclusionBadges from '../Common/ExclusionBadges'
@@ -167,7 +168,7 @@ interface AppCollectionPreview {
   totalSizeBytes?: number | null
   deleteAfterDays?: number | null
   isActive: boolean
-  media: { image_path?: string }[]
+  media: { image_path?: string; tmdbId?: number }[]
 }
 
 interface AppLeavingSoonItem {
@@ -1681,39 +1682,34 @@ const RecentActivityRow = ({
 )
 
 const RecentActivityThumbnail = ({ item }: { item: AppRecentActivityItem }) => {
-  const [posterPath, setPosterPath] = useState<string>()
+  const [posterFailed, setPosterFailed] = useState(false)
 
   useEffect(() => {
-    if (item.posterPath) {
-      queueMicrotask(() => setPosterPath(item.posterPath))
-      return
-    }
-
-    if (!item.posterTmdbId || !item.posterType) {
-      queueMicrotask(() => setPosterPath(undefined))
-      return
-    }
-
-    let active = true
-    GetApiHandler<string>(
-      `/moviedb/image/${item.posterType}/${item.posterTmdbId}`,
-    ).then((path) => {
-      if (active) {
-        setPosterPath(path)
-      }
-    })
-
-    return () => {
-      active = false
-    }
+    queueMicrotask(() => setPosterFailed(false))
   }, [item.posterPath, item.posterTmdbId, item.posterType])
 
-  return posterPath ? (
+  const imagePath = item.posterPath?.match(
+    /^\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i,
+  )
+    ? item.posterPath
+    : undefined
+  const posterUrl =
+    item.posterTmdbId && item.posterType
+      ? getTmdbImageUrl({
+          scope: 'library',
+          variant: 'poster',
+          type: item.posterType,
+          tmdbId: item.posterTmdbId,
+          imagePath,
+        })
+      : undefined
+
+  return posterUrl && !posterFailed ? (
     <img
-      src={`https://image.tmdb.org/t/p/w92${posterPath}`}
+      src={posterUrl}
       alt=""
       className="h-[4.5rem] w-12 rounded-md object-cover"
-      onError={() => setPosterPath(undefined)}
+      onError={() => setPosterFailed(true)}
     />
   ) : (
     <span className="block h-[4.5rem] w-12" aria-hidden="true" />
@@ -1839,36 +1835,12 @@ const DashboardPoster = ({
   onSelect?: () => void
 }) => {
   const daysLeftTooltipId = useId().replace(/:/g, '')
-  const posterRequestKey = `${posterType}:${tmdbId ?? ''}`
-  const [resolvedPoster, setResolvedPoster] = useState<{
-    key: string
-    path: string
-  }>()
   const [exclusions, setExclusions] = useState<
     MediaManagementContext['exclusions']
   >([])
   const [memberships, setMemberships] = useState<
     MediaManagementContext['memberships']
   >([])
-
-  useEffect(() => {
-    if (posterUrl || !tmdbId) {
-      return
-    }
-
-    let active = true
-    GetApiHandler<string>(`/moviedb/image/${posterType}/${tmdbId}`).then(
-      (path) => {
-        if (active && path) {
-          setResolvedPoster({ key: posterRequestKey, path })
-        }
-      },
-    )
-
-    return () => {
-      active = false
-    }
-  }, [posterRequestKey, posterType, posterUrl, tmdbId])
 
   useEffect(() => {
     if (!mediaServerId) return
@@ -1894,17 +1866,20 @@ const DashboardPoster = ({
     }
   }, [mediaServerId])
 
-  const posterPath =
-    resolvedPoster?.key === posterRequestKey ? resolvedPoster.path : undefined
+  const cachedPosterUrl = tmdbId
+    ? getTmdbImageUrl({
+        scope: mediaServerId ? 'library' : 'discover',
+        variant: 'poster',
+        type: posterType,
+        tmdbId,
+      })
+    : undefined
 
   const poster = (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-lg shadow-black/25">
-      {posterUrl || posterPath ? (
+      {posterUrl || cachedPosterUrl ? (
         <img
-          src={
-            posterUrl ??
-            `https://image.tmdb.org/t/p/w300_and_h450_face${posterPath}`
-          }
+          src={posterUrl ?? cachedPosterUrl}
           alt=""
           className="h-full w-full object-cover transition duration-200 group-hover:blur-[1px]"
         />
@@ -2330,18 +2305,22 @@ const CollectionRow = ({
             >
               {collection.media.length > 1 ? (
                 <div className="absolute inset-0 z-0 flex opacity-20">
-                  {collection.media
-                    .slice(0, 2)
-                    .map((media, index) =>
-                      media.image_path ? (
-                        <img
-                          key={`${collection.id}-${index}`}
-                          src={`https://image.tmdb.org/t/p/w500${media.image_path}`}
-                          alt=""
-                          className="h-full w-1/2 object-cover"
-                        />
-                      ) : undefined,
-                    )}
+                  {collection.media.slice(0, 2).map((media, index) =>
+                    media.image_path && media.tmdbId ? (
+                      <img
+                        key={`${collection.id}-${index}`}
+                        src={getTmdbImageUrl({
+                          scope: 'library',
+                          variant: 'poster',
+                          type: collection.type === 'movie' ? 'movie' : 'show',
+                          tmdbId: media.tmdbId,
+                          imagePath: media.image_path,
+                        })}
+                        alt=""
+                        className="h-full w-1/2 object-cover"
+                      />
+                    ) : undefined,
+                  )}
                   <div className="absolute inset-0 bg-zinc-950/70" />
                 </div>
               ) : undefined}

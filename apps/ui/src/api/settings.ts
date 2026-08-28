@@ -50,6 +50,7 @@ interface ISettings {
   rules_handler_job_cron: string
   media_id_audit_job_cron: string
   plex_trash_empty_job_cron: string
+  image_cache_max_gb: number
 }
 
 // Jellyfin test result (not in contracts as it's UI-specific)

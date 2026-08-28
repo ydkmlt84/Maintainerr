@@ -15,6 +15,9 @@ export class SonarrSettings {
   @Column({ nullable: true })
   apiKey: string
 
+  @Column({ nullable: true })
+  externalUrl?: string
+
   @OneToMany(() => Collection, (collection) => collection.sonarrSettings)
   collections: Collection[]
 }

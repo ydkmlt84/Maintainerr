@@ -3,6 +3,7 @@ import { AdjustmentsIcon } from '@heroicons/react/outline'
 import { MediaItemType } from '@maintainerr/contracts'
 import React, { memo, useCallback, useEffect, useId, useState } from 'react'
 import GetApiHandler from '../../../utils/ApiHandler'
+import { getTmdbImageUrl } from '../../../utils/TmdbImage'
 import Button from '../Button'
 import CollectionMembershipTooltip from '../CollectionMembershipTooltip'
 import ExclusionBadges from '../ExclusionBadges'
@@ -41,6 +42,7 @@ interface IMediaCard {
 
 const MediaCard: React.FC<IMediaCard> = ({
   id,
+  image: imagePath,
   summary,
   year,
   mediaType,
@@ -65,7 +67,7 @@ const MediaCard: React.FC<IMediaCard> = ({
   onRemove = () => {},
 }) => {
   const [showDetail, setShowDetail] = useState(false)
-  const [image, setImage] = useState<string | null>(null)
+  const [failedPosterUrl, setFailedPosterUrl] = useState<string>()
   const [exclusions, setExclusions] = useState<
     MediaManagementContext['exclusions']
   >(() =>
@@ -124,16 +126,23 @@ const MediaCard: React.FC<IMediaCard> = ({
   )
 
   useEffect(() => {
-    if (tmdbid) {
-      const imageType = ['season', 'episode'].includes(mediaType)
-        ? 'show'
-        : mediaType
-      GetApiHandler(`/moviedb/image/${imageType}/${tmdbid}`).then((resp) =>
-        setImage(resp),
-      )
-    }
     getExclusions()
-  }, [getExclusions, mediaType, tmdbid])
+  }, [getExclusions])
+
+  const imageType = ['season', 'episode'].includes(mediaType)
+    ? 'show'
+    : mediaType
+  const posterUrl = tmdbid
+    ? getTmdbImageUrl({
+        scope: 'library',
+        variant: 'poster',
+        type: imageType,
+        tmdbId: tmdbid,
+        imagePath,
+      })
+    : undefined
+
+  const posterFailed = posterUrl === failedPosterUrl
 
   // Just to get the year from the date
   const displayYear = year && mediaType !== 'episode' ? year.slice(0, 4) : year
@@ -180,11 +189,12 @@ const MediaCard: React.FC<IMediaCard> = ({
         tabIndex={0}
       >
         <div className="absolute inset-0 h-full w-full overflow-hidden">
-          {image ? (
+          {posterUrl && !posterFailed ? (
             <img
               className="absolute inset-0 h-full w-full object-cover"
               alt=""
-              src={`https://image.tmdb.org/t/p/w300_and_h450_face${image}`}
+              src={posterUrl}
+              onError={() => setFailedPosterUrl(posterUrl)}
             />
           ) : undefined}
           <div className="absolute left-0 right-0 flex items-center justify-between p-2">
@@ -254,7 +264,7 @@ const MediaCard: React.FC<IMediaCard> = ({
 
           <Transition
             as="div"
-            show={!image || showDetail}
+            show={!posterUrl || posterFailed || showDetail}
             className="absolute inset-0 transform cursor-alias overflow-hidden rounded-xl transition"
             enter="opacity-0"
             enterFrom="opacity-0"

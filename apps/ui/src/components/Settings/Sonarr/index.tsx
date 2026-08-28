@@ -34,6 +34,7 @@ export interface ISonarrSetting {
   serverName: string
   url: string
   apiKey: string
+  externalUrl?: string
 }
 
 const SonarrSettings = () => {

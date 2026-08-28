@@ -64,4 +64,6 @@ export class SettingDto {
   media_id_audit_job_cron: string
 
   plex_trash_empty_job_cron: string
+
+  image_cache_max_gb: number
 }

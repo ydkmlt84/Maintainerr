@@ -47,6 +47,7 @@ interface SonarrSettingSaveRequest {
   url: string
   apiKey: string
   serverName: string
+  externalUrl?: string
 }
 
 const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
@@ -65,12 +66,14 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
     : ''
   const initialApiKey = props.settings?.apiKey ?? ''
   const initialServerName = props.settings?.serverName ?? ''
+  const initialExternalUrl = props.settings?.externalUrl ?? ''
 
   const [hostname, setHostname] = useState<string>(initialHostname)
   const [baseUrl, setBaseUrl] = useState<string>(initialBaseUrl)
   const [port, setPort] = useState<string>(initialPort)
   const [apiKey, setApiKey] = useState<string>(initialApiKey)
   const [serverName, setServerName] = useState<string>(initialServerName)
+  const [externalUrl, setExternalUrl] = useState(initialExternalUrl)
 
   const [error, setError] = useState<boolean>()
   const [testedSettings, setTestedSettings] = useState(
@@ -135,6 +138,7 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
         url: `${sonarrUrl}${baseUrl ? `/${baseUrl}` : ''}`,
         apiKey: apiKey,
         serverName: serverName,
+        externalUrl: externalUrl.trim().replace(/\/+$/, ''),
         ...(props.settings?.id && { id: props.settings?.id }),
       }
 
@@ -310,6 +314,25 @@ const SonarrSettingsModal = (props: ISonarrSettingsModal) => {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="form-row">
+        <label htmlFor="sonarrExternalUrl" className="text-label">
+          External URL
+          <span className="label-tip">Optional</span>
+        </label>
+        <div className="form-input">
+          <div className="form-input-field">
+            <input
+              name="sonarrExternalUrl"
+              id="sonarrExternalUrl"
+              type="text"
+              placeholder="https://sonarr.example.com"
+              value={externalUrl}
+              onChange={(e) => setExternalUrl(e.target.value)}
             />
           </div>
         </div>

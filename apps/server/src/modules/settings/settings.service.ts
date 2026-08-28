@@ -97,6 +97,8 @@ export class SettingsService implements SettingDto {
 
   plex_trash_empty_job_cron: string
 
+  image_cache_max_gb: number
+
   constructor(
     @Inject(forwardRef(() => PlexApiService))
     private readonly plexApi: PlexApiService,
@@ -157,6 +159,7 @@ export class SettingsService implements SettingDto {
       this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron
       this.media_id_audit_job_cron = settingsDb?.media_id_audit_job_cron
       this.plex_trash_empty_job_cron = settingsDb?.plex_trash_empty_job_cron
+      this.image_cache_max_gb = settingsDb?.image_cache_max_gb ?? 10
 
       // Auto-detect media server type when not set but credentials exist.
       // This handles upgrades from pre-Jellyfin versions (Plex) and any future
@@ -264,6 +267,7 @@ export class SettingsService implements SettingDto {
   ): Promise<RadarrSettingResponseDto> {
     try {
       settings.url = settings.url.toLowerCase()
+      settings.externalUrl = this.normalizeExternalUrl(settings.externalUrl)
 
       const savedSetting = await this.radarrSettingsRepo.save(settings)
 
@@ -285,6 +289,7 @@ export class SettingsService implements SettingDto {
   ): Promise<RadarrSettingResponseDto> {
     try {
       settings.url = settings.url.toLowerCase()
+      settings.externalUrl = this.normalizeExternalUrl(settings.externalUrl)
 
       const settingsDb = await this.radarrSettingsRepo.findOne({
         where: { id: settings.id },
@@ -731,6 +736,7 @@ export class SettingsService implements SettingDto {
   ): Promise<SonarrSettingResponseDto> {
     try {
       settings.url = settings.url.toLowerCase()
+      settings.externalUrl = this.normalizeExternalUrl(settings.externalUrl)
 
       const savedSetting = await this.sonarrSettingsRepo.save(settings)
 
@@ -752,6 +758,7 @@ export class SettingsService implements SettingDto {
   ): Promise<SonarrSettingResponseDto> {
     try {
       settings.url = settings.url.toLowerCase()
+      settings.externalUrl = this.normalizeExternalUrl(settings.externalUrl)
 
       const settingsDb = await this.sonarrSettingsRepo.findOne({
         where: { id: settings.id },
@@ -911,6 +918,11 @@ export class SettingsService implements SettingDto {
 
     try {
       const settingsDb = await this.settingsRepo.findOne({ where: {} })
+
+      const imageCacheMaxGb = Number(settings.image_cache_max_gb)
+      settings.image_cache_max_gb = Number.isFinite(imageCacheMaxGb)
+        ? Math.min(1000, Math.max(1, Math.round(imageCacheMaxGb)))
+        : 10
 
       settings.plex_hostname = settings.plex_hostname?.toLowerCase()
       settings.seerr_url = settings.seerr_url?.toLowerCase()
@@ -1227,6 +1239,16 @@ export class SettingsService implements SettingDto {
       return true
     }
     return false
+  }
+
+  private normalizeExternalUrl(value?: string): string {
+    const normalized = value?.trim().replace(/\/+$/, '') ?? ''
+    if (!normalized) return ''
+    const parsed = new URL(normalized)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error('External URL must use HTTP or HTTPS')
+    }
+    return normalized
   }
 
   public async getPlexServers() {

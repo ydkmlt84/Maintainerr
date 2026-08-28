@@ -128,11 +128,20 @@ const JobSettings = () => {
   const [builderWeekDay, setBuilderWeekDay] = useState(0)
   const [builderMonthDay, setBuilderMonthDay] = useState(1)
   const { settings } = useSettingsOutletContext()
+  const [imageCacheMaxGb, setImageCacheMaxGb] = useState(
+    settings.image_cache_max_gb ?? 10,
+  )
+  const [imageCacheLimitError, setImageCacheLimitError] = useState(false)
   const tasks = useScheduledTasks()
   const runScheduledTask = useRunScheduledTask()
   const runAudit = useRunMediaIdAudit()
   const updateSettings = usePatchSettings()
+  const updateImageCacheSettings = usePatchSettings()
   const normalizedBuilderInterval = builderInterval || 1
+
+  useEffect(() => {
+    setImageCacheMaxGb(settings.image_cache_max_gb ?? 10)
+  }, [settings.image_cache_max_gb])
 
   const builderExpression = (() => {
     switch (builderMode) {
@@ -347,6 +356,22 @@ const JobSettings = () => {
       plex_trash_empty_job_cron: plexTrashEmpty.trim(),
     })
     await tasks.refetch()
+  }
+
+  const saveImageCacheLimit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+    const value = Number(imageCacheMaxGb)
+    if (!Number.isFinite(value) || value < 1 || value > 1000) {
+      setImageCacheLimitError(true)
+      return
+    }
+
+    setImageCacheLimitError(false)
+    await updateImageCacheSettings.mutateAsync({
+      image_cache_max_gb: Math.round(value),
+    })
   }
 
   const cronField = (
@@ -713,6 +738,60 @@ const JobSettings = () => {
               </Button>
             </div>
           </div>
+          <form
+            onSubmit={saveImageCacheLimit}
+            className="mt-5 border-t border-zinc-700 pt-5"
+          >
+            {imageCacheLimitError && (
+              <Alert
+                type="error"
+                title="Enter an image cache limit between 1 and 1000 GB."
+              />
+            )}
+            {updateImageCacheSettings.isError && (
+              <Alert
+                type="error"
+                title="The image cache limit could not be updated."
+              />
+            )}
+            {updateImageCacheSettings.isSuccess && (
+              <Alert type="info" title="Image cache limit updated." />
+            )}
+            <div className="form-row">
+              <label htmlFor="imageCacheMaxGb" className="text-label">
+                Image Cache Limit
+                <p className="text-xs font-normal">
+                  Maximum disk space for cached posters, backdrops, and actor
+                  images.
+                </p>
+              </label>
+              <div className="form-input flex items-center gap-2">
+                <div className="form-input-field w-28 flex-none">
+                  <input
+                    id="imageCacheMaxGb"
+                    name="imageCacheMaxGb"
+                    type="number"
+                    min={1}
+                    max={1000}
+                    step={1}
+                    value={imageCacheMaxGb}
+                    onChange={(event) =>
+                      setImageCacheMaxGb(Number(event.target.value))
+                    }
+                  />
+                </div>
+                <span className="text-sm text-zinc-400">GB</span>
+                <Button
+                  buttonType="primary"
+                  type="submit"
+                  disabled={updateImageCacheSettings.isPending}
+                >
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  <span>Save</span>
+                </Button>
+              </div>
+            </div>
+          </form>
         </div>
 
         <div className="section w-full">

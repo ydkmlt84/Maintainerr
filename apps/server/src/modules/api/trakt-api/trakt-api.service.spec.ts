@@ -3,6 +3,7 @@ import axios from 'axios'
 import { MaintainerrLogger } from '../../logging/logs.service'
 import { SettingsService } from '../../settings/settings.service'
 import { MediaServerFactory } from '../media-server/media-server.factory'
+import cacheManager from '../lib/cache'
 import { ServarrService } from '../servarr-api/servarr.service'
 import { TraktApiService } from './trakt-api.service'
 
@@ -21,6 +22,7 @@ describe('TraktApiService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    cacheManager.getCache('trakt')?.flush()
     ;(axios.create as jest.Mock)
       .mockReturnValueOnce(api)
       .mockReturnValueOnce(auth)
@@ -119,6 +121,10 @@ describe('TraktApiService', () => {
     ])
     expect(result.sections.trendingShows).toHaveLength(1)
     expect(result.sections.popularShows).toHaveLength(1)
+
+    await expect(service.getDiscover()).resolves.toEqual(result)
+    expect(api.get).toHaveBeenCalledTimes(4)
+    expect(mediaServerFactory.getService).toHaveBeenCalledTimes(1)
   })
 
   it('saves application credentials without requiring a Trakt login', async () => {
@@ -140,6 +146,9 @@ describe('TraktApiService', () => {
     settings.trakt_refresh_token = 'refresh-token'
     settings.trakt_token_expires_at = new Date(Date.now() + 600000)
     api.post.mockResolvedValue({ data: { added: { movies: 1 } } })
+    cacheManager
+      .getCache('trakt')
+      ?.data.set('discover-response', { cached: true })
 
     await service.markWatched({ type: 'movie', traktId: 123 })
 
@@ -158,6 +167,9 @@ describe('TraktApiService', () => {
           Authorization: 'Bearer access-token',
         }),
       }),
+    )
+    expect(cacheManager.getCache('trakt')?.data.has('discover-response')).toBe(
+      false,
     )
   })
 
@@ -208,10 +220,20 @@ describe('TraktApiService', () => {
 
   it('maps configured Radarr and Sonarr inventory into discovery statuses', async () => {
     ;(settings.getRadarrSettings as jest.Mock).mockResolvedValue([
-      { id: 1, serverName: 'Movies' },
+      {
+        id: 1,
+        serverName: 'Movies',
+        url: 'http://radarr.internal:7878',
+        externalUrl: 'https://radarr.example',
+      },
     ])
     ;(settings.getSonarrSettings as jest.Mock).mockResolvedValue([
-      { id: 2, serverName: 'Television' },
+      {
+        id: 2,
+        serverName: 'Television',
+        url: 'http://sonarr.internal:8989',
+        externalUrl: 'https://sonarr.example',
+      },
     ])
     ;(servarr.getRadarrApiClient as jest.Mock).mockResolvedValue({
       getQueue: jest.fn().mockResolvedValue([]),
@@ -221,6 +243,7 @@ describe('TraktApiService', () => {
           monitored: true,
           isAvailable: true,
           hasFile: false,
+          titleSlug: 'example-movie',
         },
       ]),
     })
@@ -231,6 +254,7 @@ describe('TraktApiService', () => {
           tvdbId: 202,
           monitored: true,
           status: 'continuing',
+          titleSlug: 'example-show',
           statistics: { episodeFileCount: 8, episodeCount: 10 },
         },
       ]),
@@ -248,6 +272,7 @@ describe('TraktApiService', () => {
       expect.objectContaining({
         state: 'missing',
         status: 'Missing, monitored',
+        href: 'https://radarr.example/movie/example-movie',
       }),
     ])
     expect(statuses.get('show:tvdb:202')).toEqual([
@@ -255,6 +280,7 @@ describe('TraktApiService', () => {
         state: 'partial',
         status: 'Partially downloaded',
         detail: '8/10 episodes',
+        href: 'https://sonarr.example/series/example-show',
       }),
     ])
   })

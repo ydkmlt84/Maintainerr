@@ -10,13 +10,14 @@ import {
   ShieldExclamationIcon,
   XIcon,
 } from '@heroicons/react/outline'
-import { MediaItem } from '@maintainerr/contracts'
+import { MediaItem, ServarrMediaLink } from '@maintainerr/contracts'
 import React, { memo, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useMediaServerType } from '../../../../hooks/useMediaServerType'
 import GetApiHandler from '../../../../utils/ApiHandler'
-import ActorTooltip from '../../ActorTooltip'
+import { getTmdbImageUrl } from '../../../../utils/TmdbImage'
+import ActorTooltip, { getActorProfileImageUrl } from '../../ActorTooltip'
 
 interface ModalContentProps {
   onClose: () => void
@@ -163,6 +164,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     const [maintainerrContext, setMaintainerrContext] =
       useState<MediaMaintainerrContext | null>(null)
     const [contextLoading, setContextLoading] = useState(true)
+    const [servarrLinks, setServarrLinks] = useState<ServarrMediaLink[]>([])
 
     const mediaTypeOf = useMemo(
       () =>
@@ -270,6 +272,55 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
           })
       }
     }, [mediaType, resolvedSeasonNumber, resolvedTmdbId])
+
+    useEffect(() => {
+      let active = true
+      const showMetadata =
+        mediaType === 'show'
+          ? metadata
+          : mediaType === 'season'
+            ? parentMetadata
+            : mediaType === 'episode'
+              ? grandparentMetadata
+              : null
+      const type = mediaType === 'movie' ? 'movie' : 'show'
+      const tmdbId =
+        type === 'movie'
+          ? (metadata?.providerIds.tmdb?.[0] ?? resolvedTmdbId)
+          : undefined
+      const tvdbId =
+        type === 'show' ? showMetadata?.providerIds.tvdb?.[0] : undefined
+
+      queueMicrotask(() => {
+        if (active) setServarrLinks([])
+      })
+      if (!tmdbId && !tvdbId) {
+        return () => {
+          active = false
+        }
+      }
+
+      const query = new URLSearchParams({ type })
+      if (tmdbId) query.set('tmdbId', tmdbId)
+      if (tvdbId) query.set('tvdbId', tvdbId)
+      GetApiHandler<ServarrMediaLink[]>(`/servarr/links?${query.toString()}`)
+        .then((links) => {
+          if (active) setServarrLinks(links)
+        })
+        .catch(() => {
+          if (active) setServarrLinks([])
+        })
+
+      return () => {
+        active = false
+      }
+    }, [
+      grandparentMetadata,
+      mediaType,
+      metadata,
+      parentMetadata,
+      resolvedTmdbId,
+    ])
 
     const totalFileSize = useMemo(
       () =>
@@ -412,6 +463,17 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
       metadata,
       parentMetadata,
     ])
+    const footerLinks = useMemo<MetadataIdLink[]>(
+      () => [
+        ...metadataIdLinks,
+        ...servarrLinks.map((link) => ({
+          key: `${link.service}-${link.instanceName}`,
+          label: `${link.service}://${link.itemId}`,
+          href: link.href,
+        })),
+      ],
+      [metadataIdLinks, servarrLinks],
+    )
     const playCount = metadata?.viewCount ?? metadata?.watchedChildCount
     const hasMaintainerrData = Boolean(
       maintainerrContext &&
@@ -512,7 +574,15 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               <div
                 className="h-full w-full rounded-xl bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url(https://image.tmdb.org/t/p/w1280${backdrop})`,
+                  backgroundImage: resolvedTmdbId
+                    ? `url(${getTmdbImageUrl({
+                        scope: 'library',
+                        variant: 'backdrop',
+                        type: mediaType === 'movie' ? 'movie' : 'show',
+                        tmdbId: resolvedTmdbId,
+                        imagePath: backdrop,
+                      })})`
+                    : undefined,
                 }}
               />
             ) : (
@@ -713,7 +783,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                     >
                       {person.profilePath ? (
                         <img
-                          src={`https://image.tmdb.org/t/p/w185${person.profilePath}`}
+                          src={getActorProfileImageUrl(
+                            person.id,
+                            person.profilePath,
+                          )}
                           alt={person.name}
                           loading="lazy"
                           width={64}
@@ -729,6 +802,8 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                         id={`media-cast-${id}-${person.id}`}
                         name={person.name}
                         character={person.character}
+                        personId={person.id}
+                        profilePath={person.profilePath}
                       />
                     </div>
                   ))}
@@ -860,9 +935,9 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             )}
 
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              {metadataIdLinks.length > 0 && (
+              {footerLinks.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1 text-xs text-zinc-400">
-                  {metadataIdLinks.map((metadataId) => {
+                  {footerLinks.map((metadataId) => {
                     const className =
                       'flex items-center justify-center rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300'
                     return metadataId.href ? (

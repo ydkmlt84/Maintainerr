@@ -8,6 +8,8 @@ export type SonarrSettingDto = {
   url: string
 
   apiKey: string
+
+  externalUrl?: string
 }
 
 export type SonarrSettingRawDto = Omit<SonarrSettingDto, 'id'>

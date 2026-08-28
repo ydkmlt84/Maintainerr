@@ -15,6 +15,7 @@ import {
 } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import GetApiHandler, { API_BASE_PATH } from '../../utils/ApiHandler'
+import { getTmdbImageUrl } from '../../utils/TmdbImage'
 import Button from '../Common/Button'
 import { SmallLoadingSpinner } from '../Common/LoadingSpinner'
 import ManageMediaModal from '../Common/ManageMediaModal'
@@ -422,8 +423,8 @@ const getSpotlightTypeLabel = (item: MediaItem): string => {
 }
 
 const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
-  const [posterPath, setPosterPath] = useState<string>()
   const [plexPosterFailed, setPlexPosterFailed] = useState(false)
+  const [tmdbPosterFailed, setTmdbPosterFailed] = useState(false)
   const tmdbId = getSpotlightTmdbId(item)
   const posterType = item.type === 'movie' ? 'movie' : 'show'
   const plexPosterId =
@@ -438,40 +439,33 @@ const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
       )}`
     : undefined
 
+  const tmdbPosterUrl = tmdbId
+    ? getTmdbImageUrl({
+        scope: 'library',
+        variant: 'poster',
+        type: posterType,
+        tmdbId,
+      })
+    : undefined
+
   useEffect(() => {
-    if (!tmdbId) {
-      queueMicrotask(() => setPosterPath(undefined))
-      return
-    }
+    queueMicrotask(() => {
+      setPlexPosterFailed(false)
+      setTmdbPosterFailed(false)
+    })
+  }, [plexPosterUrl, tmdbPosterUrl])
 
-    let active = true
-    GetApiHandler<string>(`/moviedb/image/${posterType}/${tmdbId}`).then(
-      (path) => {
-        if (active) {
-          setPosterPath(path || undefined)
-        }
-      },
-    )
-
-    return () => {
-      active = false
-    }
-  }, [posterType, tmdbId])
-
-  return (plexPosterUrl && !plexPosterFailed) || posterPath ? (
+  return (plexPosterUrl && !plexPosterFailed) ||
+    (tmdbPosterUrl && !tmdbPosterFailed) ? (
     <img
-      src={
-        plexPosterUrl && !plexPosterFailed
-          ? plexPosterUrl
-          : `https://image.tmdb.org/t/p/w92${posterPath}`
-      }
+      src={plexPosterUrl && !plexPosterFailed ? plexPosterUrl : tmdbPosterUrl}
       alt=""
       className="h-[4.5rem] w-12 flex-shrink-0 rounded-md object-cover shadow shadow-black/30"
       onError={() => {
         if (plexPosterUrl && !plexPosterFailed) {
           setPlexPosterFailed(true)
         } else {
-          setPosterPath(undefined)
+          setTmdbPosterFailed(true)
         }
       }}
     />

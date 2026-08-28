@@ -101,4 +101,7 @@ export class Settings implements SettingDto {
 
   @Column({ nullable: false, default: '' })
   plex_trash_empty_job_cron: string
+
+  @Column({ nullable: false, default: 10 })
+  image_cache_max_gb: number
 }

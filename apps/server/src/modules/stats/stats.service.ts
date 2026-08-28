@@ -125,6 +125,7 @@ interface AppCollectionPreview {
 
 interface AppCollectionPreviewMedia {
   image_path?: string
+  tmdbId?: number
 }
 
 export interface AppLeavingSoonItem {
@@ -908,9 +909,10 @@ export class StatsService {
         totalSizeBytes: collection.totalSizeBytes,
         deleteAfterDays: collection.deleteAfterDays,
         isActive: collection.isActive,
-        media: (collection.media ?? [])
-          .slice(0, 2)
-          .map((media) => ({ image_path: media.image_path })),
+        media: (collection.media ?? []).slice(0, 2).map((media) => ({
+          image_path: media.image_path,
+          tmdbId: media.tmdbId,
+        })),
       }))
       .sort((a, b) => b.mediaCount - a.mediaCount)
       .slice(0, 12)
