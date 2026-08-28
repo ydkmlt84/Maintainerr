@@ -293,13 +293,7 @@ const Discover = () => {
     <>
       <title>Discover - Maintainerr</title>
       <div className="mx-auto w-full max-w-[96rem] space-y-8 pb-12 pt-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Discover</h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Trending and popular titles from Trakt, excluding your library.
-            </p>
-          </div>
+        <div className="flex justify-end">
           <Button buttonSize="sm" onClick={() => void load()}>
             <RefreshIcon className="mr-1.5 h-4 w-4" />
             Refresh

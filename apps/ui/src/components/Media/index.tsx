@@ -37,8 +37,10 @@ const defaultFilterValue = 'all'
 const leavingSoonFilterValue = 'leaving-soon'
 const excludedFilterValue = 'excluded'
 const manuallyAddedFilterValue = 'manually-added'
+const recentlyAddedFilterValue = 'recently-added'
 const filterOptions = [
   { value: defaultFilterValue, label: 'All items' },
+  { value: recentlyAddedFilterValue, label: 'Recently Added' },
   { value: leavingSoonFilterValue, label: 'Leaving Soon' },
   { value: excludedFilterValue, label: 'Excluded' },
   { value: manuallyAddedFilterValue, label: 'Manually Added' },
@@ -96,7 +98,8 @@ const Media = () => {
   const [filterValue, setFilterValue] = useState(
     requestedFilter === leavingSoonFilterValue ||
       requestedFilter === excludedFilterValue ||
-      requestedFilter === manuallyAddedFilterValue
+      requestedFilter === manuallyAddedFilterValue ||
+      requestedFilter === recentlyAddedFilterValue
       ? requestedFilter
       : defaultFilterValue,
   )
@@ -255,6 +258,7 @@ const Media = () => {
         leavingSoonFilterValue,
         excludedFilterValue,
         manuallyAddedFilterValue,
+        recentlyAddedFilterValue,
       ].includes(filterValue) ||
       !selectedLibrary ||
       SearchCtx.search.text !== ''
@@ -271,23 +275,45 @@ const Media = () => {
     })
 
     const endpoint =
-      filterValue === leavingSoonFilterValue
-        ? '/stats/leaving-soon'
-        : filterValue === excludedFilterValue
-          ? '/stats/excluded'
-          : '/stats/manually-added'
+      filterValue === recentlyAddedFilterValue
+        ? `/media-server/library/${encodeURIComponent(selectedLibrary)}/recent?limit=50`
+        : filterValue === leavingSoonFilterValue
+          ? '/stats/leaving-soon'
+          : filterValue === excludedFilterValue
+            ? '/stats/excluded'
+            : '/stats/manually-added'
 
     GetApiHandler<
-      LeavingSoonItem[] | ActionableExclusionItem[] | ManuallyAddedItem[]
+      | MediaItem[]
+      | LeavingSoonItem[]
+      | ActionableExclusionItem[]
+      | ManuallyAddedItem[]
     >(
-      `${endpoint}?${new URLSearchParams({
-        libraryId: selectedLibrary,
-      }).toString()}`,
+      filterValue === recentlyAddedFilterValue
+        ? endpoint
+        : `${endpoint}?${new URLSearchParams({
+            libraryId: selectedLibrary,
+          }).toString()}`,
     )
       .then((items) => {
         if (!active) return
 
-        const filteredMedia = items.map((item) => {
+        if (filterValue === recentlyAddedFilterValue) {
+          const recentlyAdded = dedupeMediaItems(items as MediaItem[])
+          setData(recentlyAdded)
+          setTotalSize(recentlyAdded.length)
+          pageData.current = recentlyAdded.length
+          setPageDataCount(recentlyAdded.length)
+          return
+        }
+
+        const filteredMedia = (
+          items as (
+            | LeavingSoonItem
+            | ActionableExclusionItem
+            | ManuallyAddedItem
+          )[]
+        ).map((item) => {
           if (filterValue === leavingSoonFilterValue) {
             return { ...item.media, maintainerrLeavingSoon: item }
           }
@@ -476,7 +502,9 @@ const Media = () => {
                   ? 'No excluded media'
                   : filterValue === manuallyAddedFilterValue
                     ? 'No manually added media'
-                    : 'No media found'
+                    : filterValue === recentlyAddedFilterValue
+                      ? 'No recently added media'
+                      : 'No media found'
             }
             onRemove={(id) =>
               setData((currentData) => {
