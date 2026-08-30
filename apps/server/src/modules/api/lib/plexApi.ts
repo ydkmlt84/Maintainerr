@@ -38,7 +38,7 @@ class PlexApi {
         'X-Plex-Token': this.options.token,
       },
     })
-    axiosRetry(this.axios, {
+    axiosRetry(this.axios as unknown as Parameters<typeof axiosRetry>[0], {
       retries: 3,
       retryDelay: axiosRetry.exponentialDelay,
       onRetry: (_, error, requestConfig) => {

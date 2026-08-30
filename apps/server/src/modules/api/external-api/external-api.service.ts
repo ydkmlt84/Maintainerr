@@ -35,7 +35,7 @@ export class ExternalApiService {
         ...options.headers,
       },
     })
-    axiosRetry(this.axios, {
+    axiosRetry(this.axios as unknown as Parameters<typeof axiosRetry>[0], {
       retries: 3,
       retryDelay: axiosRetry.exponentialDelay,
       onRetry: (retryCount, error, requestConfig) => {

@@ -4,7 +4,8 @@ import {
   MediaUser,
   WatchRecord,
 } from '@maintainerr/contracts'
-import { Mocked, TestBed } from '@suites/unit'
+import type { Mocked } from '@suites/doubles.jest'
+import { TestBed } from '@suites/unit'
 import { createRulesDto } from '../../../../test/utils/data'
 
 import { JellyfinAdapterService } from '../../api/media-server/jellyfin/jellyfin-adapter.service'

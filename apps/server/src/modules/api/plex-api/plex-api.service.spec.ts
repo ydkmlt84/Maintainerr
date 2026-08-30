@@ -1,4 +1,5 @@
-import { Mocked, TestBed } from '@suites/unit'
+import type { Mocked } from '@suites/doubles.jest'
+import { TestBed } from '@suites/unit'
 import { MaintainerrLogger } from '../../logging/logs.service'
 import PlexApi from '../lib/plexApi'
 import { PlexApiService } from './plex-api.service'

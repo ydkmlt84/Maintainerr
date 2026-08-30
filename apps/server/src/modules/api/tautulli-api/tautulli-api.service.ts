@@ -20,13 +20,7 @@ export interface TautulliUser {
 
 export interface TautulliMetadata {
   media_type:
-    | 'season'
-    | 'episode'
-    | 'movie'
-    | 'track'
-    | 'album'
-    | 'artist'
-    | 'show'
+    'season' | 'episode' | 'movie' | 'track' | 'album' | 'artist' | 'show'
   rating_key: string
   parent_rating_key: string
   grandparent_rating_key: string
@@ -383,7 +377,10 @@ export class TautulliApiService {
 
       return {
         data: Buffer.from(response.data),
-        contentType: response.headers['content-type'] ?? 'image/jpeg',
+        contentType:
+          typeof response.headers['content-type'] === 'string'
+            ? response.headers['content-type']
+            : 'image/jpeg',
       }
     } catch (e) {
       this.logger.debug(`Couldn't fetch Tautulli image ${path}: ${e.message}`)

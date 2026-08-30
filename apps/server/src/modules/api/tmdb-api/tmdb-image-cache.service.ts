@@ -342,8 +342,9 @@ export class TmdbImageCacheService implements OnModuleInit, OnModuleDestroy {
       return {
         filePath,
         contentType:
-          response.headers['content-type'] ??
-          this.getImageContentType(path.extname(filePath)),
+          typeof response.headers['content-type'] === 'string'
+            ? response.headers['content-type']
+            : this.getImageContentType(path.extname(filePath)),
         browserMaxAgeSeconds: BROWSER_MAX_AGE_SECONDS[scope],
         immutable,
       }

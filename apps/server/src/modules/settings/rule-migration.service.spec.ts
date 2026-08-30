@@ -1,5 +1,6 @@
 import { MediaServerType } from '@maintainerr/contracts'
-import { TestBed, type Mocked } from '@suites/unit'
+import type { Mocked } from '@suites/doubles.jest'
+import { TestBed } from '@suites/unit'
 import { EntityManager, Repository } from 'typeorm'
 import {
   Application,

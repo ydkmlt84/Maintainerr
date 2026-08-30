@@ -213,7 +213,7 @@ const PlexSettings = () => {
         setTokenValid(false)
       }
     },
-    [settings?.plex_auth_token],
+    [settings.plex_auth_token],
   )
 
   useEffect(() => {

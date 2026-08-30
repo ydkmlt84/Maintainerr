@@ -1,5 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common'
-import { Mocked, TestBed } from '@suites/unit'
+import type { Mocked } from '@suites/doubles.jest'
+import { TestBed } from '@suites/unit'
 import { Repository } from 'typeorm'
 import { MediaServerFactory } from '../api/media-server/media-server.factory'
 import { IMediaServerService } from '../api/media-server/media-server.interface'

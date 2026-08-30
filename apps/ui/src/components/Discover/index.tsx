@@ -16,13 +16,7 @@ import {
   RefreshIcon,
   XIcon,
 } from '@heroicons/react/outline'
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import GetApiHandler, {
@@ -467,14 +461,14 @@ export const DiscoverDetailsModal = ({
   const [assets, setAssets] = useState<TmdbMediaAssets>()
   const [playingTrailer, setPlayingTrailer] = useState(false)
   const basePath = import.meta.env.VITE_BASE_PATH ?? ''
-  const trailerVideoId = useMemo(() => {
+  const trailerVideoId = (() => {
     if (!assets?.trailerUrl) return undefined
     try {
       return new URL(assets.trailerUrl).searchParams.get('v') ?? undefined
     } catch {
       return undefined
     }
-  }, [assets?.trailerUrl])
+  })()
 
   useEffect(() => {
     if (!item.ids.tmdb) return

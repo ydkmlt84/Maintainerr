@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { Mocked, TestBed } from '@suites/unit'
+import type { Mocked } from '@suites/doubles.jest'
+import { TestBed } from '@suites/unit'
 import { delay } from '../../utils/delay'
 import { MaintainerrLogger } from '../logging/logs.service'
 import { TaskBase } from './task.base'

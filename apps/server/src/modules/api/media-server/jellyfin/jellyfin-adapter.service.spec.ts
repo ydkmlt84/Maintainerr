@@ -1,5 +1,6 @@
 import { MediaServerFeature, MediaServerType } from '@maintainerr/contracts'
-import { Mocked, TestBed } from '@suites/unit'
+import type { Mocked } from '@suites/doubles.jest'
+import { TestBed } from '@suites/unit'
 import { SettingsService } from '../../../settings/settings.service'
 import { JellyfinAdapterService } from './jellyfin-adapter.service'
 
