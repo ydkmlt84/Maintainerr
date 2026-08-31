@@ -1,4 +1,4 @@
-import { ClipboardCopyIcon } from '@heroicons/react/solid'
+import { ClipboardDocumentIcon } from '@heroicons/react/20/solid'
 import { Editor } from '@monaco-editor/react'
 import { useMemo, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
@@ -289,7 +289,7 @@ const TestMediaItem = (props: ITestMediaItem) => {
                 title="Copy to clipboard"
                 aria-label="Copy to clipboard"
               >
-                <ClipboardCopyIcon className="h-5 w-5 text-maintainerr-600 hover:text-maintainerr" />
+                <ClipboardDocumentIcon className="h-5 w-5 text-maintainerr-600 hover:text-maintainerr" />
               </button>
             )}
           </div>

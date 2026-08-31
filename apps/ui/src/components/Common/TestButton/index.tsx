@@ -1,4 +1,8 @@
-import { BeakerIcon, CheckIcon, ExclamationIcon } from '@heroicons/react/solid'
+import {
+  BeakerIcon,
+  CheckIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/20/solid'
 import { useState } from 'react'
 import GetApiHandler, { PostApiHandler } from '../../../utils/ApiHandler'
 import Button from '../Button'
@@ -60,7 +64,7 @@ const TestButton = <T,>(props: ITestButton<T>) => {
           clicked.status ? (
             <CheckIcon />
           ) : (
-            <ExclamationIcon />
+            <ExclamationTriangleIcon />
           )
         ) : (
           <BeakerIcon />

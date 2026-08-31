@@ -1,15 +1,15 @@
 import {
-  AdjustmentsIcon,
+  AdjustmentsVerticalIcon,
   CalendarIcon,
   ClockIcon,
-  DatabaseIcon,
+  CircleStackIcon,
   EyeIcon,
-  ExternalLinkIcon,
+  ArrowTopRightOnSquareIcon,
   FilmIcon,
   PlayIcon,
   ShieldExclamationIcon,
-  XIcon,
-} from '@heroicons/react/outline'
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import { MediaItem, ServarrMediaLink } from '@maintainerr/contracts'
 import React, { memo, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -517,7 +517,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
       {
         label: primarySource?.videoResolution || 'Media size',
         value: formatBytes(totalFileSize),
-        icon: DatabaseIcon,
+        icon: CircleStackIcon,
       },
     ]
 
@@ -557,7 +557,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                     aria-label="Open trailer on YouTube"
                     title="Open on YouTube"
                   >
-                    <ExternalLinkIcon className="h-5 w-5" />
+                    <ArrowTopRightOnSquareIcon className="h-5 w-5" />
                   </a>
                   <button
                     type="button"
@@ -566,7 +566,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                     aria-label="Close trailer"
                     title="Close trailer"
                   >
-                    <XIcon className="h-5 w-5" />
+                    <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
               </div>
@@ -964,7 +964,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                   onClick={onManage}
                   className="ml-auto flex items-center rounded bg-maintainerr-600 px-4 py-2 font-medium text-white shadow-lg shadow-maintainerr-950/30 hover:bg-maintainerr focus:outline-none"
                 >
-                  <AdjustmentsIcon className="mr-2 h-4 w-4" />
+                  <AdjustmentsVerticalIcon className="mr-2 h-4 w-4" />
                   Manage
                 </button>
               ) : null}

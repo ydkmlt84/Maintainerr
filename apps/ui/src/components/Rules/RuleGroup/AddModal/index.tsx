@@ -1,14 +1,14 @@
-import { CloudDownloadIcon } from '@heroicons/react/outline'
+import { CloudArrowDownIcon } from '@heroicons/react/24/outline'
 import {
-  BanIcon,
+  NoSymbolIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   DocumentDuplicateIcon,
-  DownloadIcon,
+  ArrowDownTrayIcon,
   QuestionMarkCircleIcon,
-  SaveIcon,
-  UploadIcon,
-} from '@heroicons/react/solid'
+  ArrowDownOnSquareIcon,
+  ArrowUpTrayIcon,
+} from '@heroicons/react/20/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Application,
@@ -297,16 +297,11 @@ const AddModal = (props: AddModal) => {
   })
   const useRulesEnabled = useWatch({ control, name: 'useRules' })
   const arrActionValue = useWatch({ control, name: 'arrAction' }) as
-    | number
-    | undefined
+    number | undefined
   const radarrSettingsId = useWatch({ control, name: 'radarrSettingsId' }) as
-    | number
-    | null
-    | undefined
+    number | null | undefined
   const sonarrSettingsId = useWatch({ control, name: 'sonarrSettingsId' }) as
-    | number
-    | null
-    | undefined
+    number | null | undefined
   const [showCommunityModal, setShowCommunityModal] = useState(false)
   const [yamlImporterModal, setYamlImporterModal] = useState(false)
   const [configureNotificionModal, setConfigureNotificationModal] =
@@ -1248,7 +1243,7 @@ const AddModal = (props: AddModal) => {
                         type="button"
                       >
                         {
-                          <CloudDownloadIcon className="m-auto ml-4 h-6 w-6 text-zinc-200" />
+                          <CloudArrowDownIcon className="m-auto ml-4 h-6 w-6 text-zinc-200" />
                         }
                         <p className="button-text m-auto ml-1 mr-4 text-zinc-100">
                           Community
@@ -1263,7 +1258,7 @@ const AddModal = (props: AddModal) => {
                       type="button"
                     >
                       {
-                        <DownloadIcon className="m-auto ml-4 h-6 w-6 text-zinc-200 md:h-6" />
+                        <ArrowDownTrayIcon className="m-auto ml-4 h-6 w-6 text-zinc-200 md:h-6" />
                       }
                       <p className="button-text m-auto ml-1 mr-4 text-zinc-100">
                         Import
@@ -1276,7 +1271,7 @@ const AddModal = (props: AddModal) => {
                       type="button"
                     >
                       {
-                        <UploadIcon className="m-auto ml-4 h-6 w-6 text-zinc-200" />
+                        <ArrowUpTrayIcon className="m-auto ml-4 h-6 w-6 text-zinc-200" />
                       }
                       <p className="button-text m-auto ml-1 mr-4 text-zinc-100">
                         Export
@@ -1344,7 +1339,9 @@ const AddModal = (props: AddModal) => {
                 type="submit"
                 disabled={isCreatePending || isUpdatePending}
               >
-                {<SaveIcon className="m-auto ml-5 h-6 w-6 text-zinc-200" />}
+                {
+                  <ArrowDownOnSquareIcon className="m-auto ml-5 h-6 w-6 text-zinc-200" />
+                }
                 <p className="button-text m-auto ml-1 mr-5 text-zinc-100">
                   Save
                 </p>
@@ -1355,7 +1352,7 @@ const AddModal = (props: AddModal) => {
                 type="button"
                 disabled={isCreatePending || isUpdatePending}
               >
-                {<BanIcon className="m-auto ml-5 h-6 w-6 text-zinc-200" />}
+                {<NoSymbolIcon className="m-auto ml-5 h-6 w-6 text-zinc-200" />}
                 <p className="button-text m-auto ml-1 mr-5 text-zinc-100">
                   Cancel
                 </p>
@@ -1369,7 +1366,7 @@ const AddModal = (props: AddModal) => {
                 type="submit"
                 disabled={isCreatePending || isUpdatePending}
               >
-                <SaveIcon className="h-5 w-5 text-zinc-200" />
+                <ArrowDownOnSquareIcon className="h-5 w-5 text-zinc-200" />
                 <span className="ml-2 text-zinc-100">Save</span>
               </button>
 
@@ -1379,7 +1376,7 @@ const AddModal = (props: AddModal) => {
                 onClick={cancel}
                 disabled={isCreatePending || isUpdatePending}
               >
-                <BanIcon className="h-5 w-5 text-zinc-200" />
+                <NoSymbolIcon className="h-5 w-5 text-zinc-200" />
                 <span className="ml-2 text-zinc-100">Cancel</span>
               </button>
             </div>

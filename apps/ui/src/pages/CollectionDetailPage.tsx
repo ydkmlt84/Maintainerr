@@ -1,4 +1,4 @@
-import { PlayIcon } from '@heroicons/react/solid'
+import { PlayIcon } from '@heroicons/react/20/solid'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'

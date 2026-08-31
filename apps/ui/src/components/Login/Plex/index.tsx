@@ -1,4 +1,4 @@
-import { LoginIcon } from '@heroicons/react/outline'
+import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline'
 import React, { useState } from 'react'
 import { toast } from 'react-toastify'
 import PlexOAuth from '../../../utils/PlexAuth'
@@ -55,7 +55,7 @@ const PlexLoginButton: React.FC<PlexLoginButtonProps> = ({
         disabled={loading || isProcessing}
         className="plex-button"
       >
-        <LoginIcon />
+        <ArrowLeftOnRectangleIcon />
         <span>
           {loading
             ? 'Loading…'

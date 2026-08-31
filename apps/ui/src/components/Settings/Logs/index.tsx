@@ -1,4 +1,7 @@
-import { DownloadIcon, SaveIcon } from '@heroicons/react/solid'
+import {
+  ArrowDownTrayIcon,
+  ArrowDownOnSquareIcon,
+} from '@heroicons/react/20/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   LogEvent,
@@ -115,7 +118,7 @@ const LogSettingsForm = () => {
               type="submit"
               disabled={isLoading || isSubmitting}
             >
-              <SaveIcon />
+              <ArrowDownOnSquareIcon />
               <span>Save Changes</span>
             </Button>
           </div>
@@ -299,7 +302,7 @@ const LogFiles = () => {
                     className="flex items-center gap-x-2"
                   >
                     {row.name}
-                    <DownloadIcon className="h-5 w-5 text-maintainerr" />
+                    <ArrowDownTrayIcon className="h-5 w-5 text-maintainerr" />
                   </a>
                 </Table.TD>
                 <Table.TD>{Math.ceil(row.size / 1024)} KB</Table.TD>

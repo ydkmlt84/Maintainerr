@@ -1,4 +1,4 @@
-import { RefreshIcon, SaveIcon } from '@heroicons/react/solid'
+import { ArrowPathIcon, ArrowDownOnSquareIcon } from '@heroicons/react/20/solid'
 import React, { useRef, useState } from 'react'
 import { useSettingsOutletContext } from '..'
 import { usePatchSettings } from '../../../api/settings'
@@ -98,7 +98,7 @@ const MainSettings = () => {
                     }}
                     className="input-action ml-3"
                   >
-                    <RefreshIcon />
+                    <ArrowPathIcon />
                   </button>
                 </div>
               </div>
@@ -116,7 +116,7 @@ const MainSettings = () => {
                     type="submit"
                     disabled={isPending}
                   >
-                    <SaveIcon />
+                    <ArrowDownOnSquareIcon />
                     <span>Save Changes</span>
                   </Button>
                 </span>

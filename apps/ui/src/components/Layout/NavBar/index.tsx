@@ -1,15 +1,15 @@
 import {
   CalendarIcon,
   ChartBarIcon,
-  ClipboardCheckIcon,
-  CollectionIcon,
+  ClipboardDocumentCheckIcon,
+  RectangleStackIcon,
   CogIcon,
   EyeIcon,
-  MenuIcon,
-  SearchIcon,
+  Bars3Icon,
+  MagnifyingGlassIcon,
   SparklesIcon,
-  XIcon,
-} from '@heroicons/react/outline'
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import { ReactNode, useContext, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import SearchContext from '../../../contexts/search-context'
@@ -63,14 +63,14 @@ const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
       {
         key: '3',
         href: '/rules',
-        svgIcon: <ClipboardCheckIcon className="h-5 w-5" />,
+        svgIcon: <ClipboardDocumentCheckIcon className="h-5 w-5" />,
         name: 'Rules',
         matchPattern: /^\/rules(?:\/.*)?$/,
       },
       {
         key: '4',
         href: '/collections',
-        svgIcon: <CollectionIcon className="h-5 w-5" />,
+        svgIcon: <RectangleStackIcon className="h-5 w-5" />,
         name: collectionsLabel,
         matchPattern: /^\/collections(?:\/.*)?$/,
       },
@@ -126,7 +126,7 @@ const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
           aria-label="Open search"
           onClick={onSearchOpen}
         >
-          <SearchIcon className="h-5 w-5" />
+          <MagnifyingGlassIcon className="h-5 w-5" />
         </button>
         <nav className="hidden min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 md:flex">
           {navBarItems.map((navBarLink) => {
@@ -157,9 +157,9 @@ const NavBar: React.FC<NavBarProps> = ({ onSearchOpen }) => {
           onClick={() => setMobileMenuOpen((open) => !open)}
         >
           {mobileMenuOpen ? (
-            <XIcon className="h-5 w-5" />
+            <XMarkIcon className="h-5 w-5" />
           ) : (
-            <MenuIcon className="h-5 w-5" />
+            <Bars3Icon className="h-5 w-5" />
           )}
         </button>
         <div className="hidden max-w-xl flex-shrink-0 items-center gap-2 xl:flex">

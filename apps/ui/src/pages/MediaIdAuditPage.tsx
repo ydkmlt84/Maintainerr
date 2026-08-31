@@ -1,4 +1,4 @@
-import { SearchIcon } from '@heroicons/react/solid'
+import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { useMemo, useState } from 'react'
 import {
   MediaIdAuditCategory,
@@ -149,7 +149,7 @@ const MediaIdAuditPage = () => {
 
             <div className="mb-4 flex flex-col gap-2 lg:flex-row">
               <div className="relative flex-1">
-                <SearchIcon className="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-zinc-500" />
+                <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-2.5 h-5 w-5 text-zinc-500" />
                 <input
                   className="w-full rounded border-zinc-600 bg-zinc-800 py-2 pl-10 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500"
                   placeholder="Search title, library, or provider ID"

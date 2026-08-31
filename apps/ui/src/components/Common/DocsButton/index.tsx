@@ -1,4 +1,4 @@
-import { DocumentTextIcon } from '@heroicons/react/solid'
+import { DocumentTextIcon } from '@heroicons/react/20/solid'
 import Button from '../Button'
 
 interface IDocsButton {

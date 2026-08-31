@@ -1,4 +1,4 @@
-import { SaveIcon } from '@heroicons/react/solid'
+import { ArrowDownOnSquareIcon } from '@heroicons/react/20/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   BasicResponseDto,
@@ -225,7 +225,7 @@ const TautulliSettings = () => {
                       type="submit"
                       disabled={!canSaveSettings}
                     >
-                      <SaveIcon />
+                      <ArrowDownOnSquareIcon />
                       <span>Save Changes</span>
                     </Button>
                   </span>

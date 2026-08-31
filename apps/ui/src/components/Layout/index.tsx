@@ -1,5 +1,12 @@
-import { AdjustmentsIcon, ChartBarIcon } from '@heroicons/react/outline'
-import { PhotographIcon, SearchIcon, XIcon } from '@heroicons/react/solid'
+import {
+  AdjustmentsVerticalIcon,
+  ChartBarIcon,
+} from '@heroicons/react/24/outline'
+import {
+  PhotoIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+} from '@heroicons/react/20/solid'
 import {
   type MediaItem,
   type MediaItemWithParent,
@@ -471,7 +478,7 @@ const SpotlightThumbnail = ({ item }: { item: MediaItem }) => {
     />
   ) : (
     <span className="flex h-[4.5rem] w-12 flex-shrink-0 flex-col items-center justify-center gap-1 rounded-md border border-zinc-600 bg-zinc-950/70 text-zinc-500 shadow-inner shadow-black/20">
-      <PhotographIcon className="h-5 w-5" />
+      <PhotoIcon className="h-5 w-5" />
       <span className="max-w-full truncate px-1 text-[8px] font-bold uppercase">
         {getSpotlightTypeLabel(item)}
       </span>
@@ -596,7 +603,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
       <div className="spotlight-modal fixed left-1/2 top-20 z-50 w-[calc(100vw-2rem)] max-w-5xl -translate-x-1/2 overflow-hidden rounded-xl shadow-lg sm:top-[7.5rem]">
         <div className="relative z-10">
           <div className="flex items-center gap-3 border-b border-zinc-700 bg-zinc-900 px-4 py-4">
-            <SearchIcon className="h-6 w-6 flex-shrink-0 text-zinc-300" />
+            <MagnifyingGlassIcon className="h-6 w-6 flex-shrink-0 text-zinc-300" />
             <input
               ref={inputRef}
               type="search"
@@ -617,7 +624,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
               aria-label="Close search"
               onClick={handleClose}
             >
-              <XIcon className="h-5 w-5" />
+              <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
           <div className="max-h-[calc(100dvh-6rem)] overflow-y-auto p-2 sm:max-h-[min(34rem,calc(100dvh-12rem))]">
@@ -736,7 +743,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ open, onClose }) => {
                           className="h-8 w-full px-2 text-zinc-200"
                           onClick={() => setManagedMedia(item)}
                         >
-                          <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
+                          <AdjustmentsVerticalIcon className="mr-1.5 h-3.5 w-3.5" />
                           <span>Manage</span>
                         </Button>
                       </span>

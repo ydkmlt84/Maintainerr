@@ -6,12 +6,12 @@ import {
 } from '@maintainerr/contracts'
 import {
   CheckCircleIcon,
-  ExternalLinkIcon,
+  ArrowTopRightOnSquareIcon,
   PencilIcon,
   PlusIcon,
   ServerIcon,
   TrashIcon,
-} from '@heroicons/react/solid'
+} from '@heroicons/react/20/solid'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import GetApiHandler, { DeleteApiHandler } from '../../../utils/ApiHandler'
@@ -132,7 +132,7 @@ const ServiceCard = ({
         className="mt-4 flex min-w-0 items-center gap-1.5 text-sm text-zinc-300 hover:text-white"
       >
         <span className="truncate">{url}</span>
-        <ExternalLinkIcon className="h-4 w-4 shrink-0" />
+        <ArrowTopRightOnSquareIcon className="h-4 w-4 shrink-0" />
       </a>
 
       <div className="mt-auto flex gap-2 pt-4">
@@ -177,8 +177,6 @@ const ServicesSettings = () => {
   const [collectionsInUse, setCollectionsInUse] = useState<ICollection[]>()
 
   const loadSettings = useCallback(async () => {
-    setLoading(true)
-    setLoadFailed(false)
     try {
       const requests: [
         Promise<IRadarrSetting[]>,
@@ -220,8 +218,15 @@ const ServicesSettings = () => {
   }, [supportsTautulli])
 
   useEffect(() => {
-    void loadSettings()
+    const initialLoad = window.setTimeout(() => void loadSettings(), 0)
+    return () => window.clearTimeout(initialLoad)
   }, [loadSettings])
+
+  const retryLoadSettings = () => {
+    setLoading(true)
+    setLoadFailed(false)
+    void loadSettings()
+  }
 
   const closeEditor = () => {
     setEditingType(undefined)
@@ -331,7 +336,7 @@ const ServicesSettings = () => {
             <p className="text-zinc-300">
               Service settings could not be loaded.
             </p>
-            <Button className="mt-4" onClick={() => void loadSettings()}>
+            <Button className="mt-4" onClick={retryLoadSettings}>
               Retry
             </Button>
           </div>

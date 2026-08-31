@@ -1,4 +1,4 @@
-import { UploadIcon } from '@heroicons/react/solid'
+import { ArrowUpTrayIcon } from '@heroicons/react/20/solid'
 import { compareVersions } from 'compare-versions'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import GetApiHandler, { PostApiHandler } from '../../../utils/ApiHandler'
@@ -345,7 +345,7 @@ const CommunityRuleModal = (props: ICommunityRuleModal) => {
                     setUploadMyRules(true)
                   }}
                 >
-                  {<UploadIcon className="m-auto ml-5 h-5" />}{' '}
+                  {<ArrowUpTrayIcon className="m-auto ml-5 h-5" />}{' '}
                   <p className="rules-button-text m-auto ml-1 mr-5">
                     Upload my rules
                   </p>

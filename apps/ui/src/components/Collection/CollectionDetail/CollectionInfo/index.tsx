@@ -1,10 +1,10 @@
 import {
-  FilterIcon,
-  SearchIcon,
-  SortAscendingIcon,
-  SortDescendingIcon,
-} from '@heroicons/react/outline'
-import { DocumentTextIcon } from '@heroicons/react/solid'
+  FunnelIcon,
+  MagnifyingGlassIcon,
+  BarsArrowUpIcon,
+  BarsArrowDownIcon,
+} from '@heroicons/react/24/outline'
+import { DocumentTextIcon } from '@heroicons/react/20/solid'
 import {
   CollectionLogDto,
   CollectionLogMetaMediaAddedByRule,
@@ -210,7 +210,7 @@ const CollectionInfo = (props: ICollectionInfo) => {
             {/* search */}
             <div className="mr-2 mt-4 flex w-full flex-grow sm:w-1/2">
               <span className="inline-flex cursor-default items-center rounded-l-md border border-r-0 border-gray-500 bg-zinc-800 px-3 text-sm text-gray-100">
-                <SearchIcon className="h-6 w-6" />
+                <MagnifyingGlassIcon className="h-6 w-6" />
               </span>
               <input
                 type="text"
@@ -226,9 +226,9 @@ const CollectionInfo = (props: ICollectionInfo) => {
               <div className="mr-2 mt-4 flex flex-grow sm:w-1/2">
                 <span className="inline-flex cursor-default items-center rounded-l-md border border-r-0 border-gray-500 bg-zinc-800 px-3 text-sm text-gray-100">
                   {currentSort === 'DESC' ? (
-                    <SortDescendingIcon className="h-6 w-6" />
+                    <BarsArrowDownIcon className="h-6 w-6" />
                   ) : (
-                    <SortAscendingIcon className="h-6 w-6" />
+                    <BarsArrowUpIcon className="h-6 w-6" />
                   )}
                 </span>
                 <select
@@ -248,7 +248,7 @@ const CollectionInfo = (props: ICollectionInfo) => {
               {/* filter */}
               <div className="mt-4 flex flex-grow sm:w-1/2">
                 <span className="inline-flex cursor-default items-center rounded-l-md border border-r-0 border-gray-500 bg-zinc-800 px-3 text-sm text-gray-100">
-                  <FilterIcon className="h-6 w-6" />
+                  <FunnelIcon className="h-6 w-6" />
                 </span>
                 <select
                   id="filter"

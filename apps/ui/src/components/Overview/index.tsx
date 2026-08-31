@@ -1,15 +1,15 @@
 import {
-  AdjustmentsIcon,
+  AdjustmentsVerticalIcon,
   CalendarIcon,
   ChartBarIcon,
   CheckIcon,
-  CollectionIcon,
+  RectangleStackIcon,
   EyeIcon,
-  ExternalLinkIcon,
-  LightningBoltIcon,
+  ArrowTopRightOnSquareIcon,
+  BoltIcon,
   ServerIcon,
   TrashIcon,
-} from '@heroicons/react/outline'
+} from '@heroicons/react/24/outline'
 import {
   type LogEvent,
   type MediaItem,
@@ -934,7 +934,7 @@ const Overview = () => {
 
         <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            icon={<CollectionIcon className="h-5 w-5" />}
+            icon={<RectangleStackIcon className="h-5 w-5" />}
             label="Chopping Block"
             value={formatBytes(stats?.choppingBlock?.totalSizeBytes)}
             detail={`${choppingBlockPercent.toFixed(2)}% of total storage`}
@@ -980,28 +980,33 @@ const Overview = () => {
 
         {stats?.plexTrash?.length ? (
           <PosterRow title="Plex Trash" emptyText="">
-            {stats.plexTrash.map((item) => (
-              <DashboardPoster
-                key={`${item.library}-${item.plexId}`}
-                title={item.title}
-                subtitle={`${item.library}${item.year ? ` - ${item.year}` : ''}`}
-                mediaType={item.type}
-                posterType={item.type === 'movie' ? 'movie' : 'show'}
-                posterUrl={getTautulliImageUrl(item.posterPath)}
-                trashOverlay
-                onPosterClick={
-                  item.type === 'collection'
-                    ? undefined
-                    : () =>
-                        setMediaDetails({
-                          id: item.plexId,
-                          title: item.title,
-                          mediaType: item.type,
-                          year: item.year?.toString(),
-                        })
-                }
-              />
-            ))}
+            {stats.plexTrash.map((item) => {
+              const mediaType =
+                item.type === 'collection' ? undefined : item.type
+
+              return (
+                <DashboardPoster
+                  key={`${item.library}-${item.plexId}`}
+                  title={item.title}
+                  subtitle={`${item.library}${item.year ? ` - ${item.year}` : ''}`}
+                  mediaType={item.type}
+                  posterType={item.type === 'movie' ? 'movie' : 'show'}
+                  posterUrl={getTautulliImageUrl(item.posterPath)}
+                  trashOverlay
+                  onPosterClick={
+                    mediaType
+                      ? () =>
+                          setMediaDetails({
+                            id: item.plexId,
+                            title: item.title,
+                            mediaType,
+                            year: item.year?.toString(),
+                          })
+                      : undefined
+                  }
+                />
+              )
+            })}
           </PosterRow>
         ) : undefined}
 
@@ -1295,7 +1300,7 @@ const NextRunCard = ({ tasks }: { tasks: AppTaskStats[] }) => (
   <div className="min-w-0 rounded-xl border border-zinc-700 bg-zinc-800 p-3 shadow-lg shadow-black/20">
     <div className="flex items-center justify-between gap-3">
       <span className="rounded-lg bg-zinc-900 p-1.5 text-maintainerr-400">
-        <LightningBoltIcon className="h-5 w-5" />
+        <BoltIcon className="h-5 w-5" />
       </span>
       <span className="text-right text-xs font-medium uppercase tracking-wide text-zinc-500">
         Next Run
@@ -1355,7 +1360,7 @@ const LogsCard = () => {
           className="rounded-md bg-zinc-900 p-1 text-zinc-400 transition hover:text-zinc-100"
           aria-label="Open logs"
         >
-          <ExternalLinkIcon className="h-4 w-4" />
+          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
         </Link>
       </div>
       <div className="tiny-scrollbar mt-2 h-40 space-y-1 overflow-y-auto overscroll-contain pr-1">
@@ -1992,7 +1997,7 @@ const DashboardPoster = ({
             }}
             aria-label={`Manage ${title}`}
           >
-            <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
+            <AdjustmentsVerticalIcon className="mr-1.5 h-3.5 w-3.5" />
             Manage
           </button>
         ) : null}
@@ -2289,7 +2294,7 @@ const CollectionRow = ({
           className="rounded-md bg-zinc-900 p-1 text-zinc-400 transition hover:text-zinc-100"
           aria-label="Open collections"
         >
-          <ExternalLinkIcon className="h-4 w-4" />
+          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
         </Link>
       </div>
       <div

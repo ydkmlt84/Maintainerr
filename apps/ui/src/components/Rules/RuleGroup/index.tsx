@@ -1,4 +1,4 @@
-import { PlayIcon, StopIcon, TrashIcon } from '@heroicons/react/solid'
+import { PlayIcon, StopIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { MediaItemTypeLabels, type MediaItemType } from '@maintainerr/contracts'
 import { isAxiosError } from 'axios'
 import clsx from 'clsx'

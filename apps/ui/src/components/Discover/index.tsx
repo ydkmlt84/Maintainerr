@@ -10,12 +10,12 @@ import {
   CheckIcon,
   ClockIcon,
   EyeIcon,
-  ExternalLinkIcon,
+  ArrowTopRightOnSquareIcon,
   FilmIcon,
   PlayIcon,
-  RefreshIcon,
-  XIcon,
-} from '@heroicons/react/outline'
+  ArrowPathIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
@@ -114,9 +114,9 @@ const Discover = () => {
   const [markingWatched, setMarkingWatched] = useState<string>()
 
   const load = useCallback(async () => {
-    setError(false)
     try {
       setData(await GetApiHandler<TraktDiscoverResponse>('/trakt/discover'))
+      setError(false)
     } catch {
       setError(true)
     } finally {
@@ -125,7 +125,7 @@ const Discover = () => {
   }, [])
 
   useEffect(() => {
-    void load()
+    const initialLoad = window.setTimeout(() => void load(), 0)
     const refresh = () => void load()
     const refreshWhenVisible = () => {
       if (document.visibilityState === 'visible') void load()
@@ -133,6 +133,7 @@ const Discover = () => {
     window.addEventListener('focus', refresh)
     document.addEventListener('visibilitychange', refreshWhenVisible)
     return () => {
+      window.clearTimeout(initialLoad)
       window.removeEventListener('focus', refresh)
       document.removeEventListener('visibilitychange', refreshWhenVisible)
     }
@@ -289,7 +290,7 @@ const Discover = () => {
       <div className="mx-auto w-full max-w-[96rem] space-y-8 pb-12 pt-4">
         <div className="flex justify-end">
           <Button buttonSize="sm" onClick={() => void load()}>
-            <RefreshIcon className="mr-1.5 h-4 w-4" />
+            <ArrowPathIcon className="mr-1.5 h-4 w-4" />
             Refresh
           </Button>
         </div>
@@ -500,7 +501,7 @@ export const DiscoverDetailsModal = ({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
-        ) : assets?.backdropPath ? (
+        ) : assets?.backdropPath && item.ids.tmdb ? (
           <div
             className="h-full w-full bg-cover bg-center bg-no-repeat"
             style={{
@@ -528,7 +529,7 @@ export const DiscoverDetailsModal = ({
               aria-label="Open trailer on YouTube"
               title="Open on YouTube"
             >
-              <ExternalLinkIcon className="h-5 w-5" />
+              <ArrowTopRightOnSquareIcon className="h-5 w-5" />
             </a>
             <button
               type="button"
@@ -537,7 +538,7 @@ export const DiscoverDetailsModal = ({
               aria-label="Close trailer"
               title="Close trailer"
             >
-              <XIcon className="h-5 w-5" />
+              <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
         ) : null}

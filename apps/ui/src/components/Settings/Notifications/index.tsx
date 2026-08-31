@@ -1,10 +1,10 @@
 import {
   BellIcon,
-  DocumentAddIcon,
+  DocumentPlusIcon,
   PlusCircleIcon,
-  SaveIcon,
+  ArrowDownOnSquareIcon,
   TrashIcon,
-} from '@heroicons/react/solid'
+} from '@heroicons/react/20/solid'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { useEffect, useState } from 'react'
@@ -178,7 +178,7 @@ const NotificationSettings = () => {
                           }
                         }}
                       >
-                        {<DocumentAddIcon className="m-auto" />}{' '}
+                        {<DocumentPlusIcon className="m-auto" />}{' '}
                         <p className="m-auto font-semibold">Edit</p>
                       </Button>
                       <DeleteButton
@@ -456,7 +456,7 @@ const AboutToHandleSettings = ({
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-maintainerr-600 text-white hover:bg-maintainerr disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
         onClick={() => onSave(parsedValue)}
       >
-        <SaveIcon className="h-4 w-4" />
+        <ArrowDownOnSquareIcon className="h-4 w-4" />
       </button>
     </div>
   )

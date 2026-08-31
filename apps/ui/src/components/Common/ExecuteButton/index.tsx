@@ -1,4 +1,4 @@
-import { PlayIcon } from '@heroicons/react/solid'
+import { PlayIcon } from '@heroicons/react/20/solid'
 import { SmallLoadingSpinner } from '../LoadingSpinner'
 
 interface IExecuteButton {

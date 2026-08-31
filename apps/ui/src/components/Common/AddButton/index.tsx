@@ -1,4 +1,4 @@
-import { PlusCircleIcon } from '@heroicons/react/solid'
+import { PlusCircleIcon } from '@heroicons/react/20/solid'
 
 interface IAddButton {
   text: string

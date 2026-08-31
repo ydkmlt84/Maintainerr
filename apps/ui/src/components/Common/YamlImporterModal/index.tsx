@@ -1,5 +1,5 @@
-import { UploadIcon } from '@heroicons/react/outline'
-import { ClipboardCopyIcon } from '@heroicons/react/solid'
+import { ArrowUpTrayIcon } from '@heroicons/react/24/outline'
+import { ClipboardDocumentIcon } from '@heroicons/react/20/solid'
 import Editor from '@monaco-editor/react'
 import { useRef } from 'react'
 import { toast } from 'react-toastify'
@@ -129,7 +129,7 @@ const YamlImporterModal = (props: IYamlImporterModal) => {
               title="Copy YAML"
               aria-label="Copy YAML"
             >
-              <ClipboardCopyIcon className="h-5 w-5 text-maintainerr-600 hover:text-maintainerr" />
+              <ClipboardDocumentIcon className="h-5 w-5 text-maintainerr-600 hover:text-maintainerr" />
             </button>
           ) : (
             <button
@@ -138,7 +138,7 @@ const YamlImporterModal = (props: IYamlImporterModal) => {
               aria-label="Upload YAML"
             >
               <span className="flex justify-center font-semibold text-maintainerr-600 hover:text-maintainerr">
-                <UploadIcon className="h-5 w-5" />
+                <ArrowUpTrayIcon className="h-5 w-5" />
               </span>
             </button>
           )}

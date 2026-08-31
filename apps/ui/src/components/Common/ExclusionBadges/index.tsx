@@ -1,4 +1,4 @@
-import { CollectionIcon, GlobeAltIcon } from '@heroicons/react/outline'
+import { RectangleStackIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 import { useId } from 'react'
 import { Tooltip } from 'react-tooltip'
 import type { MediaManagementContext } from '../ManageMediaModal'
@@ -69,7 +69,7 @@ const ExclusionBadges = ({
             data-tooltip-id={tooltipId}
             aria-label="Collection-specific exclusion"
           >
-            <CollectionIcon className="h-4 w-4" />
+            <RectangleStackIcon className="h-4 w-4" />
           </span>
         </>
       ) : null}

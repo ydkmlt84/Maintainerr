@@ -1,8 +1,8 @@
 import {
-  ExclamationIcon,
+  ExclamationTriangleIcon,
   InformationCircleIcon,
   XCircleIcon,
-} from '@heroicons/react/solid'
+} from '@heroicons/react/20/solid'
 import React from 'react'
 
 interface AlertProps {
@@ -16,7 +16,7 @@ const Alert: React.FC<AlertProps> = ({ title, children, type }) => {
     bgColor: 'bg-zinc-800',
     titleColor: 'text-zinc-100',
     textColor: 'text-zinc-300',
-    svg: <ExclamationIcon className="h-5 w-5" />,
+    svg: <ExclamationTriangleIcon className="h-5 w-5" />,
   }
 
   switch (type) {

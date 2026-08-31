@@ -4,7 +4,7 @@ import {
 } from '@maintainerr/contracts'
 import { debounce } from 'lodash-es'
 import { useEffect, useRef } from 'react'
-import { PhotographIcon } from '@heroicons/react/outline'
+import { PhotoIcon } from '@heroicons/react/24/outline'
 import { ICollectionMedia } from '../../Collection'
 import LoadingSpinner, {
   SmallLoadingSpinner,
@@ -291,7 +291,7 @@ const MediaContent = (props: IMediaContent) => {
     <div className="flex min-h-[45vh] items-center justify-center px-6 text-center">
       <div>
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-maintainerr-400 ring-1 ring-zinc-700">
-          <PhotographIcon className="h-6 w-6" />
+          <PhotoIcon className="h-6 w-6" />
         </span>
         <h3 className="mt-3 text-base font-semibold text-zinc-200">
           {props.emptyTitle ?? 'No media found'}

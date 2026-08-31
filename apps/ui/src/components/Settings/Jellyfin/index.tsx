@@ -1,9 +1,9 @@
 import {
   BeakerIcon,
   CheckIcon,
-  ExclamationIcon,
-  SaveIcon,
-} from '@heroicons/react/solid'
+  ExclamationTriangleIcon,
+  ArrowDownOnSquareIcon,
+} from '@heroicons/react/20/solid'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   type JellyfinSetting,
@@ -323,7 +323,7 @@ const JellyfinSettings = () => {
                         testResult.status ? (
                           <CheckIcon className="h-5 w-5" />
                         ) : (
-                          <ExclamationIcon className="h-5 w-5" />
+                          <ExclamationTriangleIcon className="h-5 w-5" />
                         )
                       ) : (
                         <BeakerIcon className="h-5 w-5" />
@@ -340,7 +340,7 @@ const JellyfinSettings = () => {
                       type="submit"
                       disabled={!canSaveSettings}
                     >
-                      <SaveIcon className="h-5 w-5" />
+                      <ArrowDownOnSquareIcon className="h-5 w-5" />
                       <span className="ml-1">
                         {isSavePending || isDeletePending
                           ? 'Saving...'

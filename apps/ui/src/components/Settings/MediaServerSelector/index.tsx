@@ -1,8 +1,8 @@
 import {
-  ArrowNarrowRightIcon,
+  ArrowLongRightIcon,
   CheckCircleIcon,
   XCircleIcon,
-} from '@heroicons/react/solid'
+} from '@heroicons/react/20/solid'
 import {
   MediaServerSwitchPreview,
   MediaServerType,
@@ -278,7 +278,7 @@ const MediaServerSelector = ({
                   </div>
 
                   <div className="flex h-16 items-center">
-                    <ArrowNarrowRightIcon className="h-8 w-8 text-zinc-500" />
+                    <ArrowLongRightIcon className="h-8 w-8 text-zinc-500" />
                   </div>
                 </>
               )}

@@ -7,6 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite preview --port 80 --host 0.0.0.0",
+    "check-types": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write --ignore-path .gitignore .",
     "format:check": "prettier --check --ignore-path .gitignore ."
@@ -16,7 +17,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
-    "@heroicons/react": "^1.0.6",
+    "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.9.1",
     "@maintainerr/contracts": "workspace:^",
     "@monaco-editor/react": "^4.7.0",

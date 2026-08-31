@@ -1,4 +1,7 @@
-import { CollectionIcon, ShieldExclamationIcon } from '@heroicons/react/outline'
+import {
+  RectangleStackIcon,
+  ShieldExclamationIcon,
+} from '@heroicons/react/24/outline'
 import { type MediaItemType } from '@maintainerr/contracts'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -133,8 +136,7 @@ const ManageMediaModal = ({
   const [selectedExclusionCollectionId, setSelectedExclusionCollectionId] =
     useState<number>()
 
-  const refreshContext = useCallback(async () => {
-    setLoading(true)
+  const fetchContext = useCallback(async () => {
     try {
       const nextContext = await GetApiHandler<MediaManagementContext>(
         `/collections/media-context/${mediaServerId}?includeRelated=true`,
@@ -155,9 +157,15 @@ const ManageMediaModal = ({
     }
   }, [mediaServerId, onContextChanged])
 
+  const refreshContext = useCallback(async () => {
+    setLoading(true)
+    return fetchContext()
+  }, [fetchContext])
+
   useEffect(() => {
-    void refreshContext()
-  }, [refreshContext])
+    const initialLoad = window.setTimeout(() => void fetchContext(), 0)
+    return () => window.clearTimeout(initialLoad)
+  }, [fetchContext])
 
   useEffect(() => {
     if (!type) return
@@ -381,7 +389,7 @@ const ManageMediaModal = ({
               className="w-full"
               onClick={() => setAddWorkflow(true)}
             >
-              <CollectionIcon className="mr-2 h-4 w-4" />
+              <RectangleStackIcon className="mr-2 h-4 w-4" />
               Add to Collection
             </Button>
           </div>

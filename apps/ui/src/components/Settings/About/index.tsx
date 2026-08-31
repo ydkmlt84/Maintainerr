@@ -1,4 +1,4 @@
-import { InformationCircleIcon } from '@heroicons/react/solid'
+import { InformationCircleIcon } from '@heroicons/react/20/solid'
 import { type VersionResponse } from '@maintainerr/contracts'
 import { useEffect, useState } from 'react'
 import GetApiHandler from '../../../utils/ApiHandler'

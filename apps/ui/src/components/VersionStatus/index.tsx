@@ -1,9 +1,9 @@
 import {
-  ArrowCircleUpIcon,
+  ArrowUpCircleIcon,
   BeakerIcon,
-  CodeIcon,
+  CodeBracketIcon,
   ServerIcon,
-} from '@heroicons/react/outline'
+} from '@heroicons/react/24/outline'
 import { type VersionResponse } from '@maintainerr/contracts'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -63,7 +63,7 @@ const VersionStatus = ({ onClick }: VersionStatusProps) => {
           }`}
         >
           {commitTag === 'local' ? (
-            <CodeIcon className="h-6 w-6" />
+            <CodeBracketIcon className="h-6 w-6" />
           ) : version.startsWith('develop-') ? (
             <BeakerIcon className="h-6 w-6" />
           ) : (
@@ -83,7 +83,7 @@ const VersionStatus = ({ onClick }: VersionStatusProps) => {
               )}
             </span>
           </div>
-          {updateAvailable && <ArrowCircleUpIcon className="h-6 w-6" />}
+          {updateAvailable && <ArrowUpCircleIcon className="h-6 w-6" />}
         </Link>
       ) : undefined}
     </>

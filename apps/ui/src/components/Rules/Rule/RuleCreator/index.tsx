@@ -1,4 +1,7 @@
-import { ClipboardListIcon, DocumentAddIcon } from '@heroicons/react/solid'
+import {
+  ClipboardDocumentListIcon,
+  DocumentPlusIcon,
+} from '@heroicons/react/20/solid'
 import { type MediaItemType, MediaType } from '@maintainerr/contracts'
 import { useCallback, useRef, useState } from 'react'
 import Alert from '../../../Common/Alert'
@@ -298,7 +301,7 @@ const RuleCreator = (props: iRuleCreator) => {
                     onClick={() => RuleAdded(sid)}
                     title={`Add a new rule to Section ${sid}`}
                   >
-                    <DocumentAddIcon className="m-auto ml-5 h-5" />
+                    <DocumentPlusIcon className="m-auto ml-5 h-5" />
                     <p className="button-text m-auto ml-1 mr-5 text-zinc-200">
                       Add Rule
                     </p>
@@ -319,7 +322,7 @@ const RuleCreator = (props: iRuleCreator) => {
               onClick={addSection}
               title={`Add a new section`}
             >
-              <ClipboardListIcon className="m-auto ml-5 h-5" />
+              <ClipboardDocumentListIcon className="m-auto ml-5 h-5" />
               <p className="button-text m-auto ml-1 mr-5 text-zinc-200">
                 New Section
               </p>

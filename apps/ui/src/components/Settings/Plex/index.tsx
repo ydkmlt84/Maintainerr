@@ -1,5 +1,5 @@
-import { RefreshIcon } from '@heroicons/react/outline'
-import { SaveIcon } from '@heroicons/react/solid'
+import { ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ArrowDownOnSquareIcon } from '@heroicons/react/20/solid'
 import axios from 'axios'
 import { orderBy } from 'lodash-es'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -71,7 +71,6 @@ const PlexSettings = () => {
   const nameRef = useRef<HTMLInputElement>(null)
   const portRef = useRef<HTMLInputElement>(null)
   const sslRef = useRef<HTMLInputElement>(null)
-  const serverPresetRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | undefined>()
   const [tokenValid, setTokenValid] = useState<boolean>(false)
   const [clearTokenClicked, setClearTokenClicked] = useState<boolean>(false)
@@ -328,7 +327,6 @@ const PlexSettings = () => {
                   <select
                     id="preset"
                     name="preset"
-                    value={serverPresetRef?.current?.value}
                     disabled={
                       (!availableServers || isRefreshingPresets) &&
                       tokenValid === true
@@ -373,7 +371,7 @@ const PlexSettings = () => {
                     disabled={tokenValid !== true}
                     className="input-action"
                   >
-                    <RefreshIcon
+                    <ArrowPathIcon
                       className={isRefreshingPresets ? 'animate-spin' : ''}
                       style={{ animationDirection: 'reverse' }}
                     />
@@ -511,7 +509,7 @@ const PlexSettings = () => {
                       type="submit"
                       disabled={isPending}
                     >
-                      <SaveIcon />
+                      <ArrowDownOnSquareIcon />
                       <span>Save Changes</span>
                     </Button>
                   </span>

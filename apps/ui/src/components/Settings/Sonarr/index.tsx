@@ -1,8 +1,8 @@
 import {
-  DocumentAddIcon,
+  DocumentPlusIcon,
   PlusCircleIcon,
   TrashIcon,
-} from '@heroicons/react/solid'
+} from '@heroicons/react/20/solid'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import GetApiHandler, { DeleteApiHandler } from '../../../utils/ApiHandler'
@@ -136,7 +136,7 @@ const SonarrSettings = () => {
                     setSettingsModalActive(setting)
                   }}
                 >
-                  {<DocumentAddIcon className="m-auto" />}{' '}
+                  {<DocumentPlusIcon className="m-auto" />}{' '}
                   <p className="m-auto font-semibold">Edit</p>
                 </Button>
                 <DeleteButton

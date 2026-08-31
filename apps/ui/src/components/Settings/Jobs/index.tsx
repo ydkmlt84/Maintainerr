@@ -1,11 +1,11 @@
 import {
   ClockIcon,
-  DownloadIcon,
-  ExternalLinkIcon,
+  ArrowDownTrayIcon,
+  ArrowTopRightOnSquareIcon,
   PlayIcon,
-  SaveIcon,
+  ArrowDownOnSquareIcon,
   TrashIcon,
-} from '@heroicons/react/solid'
+} from '@heroicons/react/20/solid'
 import { isValidCron } from 'cron-validator'
 import { useEffect, useRef, useState } from 'react'
 import { useSettingsOutletContext } from '..'
@@ -24,12 +24,7 @@ import Modal from '../../Common/Modal'
 import DatabaseBackupModal from '../Main/DatabaseBackupModal'
 
 type CronBuilderMode =
-  | 'minutes'
-  | 'hours'
-  | 'days'
-  | 'daily'
-  | 'weekly'
-  | 'monthly'
+  'minutes' | 'hours' | 'days' | 'daily' | 'weekly' | 'monthly'
 
 const cronIntervalMax = (mode: CronBuilderMode) => {
   if (mode === 'minutes') return 59
@@ -98,6 +93,7 @@ const JobSettings = () => {
   const collectionHandlerRef = useRef<HTMLInputElement>(null)
   const mediaIdAuditRef = useRef<HTMLInputElement>(null)
   const plexTrashEmptyRef = useRef<HTMLInputElement>(null)
+  const imageCacheMaxGbRef = useRef<HTMLInputElement>(null)
   const emptyTrashButtonRef = useRef<HTMLDivElement>(null)
   const [cronValidity, setCronValidity] = useState({
     rules: true,
@@ -118,7 +114,6 @@ const JobSettings = () => {
   const [taskError, setTaskError] = useState<string>()
   const [builderTarget, setBuilderTarget] = useState<{
     label: string
-    inputRef: React.RefObject<HTMLInputElement | null>
     validityKey: keyof typeof cronValidity
   }>()
   const [builderMode, setBuilderMode] = useState<CronBuilderMode>('daily')
@@ -128,9 +123,6 @@ const JobSettings = () => {
   const [builderWeekDay, setBuilderWeekDay] = useState(0)
   const [builderMonthDay, setBuilderMonthDay] = useState(1)
   const { settings } = useSettingsOutletContext()
-  const [imageCacheMaxGb, setImageCacheMaxGb] = useState(
-    settings.image_cache_max_gb ?? 10,
-  )
   const [imageCacheLimitError, setImageCacheLimitError] = useState(false)
   const tasks = useScheduledTasks()
   const runScheduledTask = useRunScheduledTask()
@@ -138,10 +130,6 @@ const JobSettings = () => {
   const updateSettings = usePatchSettings()
   const updateImageCacheSettings = usePatchSettings()
   const normalizedBuilderInterval = builderInterval || 1
-
-  useEffect(() => {
-    setImageCacheMaxGb(settings.image_cache_max_gb ?? 10)
-  }, [settings.image_cache_max_gb])
 
   const builderExpression = (() => {
     switch (builderMode) {
@@ -185,8 +173,15 @@ const JobSettings = () => {
   })()
 
   const applyBuilderExpression = () => {
-    if (!builderTarget?.inputRef.current) return
-    builderTarget.inputRef.current.value = builderExpression
+    if (!builderTarget) return
+    const inputRef = {
+      rules: ruleHandlerRef,
+      collections: collectionHandlerRef,
+      audit: mediaIdAuditRef,
+      plexTrashEmpty: plexTrashEmptyRef,
+    }[builderTarget.validityKey]
+    if (!inputRef.current) return
+    inputRef.current.value = builderExpression
     setCronValidity((current) => ({
       ...current,
       [builderTarget.validityKey]: true,
@@ -230,7 +225,7 @@ const JobSettings = () => {
       setBuilderMinute(Number(minute) || 0)
     }
 
-    setBuilderTarget({ label, inputRef, validityKey })
+    setBuilderTarget({ label, validityKey })
   }
 
   useEffect(() => {
@@ -362,7 +357,7 @@ const JobSettings = () => {
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault()
-    const value = Number(imageCacheMaxGb)
+    const value = Number(imageCacheMaxGbRef.current?.value)
     if (!Number.isFinite(value) || value < 1 || value > 1000) {
       setImageCacheLimitError(true)
       return
@@ -733,7 +728,7 @@ const JobSettings = () => {
                 className="w-full"
                 onClick={() => setShowDatabaseBackup(true)}
               >
-                <DownloadIcon className="mr-2 h-4 w-4" />
+                <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
                 <span>Backup Database</span>
               </Button>
             </div>
@@ -768,16 +763,15 @@ const JobSettings = () => {
               <div className="form-input flex items-center gap-2">
                 <div className="form-input-field w-28 flex-none">
                   <input
+                    key={settings.image_cache_max_gb ?? 10}
                     id="imageCacheMaxGb"
                     name="imageCacheMaxGb"
                     type="number"
+                    ref={imageCacheMaxGbRef}
                     min={1}
                     max={1000}
                     step={1}
-                    value={imageCacheMaxGb}
-                    onChange={(event) =>
-                      setImageCacheMaxGb(Number(event.target.value))
-                    }
+                    defaultValue={settings.image_cache_max_gb ?? 10}
                   />
                 </div>
                 <span className="text-sm text-zinc-400">GB</span>
@@ -786,7 +780,7 @@ const JobSettings = () => {
                   type="submit"
                   disabled={updateImageCacheSettings.isPending}
                 >
-                  <SaveIcon className="mr-2 h-4 w-4" />
+                  <ArrowDownOnSquareIcon className="mr-2 h-4 w-4" />
                   <span>Save</span>
                 </Button>
               </div>
@@ -959,7 +953,7 @@ const JobSettings = () => {
               className="flex shrink-0 items-center gap-1 text-sm text-orange-400 hover:text-orange-300 hover:underline"
             >
               Cron help
-              <ExternalLinkIcon className="h-4 w-4" />
+              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
             </a>
           </div>
           {missingValuesError && (
@@ -1017,7 +1011,7 @@ const JobSettings = () => {
                 type="submit"
                 disabled={updateSettings.isPending}
               >
-                <SaveIcon className="mr-2 h-4 w-4" />
+                <ArrowDownOnSquareIcon className="mr-2 h-4 w-4" />
                 <span>Save Changes</span>
               </Button>
             </div>

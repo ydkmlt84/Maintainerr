@@ -1,5 +1,5 @@
 import { Transition } from '@headlessui/react'
-import { AdjustmentsIcon } from '@heroicons/react/outline'
+import { AdjustmentsVerticalIcon } from '@heroicons/react/24/outline'
 import { MediaItemType } from '@maintainerr/contracts'
 import React, { memo, useCallback, useEffect, useId, useState } from 'react'
 import GetApiHandler from '../../../utils/ApiHandler'
@@ -129,9 +129,7 @@ const MediaCard: React.FC<IMediaCard> = ({
     getExclusions()
   }, [getExclusions])
 
-  const imageType = ['season', 'episode'].includes(mediaType)
-    ? 'show'
-    : mediaType
+  const imageType = mediaType === 'movie' ? 'movie' : 'show'
   const posterUrl = tmdbid
     ? getTmdbImageUrl({
         scope: 'library',
@@ -327,7 +325,7 @@ const MediaCard: React.FC<IMediaCard> = ({
                       setManageModal(true)
                     }}
                   >
-                    <AdjustmentsIcon className="mr-1.5 h-3.5 w-3.5" />
+                    <AdjustmentsVerticalIcon className="mr-1.5 h-3.5 w-3.5" />
                     Manage
                   </Button>
                 </div>

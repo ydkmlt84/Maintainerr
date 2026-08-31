@@ -4,10 +4,10 @@ import {
   type MediaLibrarySortParams,
 } from '@maintainerr/contracts'
 import {
-  FilterIcon,
-  RefreshIcon,
-  SortAscendingIcon,
-} from '@heroicons/react/outline'
+  FunnelIcon,
+  ArrowPathIcon,
+  BarsArrowUpIcon,
+} from '@heroicons/react/24/outline'
 import {
   useCallback,
   useContext,
@@ -309,9 +309,7 @@ const Media = () => {
 
         const filteredMedia = (
           items as (
-            | LeavingSoonItem
-            | ActionableExclusionItem
-            | ManuallyAddedItem
+            LeavingSoonItem | ActionableExclusionItem | ManuallyAddedItem
           )[]
         ).map((item) => {
           if (filterValue === leavingSoonFilterValue) {
@@ -457,21 +455,21 @@ const Media = () => {
                   disabled={!hasCustomSortSelected}
                   onClick={resetSort}
                 >
-                  <SortAscendingIcon className="h-4 w-4" />
+                  <BarsArrowUpIcon className="h-4 w-4" />
                 </ResetControl>
                 <ResetControl
                   label="Reset filter"
                   disabled={!hasCustomFilterSelected}
                   onClick={resetFilter}
                 >
-                  <FilterIcon className="h-4 w-4" />
+                  <FunnelIcon className="h-4 w-4" />
                 </ResetControl>
                 <ResetControl
                   label="Reset sort and filter"
                   disabled={!hasCustomSortSelected && !hasCustomFilterSelected}
                   onClick={resetAll}
                 >
-                  <RefreshIcon className="h-4 w-4" />
+                  <ArrowPathIcon className="h-4 w-4" />
                 </ResetControl>
               </div>
             </div>
