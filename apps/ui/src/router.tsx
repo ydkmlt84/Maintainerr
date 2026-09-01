@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import Layout, { LayoutErrorBoundary } from './components/Layout'
 import LoadingSpinner from './components/Common/LoadingSpinner'
 
@@ -44,7 +44,7 @@ const page = (element: ReactNode) => (
   </Suspense>
 )
 
-export const router = createBrowserRouter(
+const router = createBrowserRouter(
   [
     {
       path: '/',
@@ -196,3 +196,7 @@ export const router = createBrowserRouter(
     basename: basePath,
   },
 )
+
+const AppRouter = () => <RouterProvider router={router} />
+
+export default AppRouter

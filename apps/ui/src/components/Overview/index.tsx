@@ -39,7 +39,8 @@ import ManageMediaModal, {
 } from '../Common/ManageMediaModal'
 import Modal from '../Common/Modal'
 import type { ICollectionMedia } from '../Collection'
-import { DiscoverDetailsModal, getDiscoverSnapshot } from '../Discover'
+import { DiscoverDetailsModal } from '../Discover'
+import { getDiscoverSnapshot } from '../Discover/discover-utils'
 
 interface AppStats {
   rules?: number
