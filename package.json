@@ -30,7 +30,7 @@
     "nodemailer": "9.1.0"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
