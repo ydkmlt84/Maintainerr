@@ -3,31 +3,107 @@ updates:
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
+      day: saturday
+      time: "04:00"
+      timezone: America/Chicago
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
     groups:
       nestjs:
+        applies-to: version-updates
         patterns:
           - "@nestjs/*"
       react:
+        applies-to: version-updates
         patterns:
           - "react"
           - "react-dom"
+          - "react-router*"
           - "@types/react"
           - "@types/react-dom"
+          - "@vitejs/plugin-react"
+          - "eslint-plugin-react*"
       eslint:
+        applies-to: version-updates
         patterns:
-          - "@eslint/js"
+          - "@eslint/*"
+          - "@typescript-eslint/*"
           - "eslint"
-    ignore:
-      - dependency-name: "@heroicons/react"
-      - dependency-name: "chalk"
+          - "eslint-*"
+          - "typescript-eslint"
+      tailwind:
+        applies-to: version-updates
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "autoprefixer"
+          - "postcss"
+          - "prettier-plugin-tailwindcss"
+      typeorm:
+        applies-to: version-updates
+        patterns:
+          - "typeorm"
+          - "@nestjs/typeorm"
+          - "better-sqlite3"
+      patch-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - patch
+      minor-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: "/"
     schedule:
-      interval: daily
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: weekly
+      day: saturday
+      time: "04:30"
+      timezone: America/Chicago
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      action-patches:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - patch
+      action-minors:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor

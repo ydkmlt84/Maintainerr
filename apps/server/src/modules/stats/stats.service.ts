@@ -322,8 +322,7 @@ export function mapPlexLibraryRankingItem(
 export class StatsService {
   private readonly serviceStatusCacheMs = 5 * 60 * 1000
   private serviceStatusCache:
-    | { timestamp: number; services: AppConfiguredService[] }
-    | undefined
+    { timestamp: number; services: AppConfiguredService[] } | undefined
   private serviceStatusRefresh: Promise<void> | undefined
 
   constructor(
@@ -619,7 +618,9 @@ export class StatsService {
 
   private async getRecentActivity(): Promise<AppRecentActivityItem[]> {
     const logs = await this.collectionLogRepository.find({
-      relations: ['collection'],
+      relations: {
+        collection: true,
+      },
       order: { id: 'DESC' },
       take: 20,
     })

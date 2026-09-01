@@ -240,7 +240,9 @@ export class RulesService {
     try {
       return await this.ruleGroupRepository.findOne({
         where: { id: ruleGroupId },
-        relations: ['notifications'],
+        relations: {
+          notifications: true,
+        },
       })
     } catch (e) {
       this.logger.warn(`Rules - Action failed : ${e.message}`)
@@ -253,7 +255,9 @@ export class RulesService {
     try {
       return await this.ruleGroupRepository.findOne({
         where: { collectionId: id },
-        relations: ['notifications'],
+        relations: {
+          notifications: true,
+        },
       })
     } catch (e) {
       this.logger.warn(`Rules - Action failed : ${e.message}`)
@@ -615,7 +619,7 @@ export class RulesService {
             mediaServerId: media.mediaServerId,
             ...(data.ruleGroupId !== undefined
               ? { ruleGroupId: data.ruleGroupId }
-              : { ruleGroupId: null }),
+              : { ruleGroupId: IsNull() }),
           },
         })
 
@@ -858,7 +862,7 @@ export class RulesService {
           ? exclusions.concat(
               await this.exclusionRepo.find({
                 where: {
-                  ruleGroupId: null,
+                  ruleGroupId: IsNull(),
                 },
               }),
             )

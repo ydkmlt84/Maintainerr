@@ -135,7 +135,9 @@ export class RuleMigrationService {
     const compat = computePropertyCompatibility(sourceApp, targetApp)
 
     const allRules = await this.rulesRepo.find({
-      relations: ['ruleGroup'],
+      relations: {
+        ruleGroup: true,
+      },
     })
 
     const skippedDetails: SkippedRuleDetail[] = []
@@ -205,7 +207,9 @@ export class RuleMigrationService {
     }
 
     const allRules = await rulesRepo.find({
-      relations: ['ruleGroup'],
+      relations: {
+        ruleGroup: true,
+      },
     })
 
     const result: RuleMigrationResult = {
