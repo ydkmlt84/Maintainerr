@@ -12,10 +12,16 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 6
+    rebase-strategy: auto
     commit-message:
       prefix: "chore(deps)"
     groups:
+      development-updates:
+        applies-to: version-updates
+        dependency-type: development
+        patterns:
+          - "*"
       nestjs:
         applies-to: version-updates
         patterns:
@@ -30,44 +36,27 @@ updates:
           - "@types/react-dom"
           - "@vitejs/plugin-react"
           - "eslint-plugin-react*"
-      eslint:
-        applies-to: version-updates
-        patterns:
-          - "@eslint/*"
-          - "@typescript-eslint/*"
-          - "eslint"
-          - "eslint-*"
-          - "typescript-eslint"
-      tailwind:
-        applies-to: version-updates
-        patterns:
-          - "tailwindcss"
-          - "@tailwindcss/*"
-          - "autoprefixer"
-          - "postcss"
-          - "prettier-plugin-tailwindcss"
       typeorm:
         applies-to: version-updates
         patterns:
           - "typeorm"
           - "@nestjs/typeorm"
           - "better-sqlite3"
-      patch-updates:
+      non-major-updates:
         applies-to: version-updates
         patterns:
           - "*"
         update-types:
           - patch
-      minor-updates:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
           - minor
       security-updates:
         applies-to: security-updates
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: docker
     directory: "/"
@@ -75,7 +64,8 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
+    rebase-strategy: auto
     commit-message:
       prefix: "chore(deps)"
 
@@ -88,19 +78,12 @@ updates:
       timezone: America/Chicago
     cooldown:
       default-days: 7
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    rebase-strategy: auto
     commit-message:
       prefix: "chore(deps)"
     groups:
-      action-patches:
+      action-updates:
         applies-to: version-updates
         patterns:
           - "*"
-        update-types:
-          - patch
-      action-minors:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor

@@ -18,7 +18,40 @@ jobs:
       allowed: "ydkmlt84"
 
   run_tests:
-    name: Run integration tests
+    name: Tests (Node ${{ matrix.node-version }})
+    needs: guard_manual_run
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+          - 22
+          - 24
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Activate corepack
+        run: |
+          corepack install
+          corepack enable
+
+      - name: Install dependencies
+        run: yarn --immutable
+
+      - name: Build
+        run: yarn turbo build --filter="./packages/*"
+
+      - name: Run tests
+        run: yarn turbo test
+
+  ui_smoke_test:
+    name: UI smoke test
     needs: guard_manual_run
     runs-on: ubuntu-latest
     steps:
@@ -38,8 +71,30 @@ jobs:
       - name: Install dependencies
         run: yarn --immutable
 
-      - name: Build
-        run: yarn turbo build --filter="./packages/*"
+      - name: Install Chromium
+        run: yarn workspace @maintainerr/ui exec playwright install --with-deps chromium
 
-      - name: Run tests
-        run: yarn turbo test
+      - name: Build UI
+        run: yarn workspace @maintainerr/ui build
+
+      - name: Run UI smoke test
+        run: yarn workspace @maintainerr/ui test:smoke
+
+  required_tests:
+    name: Run integration tests
+    if: ${{ always() }}
+    needs:
+      - run_tests
+      - ui_smoke_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required test jobs
+        env:
+          NODE_TEST_RESULT: ${{ needs.run_tests.result }}
+          UI_SMOKE_RESULT: ${{ needs.ui_smoke_test.result }}
+        run: |
+          if [ "$NODE_TEST_RESULT" != "success" ] || [ "$UI_SMOKE_RESULT" != "success" ]; then
+            echo "Node tests: $NODE_TEST_RESULT"
+            echo "UI smoke test: $UI_SMOKE_RESULT"
+            exit 1
+          fi

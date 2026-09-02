@@ -7,6 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite preview --port 80 --host 0.0.0.0",
+    "test:smoke": "playwright test",
     "check-types": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write --ignore-path .gitignore .",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.20",
