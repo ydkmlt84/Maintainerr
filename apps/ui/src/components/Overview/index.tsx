@@ -33,6 +33,7 @@ import { getTmdbImageUrl } from '../../utils/TmdbImage'
 import CollectionMembershipTooltip from '../Common/CollectionMembershipTooltip'
 import LoadingSpinner from '../Common/LoadingSpinner'
 import ExclusionBadges from '../Common/ExclusionBadges'
+import LeavingSoonModal from '../Common/LeavingSoonModal'
 import MediaModalContent from '../Common/MediaCard/MediaModal'
 import ManageMediaModal, {
   type MediaManagementContext,
@@ -713,6 +714,8 @@ const Overview = () => {
     startOfWeekSunday(new Date()),
   )
   const [loading, setLoading] = useState(true)
+  const [selectedLeavingSoon, setSelectedLeavingSoon] =
+    useState<AppLeavingSoonItem>()
   const [managedMedia, setManagedMedia] = useState<ManagedOverviewMedia>()
   const [mediaDetails, setMediaDetails] = useState<OverviewMediaDetails>()
   const [selectedCalendarEntry, setSelectedCalendarEntry] =
@@ -967,14 +970,7 @@ const Overview = () => {
               tone="danger"
               daysLeft={item.daysLeft}
               collectionNames={[item.collectionTitle]}
-              manageOnPosterClick
-              onSelect={() =>
-                setManagedMedia({
-                  media: item.media,
-                  collectionId: item.collectionId,
-                  collectionTitle: item.collectionTitle,
-                })
-              }
+              onPosterClick={() => setSelectedLeavingSoon(item)}
             />
           ))}
         </PosterRow>
@@ -1139,6 +1135,37 @@ const Overview = () => {
           onWatchlist={() => void updateDiscoverWatchlist(selectedDiscoverItem)}
           onMarkWatched={() => void markDiscoverWatched(selectedDiscoverItem)}
           onClose={() => setSelectedDiscoverItem(undefined)}
+        />
+      ) : undefined}
+      {selectedLeavingSoon ? (
+        <LeavingSoonModal
+          mediaServerId={selectedLeavingSoon.media.id}
+          title={getMediaTitle(selectedLeavingSoon.media)}
+          summary={selectedLeavingSoon.media.summary}
+          year={getMediaYear(selectedLeavingSoon.media)}
+          mediaType={selectedLeavingSoon.media.type}
+          type={selectedLeavingSoon.media.type}
+          tmdbId={getTmdbId(selectedLeavingSoon.media)}
+          collectionId={selectedLeavingSoon.collectionId}
+          collectionTitle={selectedLeavingSoon.collectionTitle}
+          daysLeft={selectedLeavingSoon.daysLeft}
+          onClose={() => setSelectedLeavingSoon(undefined)}
+          onExcluded={(scope) => {
+            setStats((current) =>
+              current
+                ? {
+                    ...current,
+                    leavingSoon: current.leavingSoon?.filter(
+                      (item) =>
+                        item.media.id !== selectedLeavingSoon.media.id ||
+                        (scope !== 'global' &&
+                          item.collectionId !==
+                            selectedLeavingSoon.collectionId),
+                    ),
+                  }
+                : current,
+            )
+          }}
         />
       ) : undefined}
       {managedMedia ? (
@@ -1818,7 +1845,6 @@ const DashboardPoster = ({
   watchlisted = false,
   watched = false,
   servarrStatuses = [],
-  manageOnPosterClick = false,
   onPosterClick,
   onSelect,
 }: {
@@ -1836,7 +1862,6 @@ const DashboardPoster = ({
   watchlisted?: boolean
   watched?: boolean
   servarrStatuses?: TraktDiscoverItem['servarr']
-  manageOnPosterClick?: boolean
   onPosterClick?: () => void
   onSelect?: () => void
 }) => {
@@ -1988,7 +2013,7 @@ const DashboardPoster = ({
             {subtitle}
           </p>
         ) : undefined}
-        {onSelect && !manageOnPosterClick ? (
+        {onSelect ? (
           <button
             type="button"
             className="mt-2 flex h-7 w-full items-center justify-center rounded-md bg-maintainerr-600 px-2 text-xs font-medium text-white shadow transition hover:bg-maintainerr-500 focus:outline-none focus:ring-2 focus:ring-maintainerr-400"
@@ -2008,16 +2033,7 @@ const DashboardPoster = ({
 
   return (
     <div className="w-28 flex-shrink-0 xs:w-32">
-      {onSelect && manageOnPosterClick ? (
-        <button
-          type="button"
-          className="group block w-full text-left focus:outline-none focus:ring-2 focus:ring-maintainerr-400"
-          onClick={onSelect}
-          aria-label={`Manage ${title}`}
-        >
-          {poster}
-        </button>
-      ) : onPosterClick ? (
+      {onPosterClick ? (
         <div
           role="button"
           tabIndex={0}

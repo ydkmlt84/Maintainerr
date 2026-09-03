@@ -433,6 +433,7 @@ export class TraktApiService {
                 add(`movie:tmdb:${movie.tmdbId}`, {
                   service: 'radarr',
                   instanceName: setting.serverName,
+                  itemId: movie.id,
                   href:
                     (setting.externalUrl || setting.url) && movie.titleSlug
                       ? buildServarrItemUrl(
@@ -496,6 +497,7 @@ export class TraktApiService {
                 add(`show:tvdb:${show.tvdbId}`, {
                   service: 'sonarr',
                   instanceName: setting.serverName,
+                  itemId: show.id,
                   href:
                     (setting.externalUrl || setting.url) && show.titleSlug
                       ? buildServarrItemUrl(

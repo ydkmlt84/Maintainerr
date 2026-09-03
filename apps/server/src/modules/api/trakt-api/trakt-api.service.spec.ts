@@ -239,6 +239,7 @@ describe('TraktApiService', () => {
       getQueue: jest.fn().mockResolvedValue([]),
       getMovies: jest.fn().mockResolvedValue([
         {
+          id: 31,
           tmdbId: 101,
           monitored: true,
           isAvailable: true,
@@ -251,6 +252,7 @@ describe('TraktApiService', () => {
       getQueue: jest.fn().mockResolvedValue([]),
       getSeries: jest.fn().mockResolvedValue([
         {
+          id: 42,
           tvdbId: 202,
           monitored: true,
           status: 'continuing',
@@ -270,6 +272,7 @@ describe('TraktApiService', () => {
 
     expect(statuses.get('movie:tmdb:101')).toEqual([
       expect.objectContaining({
+        itemId: 31,
         state: 'missing',
         status: 'Missing, monitored',
         href: 'https://radarr.example/movie/example-movie',
@@ -277,6 +280,7 @@ describe('TraktApiService', () => {
     ])
     expect(statuses.get('show:tvdb:202')).toEqual([
       expect.objectContaining({
+        itemId: 42,
         state: 'partial',
         status: 'Partially downloaded',
         detail: '8/10 episodes',

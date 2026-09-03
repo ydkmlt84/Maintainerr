@@ -25,6 +25,7 @@ import GetApiHandler, {
 } from '../../utils/ApiHandler'
 import { getTmdbImageUrl } from '../../utils/TmdbImage'
 import ActorTooltip, { getActorProfileImageUrl } from '../Common/ActorTooltip'
+import BackdropLinkTooltip from '../Common/BackdropLinkTooltip'
 import Button from '../Common/Button'
 import LoadingSpinner from '../Common/LoadingSpinner'
 import Modal from '../Common/Modal'
@@ -494,12 +495,18 @@ export const DiscoverDetailsModal = ({
               href={assets?.trailerUrl}
               target="_blank"
               rel="noreferrer"
+              data-tooltip-id={`discover-youtube-${item.ids.trakt}`}
               className="flex h-9 w-9 items-center justify-center rounded-md bg-black/80 text-white shadow transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-white/60"
               aria-label="Open trailer on YouTube"
               title="Open on YouTube"
             >
               <ArrowTopRightOnSquareIcon className="h-5 w-5" />
             </a>
+            <BackdropLinkTooltip
+              id={`discover-youtube-${item.ids.trakt}`}
+              label="YouTube"
+              value={trailerVideoId}
+            />
             <button
               type="button"
               onClick={() => setPlayingTrailer(false)}
@@ -537,6 +544,36 @@ export const DiscoverDetailsModal = ({
                       Watched
                     </div>
                   ) : null}
+                  {item.servarr.map((status) => {
+                    if (!status.href) return null
+                    const tooltipId = `discover-servarr-${item.ids.trakt}-${status.service}-${status.itemId}`
+                    return (
+                      <div key={tooltipId}>
+                        <a
+                          href={status.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          data-tooltip-id={tooltipId}
+                          aria-label={`Open in ${status.instanceName}`}
+                          className="flex h-8 w-fit items-center gap-2 rounded-lg bg-black/75 px-2 text-xs font-semibold capitalize text-zinc-100 shadow-lg transition hover:bg-black/90"
+                        >
+                          <img
+                            src={`${basePath}/icons_logos/${status.service}.svg`}
+                            alt=""
+                            className="h-5 w-5"
+                          />
+                          {status.service}
+                        </a>
+                        <BackdropLinkTooltip
+                          id={tooltipId}
+                          label={
+                            status.service === 'radarr' ? 'Radarr' : 'Sonarr'
+                          }
+                          value={status.itemId}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
                 {item.rating ? (
                   <div className="flex w-fit items-center gap-2 rounded-lg bg-black/75 px-3 py-1.5 text-white shadow-lg">
@@ -553,19 +590,49 @@ export const DiscoverDetailsModal = ({
               </div>
               <div className="flex min-w-0 flex-col items-end justify-between">
                 <div className="space-y-1">
-                  {item.ids.tmdb ? (
-                    <a
-                      href={`https://themoviedb.org/${item.type === 'movie' ? 'movie' : 'tv'}/${item.ids.tmdb}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block"
-                    >
-                      <img
-                        src={`${basePath}/icons_logos/tmdb_logo.svg`}
-                        alt="TMDB"
-                        className="h-8 w-32 rounded-lg bg-black/75 p-2 shadow-lg"
+                  {item.type === 'movie' && item.ids.tmdb ? (
+                    <>
+                      <a
+                        href={`https://themoviedb.org/${item.type === 'movie' ? 'movie' : 'tv'}/${item.ids.tmdb}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-tooltip-id={`discover-tmdb-${item.ids.trakt}`}
+                        className="block"
+                      >
+                        <img
+                          src={`${basePath}/icons_logos/tmdb_logo.svg`}
+                          alt="TMDB"
+                          className="h-8 w-32 rounded-lg bg-black/75 p-2 shadow-lg"
+                        />
+                      </a>
+                      <BackdropLinkTooltip
+                        id={`discover-tmdb-${item.ids.trakt}`}
+                        label="TMDB"
+                        value={item.ids.tmdb}
                       />
-                    </a>
+                    </>
+                  ) : null}
+                  {item.type === 'show' && item.ids.tvdb ? (
+                    <>
+                      <a
+                        href={`https://thetvdb.com/dereferrer/series/${item.ids.tvdb}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-tooltip-id={`discover-tvdb-${item.ids.trakt}`}
+                        className="flex h-8 w-32 items-center justify-center rounded-lg bg-black/75 px-3 shadow-lg transition hover:bg-black/90"
+                      >
+                        <img
+                          src={`${basePath}/icons_logos/tvdb_logo.svg`}
+                          alt="TheTVDB"
+                          className="h-7 w-auto"
+                        />
+                      </a>
+                      <BackdropLinkTooltip
+                        id={`discover-tvdb-${item.ids.trakt}`}
+                        label="TVDB"
+                        value={item.ids.tvdb}
+                      />
+                    </>
                   ) : null}
                   {assets?.trailerUrl && trailerVideoId ? (
                     <button
@@ -676,8 +743,11 @@ export const DiscoverDetailsModal = ({
         <section className="border-b border-zinc-800 py-4">
           <div className="grid gap-3 sm:grid-cols-2">
             {item.servarr.map((status) => {
-              const content = (
-                <>
+              return (
+                <div
+                  key={`${status.service}-${status.instanceName}`}
+                  className="flex items-center gap-3 rounded-lg bg-zinc-800 px-4 py-3 ring-1 ring-zinc-600"
+                >
                   <img
                     src={`${basePath}/icons_logos/${status.service}.svg`}
                     alt={status.service === 'radarr' ? 'Radarr' : 'Sonarr'}
@@ -696,28 +766,6 @@ export const DiscoverDetailsModal = ({
                       </p>
                     ) : null}
                   </div>
-                </>
-              )
-              const className =
-                'flex items-center gap-3 rounded-lg bg-zinc-800 px-4 py-3 ring-1 ring-zinc-600'
-
-              return status.href ? (
-                <a
-                  key={`${status.service}-${status.instanceName}`}
-                  href={status.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`${className} transition hover:bg-zinc-700 hover:ring-zinc-500 focus:outline-none focus:ring-2 focus:ring-maintainerr-400`}
-                  aria-label={`Open ${status.instanceName}`}
-                >
-                  {content}
-                </a>
-              ) : (
-                <div
-                  key={`${status.service}-${status.instanceName}`}
-                  className={className}
-                >
-                  {content}
                 </div>
               )
             })}

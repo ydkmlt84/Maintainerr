@@ -18,10 +18,15 @@ import { useMediaServerType } from '../../../../hooks/useMediaServerType'
 import GetApiHandler from '../../../../utils/ApiHandler'
 import { getTmdbImageUrl } from '../../../../utils/TmdbImage'
 import ActorTooltip, { getActorProfileImageUrl } from '../../ActorTooltip'
+import BackdropLinkTooltip from '../../BackdropLinkTooltip'
 
 interface ModalContentProps {
   onClose: () => void
   onManage?: () => void
+  footerContent?: React.ReactNode
+  backgroundClickable?: boolean
+  showMediaFacts?: boolean
+  showCollectionMemberships?: boolean
   id: number | string
   image?: string
   userScore?: number
@@ -79,12 +84,6 @@ interface TmdbCastMember {
   profilePath?: string
 }
 
-interface MetadataIdLink {
-  key: string
-  label: string
-  href?: string
-}
-
 const basePath = import.meta.env.VITE_BASE_PATH ?? ''
 const ratingIcons: Record<string, string> = {
   audience: `${basePath}/icons_logos/tmdb_icon.svg`,
@@ -137,7 +136,20 @@ const getScheduleLabel = (
 }
 
 const MediaModalContent: React.FC<ModalContentProps> = memo(
-  ({ onClose, onManage, mediaType, id, summary, year, title, tmdbid }) => {
+  ({
+    onClose,
+    onManage,
+    footerContent,
+    backgroundClickable = true,
+    showMediaFacts = true,
+    showCollectionMemberships = true,
+    mediaType,
+    id,
+    summary,
+    year,
+    title,
+    tmdbid,
+  }) => {
     const { isPlex, isJellyfin } = useMediaServerType()
     const [loading, setLoading] = useState<boolean>(true)
     const [backdrop, setBackdrop] = useState<string | null>(null)
@@ -145,7 +157,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     const [cast, setCast] = useState<TmdbCastMember[]>([])
     const [resolvedTmdbId, setResolvedTmdbId] = useState<
       string | null | undefined
-    >(tmdbid)
+    >(['season', 'episode'].includes(mediaType) ? undefined : tmdbid)
     const [resolvedSeasonNumber, setResolvedSeasonNumber] = useState<
       number | null | undefined
     >(['season', 'episode'].includes(mediaType) ? undefined : null)
@@ -212,11 +224,9 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
           setGrandparentMetadata(grandparent)
 
           const show = mediaType === 'episode' ? grandparent : parent
-          const assetTmdbId =
-            tmdbid ??
-            (['season', 'episode'].includes(mediaType)
-              ? show?.providerIds?.tmdb?.[0]
-              : item?.providerIds?.tmdb?.[0])
+          const assetTmdbId = ['season', 'episode'].includes(mediaType)
+            ? (show?.providerIds?.tmdb?.[0] ?? tmdbid)
+            : (tmdbid ?? item?.providerIds?.tmdb?.[0])
 
           setResolvedTmdbId(assetTmdbId ?? null)
         })
@@ -240,6 +250,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
         setTrailerUrl(null)
         setCast([])
       })
+    }, [id, mediaType])
+
+    useEffect(() => {
+      let active = true
 
       // Fetch the backdrop and trailer from one cached TMDB detail response.
       const childAssetsReady =
@@ -257,11 +271,13 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
           `/moviedb/assets/${backdropType}/${resolvedTmdbId}${seasonQuery}`,
         )
           .then((resp) => {
+            if (!active) return
             setBackdrop(resp?.backdropPath ?? null)
             setTrailerUrl(resp?.trailerUrl ?? null)
             setCast(resp?.cast ?? [])
           })
           .catch((error) => {
+            if (!active) return
             console.error(
               'Error fetching media artwork. Check your media server metadata',
               error,
@@ -270,6 +286,10 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             setTrailerUrl(null)
             setCast([])
           })
+      }
+
+      return () => {
+        active = false
       }
     }, [mediaType, resolvedSeasonNumber, resolvedTmdbId])
 
@@ -342,142 +362,40 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     }, [trailerUrl])
     const trailerIdentity = `${mediaType}:${id}:${resolvedTmdbId ?? ''}`
     const trailerPlaying = playingTrailerFor === trailerIdentity
-    const metadataIdLinks = useMemo<MetadataIdLink[]>(() => {
-      if (!metadata) return []
-
-      const links: MetadataIdLink[] = []
-      const plexUrl = (plexId: string) =>
-        machineId
-          ? `https://app.plex.tv/desktop#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${plexId}`
-          : undefined
-      const showTmdbId =
-        mediaType === 'episode'
-          ? grandparentMetadata?.providerIds.tmdb?.[0]
-          : mediaType === 'season'
-            ? parentMetadata?.providerIds.tmdb?.[0]
+    const imdbId = metadata?.providerIds.imdb?.[0]
+    const episodeTvdbId =
+      mediaType === 'episode' ? metadata?.providerIds.tvdb?.[0] : undefined
+    const tvdbId =
+      mediaType === 'show'
+        ? metadata?.providerIds.tvdb?.[0]
+        : mediaType === 'season'
+          ? parentMetadata?.providerIds.tvdb?.[0]
+          : mediaType === 'episode'
+            ? (episodeTvdbId ?? grandparentMetadata?.providerIds.tvdb?.[0])
             : undefined
-      const itemTmdbUrl = (tmdbId: string) => {
-        if (mediaType === 'movie') {
-          return `https://www.themoviedb.org/movie/${tmdbId}`
-        }
-        if (mediaType === 'show') {
-          return `https://www.themoviedb.org/tv/${tmdbId}`
-        }
-        if (mediaType === 'season' && showTmdbId && metadata.index != null) {
-          return `https://www.themoviedb.org/tv/${showTmdbId}/season/${metadata.index}`
-        }
-        if (
-          mediaType === 'episode' &&
-          showTmdbId &&
-          metadata.parentIndex != null &&
-          metadata.index != null
-        ) {
-          return `https://www.themoviedb.org/tv/${showTmdbId}/season/${metadata.parentIndex}/episode/${metadata.index}`
-        }
-        return undefined
-      }
-      const tvdbEntityType =
-        mediaType === 'movie'
-          ? 'movie'
-          : mediaType === 'show'
-            ? 'series'
-            : mediaType
-
-      if (isPlex || machineId) {
-        links.push({
-          key: `plex-${metadata.id}`,
-          label: `plex://${metadata.id}`,
-          href: plexUrl(metadata.id),
-        })
-      }
-      metadata.providerIds.tmdb?.forEach((tmdbId) =>
-        links.push({
-          key: `tmdb-${tmdbId}`,
-          label: `tmdb://${tmdbId}`,
-          href: itemTmdbUrl(tmdbId),
-        }),
-      )
-      metadata.providerIds.imdb?.forEach((imdbId) =>
-        links.push({
-          key: `imdb-${imdbId}`,
-          label: `imdb://${imdbId}`,
-          href: `https://www.imdb.com/title/${imdbId}`,
-        }),
-      )
-      if (mediaType !== 'movie') {
-        metadata.providerIds.tvdb?.forEach((tvdbId) =>
-          links.push({
-            key: `tvdb-${tvdbId}`,
-            label: `tvdb://${tvdbId}`,
-            href: `https://thetvdb.com/dereferrer/${tvdbEntityType}/${tvdbId}`,
-          }),
-        )
-      }
-
-      if (parentMetadata) {
-        if (isPlex) {
-          links.push({
-            key: `parent-plex-${parentMetadata.id}`,
-            label: `parent-plex://${parentMetadata.id}`,
-            href: plexUrl(parentMetadata.id),
-          })
-        }
-        parentMetadata.providerIds.tmdb?.forEach((tmdbId) =>
-          links.push({
-            key: `parent-tmdb-${tmdbId}`,
-            label: `parent-tmdb://${tmdbId}`,
-            href:
-              mediaType === 'episode'
-                ? showTmdbId &&
-                  (parentMetadata.index ?? metadata.parentIndex) != null
-                  ? `https://www.themoviedb.org/tv/${showTmdbId}/season/${parentMetadata.index ?? metadata.parentIndex}`
-                  : undefined
-                : `https://www.themoviedb.org/tv/${tmdbId}`,
-          }),
-        )
-      }
-
-      if (grandparentMetadata) {
-        if (isPlex) {
-          links.push({
-            key: `grandparent-plex-${grandparentMetadata.id}`,
-            label: `grandparent-plex://${grandparentMetadata.id}`,
-            href: plexUrl(grandparentMetadata.id),
-          })
-        }
-        grandparentMetadata.providerIds.tmdb?.forEach((tmdbId) =>
-          links.push({
-            key: `grandparent-tmdb-${tmdbId}`,
-            label: `grandparent-tmdb://${tmdbId}`,
-            href: `https://www.themoviedb.org/tv/${tmdbId}`,
-          }),
-        )
-      }
-
-      return links
-    }, [
-      grandparentMetadata,
-      isPlex,
-      machineId,
-      mediaType,
-      metadata,
-      parentMetadata,
-    ])
-    const footerLinks = useMemo<MetadataIdLink[]>(
-      () => [
-        ...metadataIdLinks,
-        ...servarrLinks.map((link) => ({
-          key: `${link.service}-${link.instanceName}`,
-          label: `${link.service}://${link.itemId}`,
-          href: link.href,
-        })),
-      ],
-      [metadataIdLinks, servarrLinks],
-    )
+    const tvdbEntityType = episodeTvdbId ? 'episode' : 'series'
+    const episodeCode =
+      mediaType === 'episode' && metadata?.index != null
+        ? `${
+            metadata.parentIndex != null
+              ? `S${String(metadata.parentIndex).padStart(2, '0')}-`
+              : ''
+          }E${String(metadata.index).padStart(2, '0')}`
+        : undefined
+    const modalHeading =
+      mediaType === 'episode'
+        ? [
+            grandparentMetadata?.title ?? metadata?.grandparentTitle ?? title,
+            episodeCode,
+            metadata?.title ? `(${metadata.title})` : undefined,
+          ]
+            .filter(Boolean)
+            .join(' ')
+        : `${title}${year ? ` (${year})` : ''}`
     const playCount = metadata?.viewCount ?? metadata?.watchedChildCount
     const hasMaintainerrData = Boolean(
       maintainerrContext &&
-      (maintainerrContext.memberships.length ||
+      ((showCollectionMemberships && maintainerrContext.memberships.length) ||
         maintainerrContext.exclusions.length),
     )
     const mediaFacts = [
@@ -531,7 +449,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
     return createPortal(
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-3"
-        onClick={onClose} // Close modal when clicking outside
+        onClick={backgroundClickable ? onClose : undefined}
       >
         <div
           className="relative max-h-[92vh] w-full max-w-5xl overflow-auto rounded-lg border border-zinc-600 bg-zinc-700 shadow-[0_0_32px_rgba(212,212,216,0.16),0_24px_48px_rgba(0,0,0,0.45)] ring-1 ring-zinc-300/20"
@@ -553,12 +471,18 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                     href={trailerUrl ?? undefined}
                     target="_blank"
                     rel="noreferrer"
+                    data-tooltip-id={`media-youtube-${id}`}
                     className="flex h-9 w-9 items-center justify-center rounded-md bg-black/80 text-white shadow transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-white/60"
                     aria-label="Open trailer on YouTube"
                     title="Open on YouTube"
                   >
                     <ArrowTopRightOnSquareIcon className="h-5 w-5" />
                   </a>
+                  <BackdropLinkTooltip
+                    id={`media-youtube-${id}`}
+                    label="YouTube"
+                    value={trailerVideoId}
+                  />
                   <button
                     type="button"
                     onClick={() => setPlayingTrailerFor(null)}
@@ -618,6 +542,35 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                         {`Rated: ${metadata.contentRating}`}
                       </div>
                     )}
+                    {servarrLinks.map((link) => {
+                      const tooltipId = `media-servarr-${id}-${link.service}-${link.itemId}`
+                      return (
+                        <React.Fragment key={tooltipId}>
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            data-tooltip-id={tooltipId}
+                            aria-label={`Open in ${link.instanceName}`}
+                            className="mt-1 flex h-8 items-center gap-2 rounded-lg bg-black bg-opacity-70 px-2 text-xs font-semibold capitalize text-zinc-100 shadow-lg transition hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-white/60"
+                          >
+                            <img
+                              src={`${basePath}/icons_logos/${link.service}.svg`}
+                              alt=""
+                              className="h-5 w-5"
+                            />
+                            {link.service}
+                          </a>
+                          <BackdropLinkTooltip
+                            id={tooltipId}
+                            label={
+                              link.service === 'radarr' ? 'Radarr' : 'Sonarr'
+                            }
+                            value={link.itemId}
+                          />
+                        </React.Fragment>
+                      )
+                    })}
                   </div>
                   {metadata?.ratings && metadata.ratings.length > 0 ? (
                     <div className="flex flex-wrap-reverse gap-1">
@@ -652,12 +605,13 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                 </div>
                 <div className="flex flex-col items-end">
                   <div className="max-w-fit grow">
-                    {resolvedTmdbId && (
+                    {mediaType === 'movie' && resolvedTmdbId && (
                       <div>
                         <a
                           href={`https://themoviedb.org/${mediaTypeOf}/${resolvedTmdbId}`}
                           target="_blank"
                           rel="noreferrer"
+                          data-tooltip-id={`media-tmdb-${id}`}
                         >
                           <img
                             src={`${basePath}/icons_logos/tmdb_logo.svg`}
@@ -667,14 +621,20 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                             className="h-8 w-32 rounded-lg bg-black bg-opacity-70 p-2 shadow-lg"
                           />
                         </a>
+                        <BackdropLinkTooltip
+                          id={`media-tmdb-${id}`}
+                          label="TMDB"
+                          value={resolvedTmdbId}
+                        />
                       </div>
                     )}
-                    {isPlex && (
+                    {isPlex && machineId && (
                       <div>
                         <a
                           href={`https://app.plex.tv/desktop#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${id}`}
                           target="_blank"
                           rel="noreferrer"
+                          data-tooltip-id={`media-plex-${id}`}
                         >
                           <img
                             src={`${basePath}/icons_logos/plex_logo.svg`}
@@ -684,6 +644,11 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                             className="mt-1 h-8 w-32 rounded-lg bg-black bg-opacity-70 p-1 shadow-lg"
                           />
                         </a>
+                        <BackdropLinkTooltip
+                          id={`media-plex-${id}`}
+                          label="Plex"
+                          value={id}
+                        />
                       </div>
                     )}
                     {isJellyfin && serverUrl && (
@@ -692,6 +657,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                           href={`${serverUrl}/web/#/details?id=${id}`}
                           target="_blank"
                           rel="noreferrer"
+                          data-tooltip-id={`media-jellyfin-${id}`}
                         >
                           <img
                             src={`${basePath}/icons_logos/jellyfin.svg`}
@@ -701,6 +667,11 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                             className="mt-1 h-8 w-32 rounded-lg bg-black bg-opacity-70 p-1 shadow-lg"
                           />
                         </a>
+                        <BackdropLinkTooltip
+                          id={`media-jellyfin-${id}`}
+                          label="Jellyfin"
+                          value={id}
+                        />
                       </div>
                     )}
                     {isPlex && tautulliModalUrl && (
@@ -709,6 +680,7 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                           href={`${tautulliModalUrl}/info?rating_key=${id}&source=history`}
                           target="_blank"
                           rel="noreferrer"
+                          data-tooltip-id={`media-tautulli-${id}`}
                         >
                           <img
                             src={`${basePath}/icons_logos/tautulli_logo.svg`}
@@ -718,8 +690,58 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                             className="mt-1 h-8 w-32 rounded-lg bg-black bg-opacity-70 p-1.5 shadow-lg"
                           />
                         </a>
+                        <BackdropLinkTooltip
+                          id={`media-tautulli-${id}`}
+                          label="Tautulli"
+                          value={id}
+                        />
                       </div>
                     )}
+                    {imdbId ? (
+                      <div>
+                        <a
+                          href={`https://www.imdb.com/title/${imdbId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          data-tooltip-id={`media-imdb-${id}`}
+                          className="mt-1 flex h-8 w-32 items-center justify-center rounded-lg bg-black bg-opacity-70 p-1.5 shadow-lg transition hover:bg-opacity-90"
+                          aria-label="Open on IMDb"
+                        >
+                          <img
+                            src={`${basePath}/icons_logos/imdb_icon.svg`}
+                            alt="IMDb"
+                            className="h-6 w-auto"
+                          />
+                        </a>
+                        <BackdropLinkTooltip
+                          id={`media-imdb-${id}`}
+                          label="IMDb"
+                          value={imdbId}
+                        />
+                      </div>
+                    ) : null}
+                    {tvdbId ? (
+                      <div>
+                        <a
+                          href={`https://thetvdb.com/dereferrer/${tvdbEntityType}/${tvdbId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          data-tooltip-id={`media-tvdb-${id}`}
+                          className="mt-1 flex h-8 w-32 items-center justify-center rounded-lg bg-black bg-opacity-70 px-3 shadow-lg transition hover:bg-opacity-90"
+                        >
+                          <img
+                            src={`${basePath}/icons_logos/tvdb_logo.svg`}
+                            alt="TheTVDB"
+                            className="h-7 w-auto"
+                          />
+                        </a>
+                        <BackdropLinkTooltip
+                          id={`media-tvdb-${id}`}
+                          label="TVDB"
+                          value={tvdbId}
+                        />
+                      </div>
+                    ) : null}
                     {trailerUrl && trailerVideoId && (
                       <div>
                         <button
@@ -756,10 +778,16 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
             <div
               className={`${cast.length ? '' : 'border-b border-zinc-800'} py-4`}
             >
-              <h2 className="text-xl font-semibold text-gray-100 sm:text-2xl">
-                {title}
-                {year ? ` (${year})` : ''}
-              </h2>
+              <div className="flex items-baseline justify-between gap-4">
+                <h2 className="min-w-0 text-xl font-semibold text-gray-100 sm:text-2xl">
+                  {modalHeading}
+                </h2>
+                {mediaType === 'episode' && metadata?.originallyAvailableAt ? (
+                  <span className="shrink-0 whitespace-nowrap text-sm text-zinc-400">
+                    Aired {formatDate(metadata.originallyAvailableAt)}
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-2 text-sm leading-6 text-gray-300 sm:text-base">
                 {summary || metadata?.summary || 'No summary available.'}
               </p>
@@ -811,25 +839,27 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               </section>
             )}
 
-            <div className="grid grid-cols-2 border-b border-zinc-800 sm:grid-cols-3 lg:grid-cols-6">
-              {mediaFacts.map((fact) => {
-                const Icon = fact.icon
-                return (
-                  <div
-                    key={fact.label}
-                    className="min-w-0 border-b border-zinc-800 px-2 py-4 last:border-b-0 sm:px-3 lg:border-b-0"
-                  >
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{fact.label}</span>
+            {showMediaFacts ? (
+              <div className="grid grid-cols-2 border-b border-zinc-800 sm:grid-cols-3 lg:grid-cols-6">
+                {mediaFacts.map((fact) => {
+                  const Icon = fact.icon
+                  return (
+                    <div
+                      key={fact.label}
+                      className="min-w-0 border-b border-zinc-800 px-2 py-4 last:border-b-0 sm:px-3 lg:border-b-0"
+                    >
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{fact.label}</span>
+                      </div>
+                      <div className="mt-1 truncate text-sm font-medium text-zinc-100">
+                        {fact.value}
+                      </div>
                     </div>
-                    <div className="mt-1 truncate text-sm font-medium text-zinc-100">
-                      {fact.value}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            ) : null}
 
             {(contextLoading || hasMaintainerrData) && (
               <section className="border-b border-zinc-800 py-5">
@@ -838,7 +868,8 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                 ) : (
                   <div>
                     <div className="space-y-5">
-                      {maintainerrContext?.memberships.length ? (
+                      {showCollectionMemberships &&
+                      maintainerrContext?.memberships.length ? (
                         <div>
                           <h4 className="text-xs font-medium uppercase text-zinc-500">
                             Collections
@@ -934,31 +965,8 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
               </section>
             )}
 
-            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              {footerLinks.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1 text-xs text-zinc-400">
-                  {footerLinks.map((metadataId) => {
-                    const className =
-                      'flex items-center justify-center rounded bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300'
-                    return metadataId.href ? (
-                      <a
-                        key={metadataId.key}
-                        href={metadataId.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`${className} transition hover:bg-zinc-900 hover:text-white`}
-                      >
-                        {metadataId.label}
-                      </a>
-                    ) : (
-                      <span key={metadataId.key} className={className}>
-                        {metadataId.label}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-              {onManage ? (
+            {onManage ? (
+              <div className="mt-4 flex justify-end">
                 <button
                   type="button"
                   onClick={onManage}
@@ -967,8 +975,13 @@ const MediaModalContent: React.FC<ModalContentProps> = memo(
                   <AdjustmentsVerticalIcon className="mr-2 h-4 w-4" />
                   Manage
                 </button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
+            {footerContent ? (
+              <div className="mt-5 border-t border-zinc-800 pt-5">
+                {footerContent}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>,
