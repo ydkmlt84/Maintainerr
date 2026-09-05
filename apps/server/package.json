@@ -40,7 +40,7 @@
     "@types/express": "^5.0.6",
     "axios": "^1.20.0",
     "axios-retry": "^4.5.0",
-    "better-sqlite3": "^12.11.1",
+    "better-sqlite3": "^13.0.3",
     "chalk": "^4.1.2",
     "cron": "^4.4.0",
     "cron-validator": "^1.4.0",
