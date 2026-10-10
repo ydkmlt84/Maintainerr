@@ -13,6 +13,7 @@ import { Exclusion } from '../rules/entities/exclusion.entities'
 import { RuleGroup } from '../rules/entities/rule-group.entities'
 import { Rules } from '../rules/entities/rules.entities'
 import { DatabaseDownloadService } from './database-download.service'
+import { BackendDiagnosticsService } from './backend-diagnostics.service'
 import { RadarrSettings } from './entities/radarr_settings.entities'
 import { Settings } from './entities/settings.entities'
 import { SonarrSettings } from './entities/sonarr_settings.entities'
@@ -47,6 +48,7 @@ import { SettingsService } from './settings.service'
     RuleMigrationService,
     MediaServerSwitchService,
     DatabaseDownloadService,
+    BackendDiagnosticsService,
   ],
   exports: [SettingsService, RuleMigrationService, MediaServerSwitchService],
   controllers: [SettingsController],

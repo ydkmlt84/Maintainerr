@@ -22,6 +22,7 @@ import Button from '../../Common/Button'
 import LoadingSpinner from '../../Common/LoadingSpinner'
 import Modal from '../../Common/Modal'
 import DatabaseBackupModal from '../Main/DatabaseBackupModal'
+import BackendDiagnosticsPanel from './BackendDiagnosticsPanel'
 
 type CronBuilderMode =
   'minutes' | 'hours' | 'days' | 'daily' | 'weekly' | 'monthly'
@@ -93,7 +94,6 @@ const JobSettings = () => {
   const collectionHandlerRef = useRef<HTMLInputElement>(null)
   const mediaIdAuditRef = useRef<HTMLInputElement>(null)
   const plexTrashEmptyRef = useRef<HTMLInputElement>(null)
-  const imageCacheMaxGbRef = useRef<HTMLInputElement>(null)
   const emptyTrashButtonRef = useRef<HTMLDivElement>(null)
   const [cronValidity, setCronValidity] = useState({
     rules: true,
@@ -123,12 +123,10 @@ const JobSettings = () => {
   const [builderWeekDay, setBuilderWeekDay] = useState(0)
   const [builderMonthDay, setBuilderMonthDay] = useState(1)
   const { settings } = useSettingsOutletContext()
-  const [imageCacheLimitError, setImageCacheLimitError] = useState(false)
   const tasks = useScheduledTasks()
   const runScheduledTask = useRunScheduledTask()
   const runAudit = useRunMediaIdAudit()
   const updateSettings = usePatchSettings()
-  const updateImageCacheSettings = usePatchSettings()
   const normalizedBuilderInterval = builderInterval || 1
 
   const builderExpression = (() => {
@@ -351,22 +349,6 @@ const JobSettings = () => {
       plex_trash_empty_job_cron: plexTrashEmpty.trim(),
     })
     await tasks.refetch()
-  }
-
-  const saveImageCacheLimit = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault()
-    const value = Number(imageCacheMaxGbRef.current?.value)
-    if (!Number.isFinite(value) || value < 1 || value > 1000) {
-      setImageCacheLimitError(true)
-      return
-    }
-
-    setImageCacheLimitError(false)
-    await updateImageCacheSettings.mutateAsync({
-      image_cache_max_gb: Math.round(value),
-    })
   }
 
   const cronField = (
@@ -649,6 +631,8 @@ const JobSettings = () => {
           <DatabaseBackupModal onClose={() => setShowDatabaseBackup(false)} />
         )}
 
+        <BackendDiagnosticsPanel />
+
         <div className="section">
           <h3 className="heading underline decoration-zinc-600 underline-offset-4">
             Maintenance
@@ -733,59 +717,6 @@ const JobSettings = () => {
               </Button>
             </div>
           </div>
-          <form
-            onSubmit={saveImageCacheLimit}
-            className="mt-5 border-t border-zinc-700 pt-5"
-          >
-            {imageCacheLimitError && (
-              <Alert
-                type="error"
-                title="Enter an image cache limit between 1 and 1000 GB."
-              />
-            )}
-            {updateImageCacheSettings.isError && (
-              <Alert
-                type="error"
-                title="The image cache limit could not be updated."
-              />
-            )}
-            {updateImageCacheSettings.isSuccess && (
-              <Alert type="info" title="Image cache limit updated." />
-            )}
-            <div className="form-row">
-              <label htmlFor="imageCacheMaxGb" className="text-label">
-                Image Cache Limit
-                <p className="text-xs font-normal">
-                  Maximum disk space for cached posters, backdrops, and actor
-                  images.
-                </p>
-              </label>
-              <div className="form-input flex items-center gap-2">
-                <div className="form-input-field w-28 flex-none">
-                  <input
-                    key={settings.image_cache_max_gb ?? 10}
-                    id="imageCacheMaxGb"
-                    name="imageCacheMaxGb"
-                    type="number"
-                    ref={imageCacheMaxGbRef}
-                    min={1}
-                    max={1000}
-                    step={1}
-                    defaultValue={settings.image_cache_max_gb ?? 10}
-                  />
-                </div>
-                <span className="text-sm text-zinc-400">GB</span>
-                <Button
-                  buttonType="primary"
-                  type="submit"
-                  disabled={updateImageCacheSettings.isPending}
-                >
-                  <ArrowDownOnSquareIcon className="mr-2 h-4 w-4" />
-                  <span>Save</span>
-                </Button>
-              </div>
-            </div>
-          </form>
         </div>
 
         <div className="section w-full">

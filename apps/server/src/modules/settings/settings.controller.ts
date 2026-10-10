@@ -30,6 +30,7 @@ import {
 import { Response } from 'express'
 import { ZodValidationPipe } from 'nestjs-zod'
 import { DatabaseDownloadService } from './database-download.service'
+import { BackendDiagnosticsService } from './backend-diagnostics.service'
 import { CronScheduleDto } from "./dto's/cron.schedule.dto"
 import { RadarrSettingRawDto } from "./dto's/radarr-setting.dto"
 import { SettingDto } from "./dto's/setting.dto"
@@ -45,6 +46,7 @@ export class SettingsController {
     private readonly settingsService: SettingsService,
     private readonly mediaServerSwitchService: MediaServerSwitchService,
     private readonly databaseDownloadService: DatabaseDownloadService,
+    private readonly backendDiagnosticsService: BackendDiagnosticsService,
   ) {}
 
   @Get()
@@ -62,6 +64,16 @@ export class SettingsController {
   @Get('/version')
   getVersion() {
     return this.settingsService.appVersion()
+  }
+
+  @Get('/diagnostics')
+  getBackendDiagnostics() {
+    return this.backendDiagnosticsService.run()
+  }
+
+  @Get('/image-cache/usage')
+  getImageCacheUsage() {
+    return this.backendDiagnosticsService.getImageCacheUsage()
   }
 
   @Get('/database/download')

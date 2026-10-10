@@ -1,5 +1,6 @@
 export * from './app'
 export * from './collections'
+export * from './diagnostics'
 export * from './events'
 export * from './media-server'
 export * from './rules'

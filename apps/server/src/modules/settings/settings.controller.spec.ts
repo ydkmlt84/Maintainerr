@@ -2,6 +2,7 @@ import { StreamableFile } from '@nestjs/common'
 import { Response } from 'express'
 import { createReadStream } from 'fs'
 import { DatabaseDownloadService } from './database-download.service'
+import { BackendDiagnosticsService } from './backend-diagnostics.service'
 import { Settings } from './entities/settings.entities'
 import { MediaServerSwitchService } from './media-server-switch.service'
 import { SettingsController } from './settings.controller'
@@ -30,6 +31,11 @@ describe('SettingsController', () => {
     getDatabaseDownload: jest.fn(),
   } as unknown as jest.Mocked<DatabaseDownloadService>
 
+  const backendDiagnosticsService = {
+    run: jest.fn(),
+    getImageCacheUsage: jest.fn(),
+  } as unknown as jest.Mocked<BackendDiagnosticsService>
+
   const createSettings = (overrides: Partial<Settings> = {}): Settings =>
     Object.assign(new Settings(), {
       tautulli_api_key: null,
@@ -48,7 +54,33 @@ describe('SettingsController', () => {
       settingsService,
       mediaServerSwitchService,
       databaseDownloadService,
+      backendDiagnosticsService,
     )
+  })
+
+  it('returns backend diagnostic results', async () => {
+    const diagnostics = {
+      status: 'success' as const,
+      checkedAt: '2026-09-02T12:00:00.000Z',
+      checks: [],
+    }
+    backendDiagnosticsService.run.mockResolvedValue(diagnostics)
+
+    await expect(controller.getBackendDiagnostics()).resolves.toEqual(
+      diagnostics,
+    )
+  })
+
+  it('returns image cache usage', async () => {
+    const usage = {
+      usedBytes: 25,
+      limitBytes: 100,
+      remainingBytes: 75,
+      percentage: 25,
+    }
+    backendDiagnosticsService.getImageCacheUsage.mockResolvedValue(usage)
+
+    await expect(controller.getImageCacheUsage()).resolves.toEqual(usage)
   })
 
   describe('settings endpoint field mapping', () => {

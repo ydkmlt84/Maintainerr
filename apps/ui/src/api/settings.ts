@@ -1,5 +1,7 @@
 import {
+  BackendDiagnostics,
   BasicResponseDto,
+  ImageCacheUsage,
   JellyfinSetting,
   MediaServerSwitchPreview,
   MediaServerType,
@@ -89,6 +91,36 @@ export const useSettings = (options?: UseSettingsOptions) => {
 
 export type UseSettingsResult = ReturnType<typeof useSettings>
 
+export const useBackendDiagnostics = () =>
+  useQuery({
+    queryKey: ['settings', 'diagnostics'],
+    queryFn: async () => {
+      const startedAt = Date.now()
+      const result = await GetApiHandler<BackendDiagnostics>(
+        '/settings/diagnostics',
+      )
+      const remainingDisplayTime = 700 - (Date.now() - startedAt)
+      if (remainingDisplayTime > 0) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, remainingDisplayTime),
+        )
+      }
+      return result
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+
+export const useImageCacheUsage = () =>
+  useQuery({
+    queryKey: ['settings', 'image-cache-usage'],
+    queryFn: () =>
+      GetApiHandler<ImageCacheUsage>('/settings/image-cache/usage'),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+
 type UsePatchSettingsOptions = Omit<
   UseMutationOptions<BasicResponseDto, Error, Partial<ISettings>>,
   'mutationFn' | 'mutationKey' | 'onSuccess'
@@ -105,6 +137,12 @@ export const usePatchSettings = (options?: UsePatchSettingsOptions) => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['settings'] satisfies UseSettingsQueryKey,
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['settings', 'diagnostics'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['settings', 'image-cache-usage'],
       })
     },
     ...options,

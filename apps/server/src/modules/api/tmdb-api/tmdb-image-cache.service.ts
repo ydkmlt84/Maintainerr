@@ -5,7 +5,7 @@ import axios from 'axios'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { dataDir } from '../../../app/config/databasePath'
+import { resolveImageCachePath } from '../../../app/config/imageCachePath'
 import { MaintainerrLogger } from '../../logging/logs.service'
 import { Settings } from '../../settings/entities/settings.entities'
 import { SettingsService } from '../../settings/settings.service'
@@ -55,8 +55,7 @@ const BROWSER_MAX_AGE_SECONDS: Record<TmdbImageScope | 'actors', number> = {
 
 @Injectable()
 export class TmdbImageCacheService implements OnModuleInit, OnModuleDestroy {
-  private readonly cacheRoot =
-    process.env.IMAGE_CACHE_DIR?.trim() || path.join(dataDir, 'cache', 'tmdb')
+  private readonly cacheRoot = resolveImageCachePath()
   private readonly pendingDownloads = new Map<
     string,
     Promise<CachedTmdbImage | null>
